@@ -1,0 +1,139 @@
+@import "tailwindcss";
+
+/* ── Design tokens ──────────────────────────────────────────────── */
+:root {
+  /* Brand gradient – purple → violet */
+  --brand-from: 262 83% 58%;
+  --brand-to: 291 91% 52%;
+
+  /* Surfaces */
+  --bg: 240 10% 98%;
+  --bg-subtle: 240 6% 93%;
+  --surface: 0 0% 100%;
+  --surface-2: 240 5% 96%;
+  --border: 240 6% 90%;
+  --border-subtle: 240 6% 94%;
+
+  /* Text */
+  --text: 240 10% 10%;
+  --text-muted: 240 5% 45%;
+  --text-faint: 240 4% 65%;
+
+  /* Status */
+  --success: 142 71% 45%;
+  --warning: 38 92% 50%;
+  --danger: 0 84% 60%;
+
+  /* Radii */
+  --r-sm: 6px;
+  --r: 10px;
+  --r-lg: 16px;
+  --r-xl: 24px;
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px hsl(240 10% 0% / 0.04);
+  --shadow-sm: 0 1px 4px hsl(240 10% 0% / 0.08);
+  --shadow: 0 4px 12px hsl(240 10% 0% / 0.1);
+  --shadow-lg: 0 8px 30px hsl(240 10% 0% / 0.14);
+}
+
+.dark {
+  --bg: 240 10% 7%;
+  --bg-subtle: 240 8% 10%;
+  --surface: 240 8% 11%;
+  --surface-2: 240 7% 15%;
+  --border: 240 6% 20%;
+  --border-subtle: 240 6% 16%;
+  --text: 240 5% 96%;
+  --text-muted: 240 4% 60%;
+  --text-faint: 240 4% 40%;
+  --shadow-xs: 0 1px 2px hsl(240 10% 0% / 0.3);
+  --shadow-sm: 0 1px 4px hsl(240 10% 0% / 0.4);
+  --shadow: 0 4px 12px hsl(240 10% 0% / 0.45);
+  --shadow-lg: 0 8px 30px hsl(240 10% 0% / 0.55);
+}
+
+/* Radix UI + Sonner interop */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  background: hsl(var(--bg));
+  color: hsl(var(--text));
+}
+
+/* Brand gradient helpers */
+.gradient-brand {
+  background: linear-gradient(135deg, hsl(var(--brand-from)), hsl(var(--brand-to)));
+}
+.gradient-brand-text {
+  background: linear-gradient(135deg, hsl(var(--brand-from)), hsl(var(--brand-to)));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.gradient-bg {
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -10%, hsl(var(--brand-from) / 0.15) 0%, transparent 60%),
+    hsl(var(--bg));
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--text-faint));
+}
+
+/* Focus ring */
+:focus-visible {
+  outline: 2px solid hsl(var(--brand-from));
+  outline-offset: 2px;
+}
+
+/* Tailwind v4 theme bridge (maps to CSS vars above) */
+@theme {
+  --color-bg: hsl(var(--bg));
+  --color-bg-subtle: hsl(var(--bg-subtle));
+  --color-surface: hsl(var(--surface));
+  --color-surface-2: hsl(var(--surface-2));
+  --color-border: hsl(var(--border));
+  --color-border-subtle: hsl(var(--border-subtle));
+  --color-text: hsl(var(--text));
+  --color-text-muted: hsl(var(--text-muted));
+  --color-text-faint: hsl(var(--text-faint));
+  --color-success: hsl(var(--success));
+  --color-warning: hsl(var(--warning));
+  --color-danger: hsl(var(--danger));
+  --radius-sm: var(--r-sm);
+  --radius: var(--r);
+  --radius-lg: var(--r-lg);
+  --radius-xl: var(--r-xl);
+}

@@ -1,0 +1,45 @@
+import { create } from "zustand";
+
+type AuthState = {
+  accessToken: string | undefined;
+  refreshToken: string | undefined;
+  serverUrl: string;
+  userId: string | undefined;
+  userEmail: string | undefined;
+  deviceId: string | undefined;
+  isAuthenticated: boolean;
+  setTokens: (accessToken: string, refreshToken: string) => void;
+  setServerUrl: (url: string) => void;
+  setDeviceId: (deviceId: string) => void;
+  setUserId: (userId: string) => void;
+  setUserEmail: (email: string) => void;
+  logout: () => void;
+};
+
+export const useAuthStore = create<AuthState>()((set) => ({
+  accessToken: undefined,
+  refreshToken: undefined,
+  serverUrl: "http://localhost:3001",
+  userId: undefined,
+  userEmail: undefined,
+  deviceId: undefined,
+  isAuthenticated: false,
+
+  setTokens: (accessToken, refreshToken) =>
+    set({ accessToken, refreshToken, isAuthenticated: true }),
+
+  setServerUrl: (serverUrl) => set({ serverUrl }),
+  setDeviceId: (deviceId) => set({ deviceId }),
+  setUserId: (userId) => set({ userId }),
+  setUserEmail: (userEmail) => set({ userEmail }),
+
+  logout: () =>
+    set({
+      accessToken: undefined,
+      refreshToken: undefined,
+      userId: undefined,
+      userEmail: undefined,
+      deviceId: undefined,
+      isAuthenticated: false,
+    }),
+}));

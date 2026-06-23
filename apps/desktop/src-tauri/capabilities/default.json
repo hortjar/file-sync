@@ -1,0 +1,14 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "identifier": "default",
+  "description": "Default capabilities for FileSync desktop",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "store:default",
+    "sql:default",
+    "dialog:default",
+    "fs:default",
+    "notification:default"
+  ]
+}

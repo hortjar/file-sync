@@ -1,0 +1,119 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  ci:
+    name: 🔍 Lint & Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🍞 Install Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: 📦 Install dependencies
+        run: bun install
+
+      - name: 🧹 Lint
+        run: bun run lint
+
+      - name: 🔷 Typecheck (server + packages)
+        run: bun run typecheck
+
+      - name: 🖥️ Typecheck (desktop)
+        run: bun run --cwd apps/desktop typecheck
+
+  build-macos:
+    name: 🍎 Build macOS (Apple Silicon)
+    runs-on: macos-latest
+    needs: ci
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🍞 Install Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: 🦀 Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: ⚡ Restore Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./apps/desktop/src-tauri -> target"
+
+      - name: 📦 Install dependencies
+        run: bun install
+
+      - name: 🔨 Build Tauri app
+        id: tauri-build
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: apps/desktop
+          args: "--target aarch64-apple-darwin --bundles dmg"
+
+      - name: 🚀 Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: filesync-macos-arm64
+          path: "${{ join(fromJSON(steps.tauri-build.outputs.artifactPaths), '\n') }}"
+          if-no-files-found: error
+          retention-days: 30
+
+  build-windows:
+    name: 🪟 Build Windows (x64)
+    runs-on: windows-latest
+    needs: ci
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🍞 Install Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: 🦀 Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: ⚡ Restore Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./apps/desktop/src-tauri -> target"
+
+      - name: 📦 Install dependencies
+        run: bun install
+
+      - name: 🔨 Build Tauri app
+        id: tauri-build
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: apps/desktop
+          args: "--target x86_64-pc-windows-msvc --bundles nsis"
+
+      - name: 🚀 Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: filesync-windows-x64
+          path: "${{ join(fromJSON(steps.tauri-build.outputs.artifactPaths), '\n') }}"
+          if-no-files-found: error
+          retention-days: 30

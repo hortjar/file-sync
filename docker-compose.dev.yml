@@ -1,0 +1,41 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: filesync
+      POSTGRES_PASSWORD: filesync_dev
+      POSTGRES_DB: filesync_dev
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U filesync -d filesync_dev"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    ports:
+      - "5432:5432"
+
+  server:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    restart: unless-stopped
+    env_file: .env.dev
+    environment:
+      DATABASE_URL: postgresql://filesync:filesync_dev@postgres:5432/filesync_dev
+      NODE_ENV: development
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./apps/server/src:/app/apps/server/src
+      - ./packages/shared/src:/app/packages/shared/src
+      - ./data:/app/data
+    ports:
+      - "3001:3001"
+      - "9229:9229"
+    command: ["bun", "run", "--hot", "apps/server/src/index.ts"]
+
+volumes:
+  postgres_dev_data:

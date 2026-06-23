@@ -1,0 +1,37 @@
+{
+  "name": "file-sync",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently --names server,desktop --prefix-colors cyan,magenta --kill-others-on-fail \"bun --env-file .env.dev apps/server/src/index.ts\" \"bun run --cwd apps/desktop tauri:dev\"",
+    "dev:server": "bun --env-file .env.dev apps/server/src/index.ts",
+    "dev:desktop": "bun run --cwd apps/desktop tauri:dev",
+    "db": "docker compose -f docker-compose.local.yml up -d",
+    "db:stop": "docker compose -f docker-compose.local.yml down",
+    "migrate": "bun --env-file .env.dev apps/server/src/db/migrate.ts",
+    "seed": "bun --env-file .env.dev apps/server/src/db/seed.ts",
+    "generate:api": "bun run --cwd apps/desktop generate:api",
+    "lint": "prettier --check . && eslint .",
+    "typecheck": "tsc --noEmit -p tsconfig.base.json && bun run --filter './packages/*' typecheck && bun run --filter './apps/server' typecheck",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "build:mac": "bun run --cwd apps/desktop tauri build --target aarch64-apple-darwin --bundles app"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "concurrently": "^10.0.3",
+    "eslint": "^10.5.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import-x": "^4.16.2",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-unicorn": "^68.0.0",
+    "prettier": "^3.8.4",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.61.1"
+  }
+}

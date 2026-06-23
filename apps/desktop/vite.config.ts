@@ -1,0 +1,23 @@
+import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+  plugins: [tailwindcss(), react()],
+  resolve: {
+    alias: {
+      "@": new URL("src", import.meta.url).pathname,
+    },
+  },
+  clearScreen: false,
+  server: {
+    port: 1420,
+    strictPort: true,
+  },
+  envPrefix: ["VITE_", "TAURI_ENV_*"],
+  build: {
+    target: process.env["TAURI_ENV_PLATFORM"] === "windows" ? "chrome105" : "safari13",
+    minify: process.env["TAURI_ENV_DEBUG"] ? false : "esbuild",
+    sourcemap: !!process.env["TAURI_ENV_DEBUG"],
+  },
+});

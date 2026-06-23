@@ -1,0 +1,439 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { invoke } from "@tauri-apps/api/core";
+import { open } from "@tauri-apps/plugin-dialog";
+import { LinkIcon, Plus, Trash2 } from "lucide-react";
+import { type FormEvent, useState } from "react";
+import { toast } from "sonner";
+
+import { FolderIcon, FolderIconPicker } from "../components/FolderIconPicker";
+import { Button } from "../components/ui/button";
+import { Card, CardContent } from "../components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../components/ui/dialog";
+import { Input } from "../components/ui/input";
+import { Separator } from "../components/ui/separator";
+import {
+  deleteApiSyncFoldersByIdMutation,
+  getApiSyncFoldersOptions,
+  getApiSyncFoldersQueryKey,
+  patchApiSyncFoldersByIdMutation,
+  postApiSyncFoldersByIdLinksMutation,
+  postApiSyncFoldersMutation,
+} from "../generated/@tanstack/react-query.gen";
+import { useAuthStore } from "../stores/auth";
+import { useLinksStore } from "../stores/links";
+
+type LinkedDevice = { name: string; platform: string };
+type SyncFolder = {
+  id: string;
+  name: string;
+  iconKey: string;
+  iconColor: string | undefined;
+  createdAt: string;
+  devices: LinkedDevice[];
+};
+
+function toMessage(thrown: unknown): string {
+  return thrown instanceof Error ? thrown.message : "Unknown error";
+}
+
+function iconBg(color: string | undefined): string {
+  if (!color) return "hsl(var(--brand-from) / 0.1)";
+  const r = Number.parseInt(color.slice(1, 3), 16);
+  const g = Number.parseInt(color.slice(3, 5), 16);
+  const b = Number.parseInt(color.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, 0.1)`;
+}
+
+function iconBorder(color: string | undefined): string {
+  if (!color) return "hsl(var(--brand-from) / 0.2)";
+  const r = Number.parseInt(color.slice(1, 3), 16);
+  const g = Number.parseInt(color.slice(3, 5), 16);
+  const b = Number.parseInt(color.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, 0.2)`;
+}
+
+function EmptyState({ onOpen }: { onOpen: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      <div className="mb-4 flex size-16 items-center justify-center rounded-2xl border border-[hsl(var(--brand-from)/.2)] bg-[hsl(var(--brand-from)/.1)]">
+        <FolderIcon iconKey="folder" className="size-8 text-[hsl(var(--brand-from)/.6)]" />
+      </div>
+      <h3 className="mb-1 text-base font-semibold text-[hsl(var(--text))]">No sync folders yet</h3>
+      <p className="mb-6 max-w-xs text-sm text-[hsl(var(--text-muted))]">
+        Create a sync folder, then link a local directory on each device you want to keep in sync.
+      </p>
+      <Button onClick={onOpen}>
+        <Plus className="size-4" />
+        Create first folder
+      </Button>
+    </div>
+  );
+}
+
+type FolderCardProperties = {
+  folder: SyncFolder;
+  linkedPath: string | undefined;
+  deviceId: string | undefined;
+  onLink: (folder: SyncFolder) => void;
+  onDelete: (id: string) => void;
+  onPickAppearance: (folder: SyncFolder) => void;
+  isDeleting: boolean;
+};
+
+function FolderCard({
+  folder,
+  linkedPath,
+  deviceId,
+  onLink,
+  onDelete,
+  onPickAppearance,
+  isDeleting,
+}: FolderCardProperties) {
+  const otherDevices = folder.devices;
+
+  return (
+    <Card className="group transition-shadow hover:shadow-[var(--shadow-sm)]">
+      <CardContent className="flex items-center gap-4 p-4">
+        <button
+          onClick={() => onPickAppearance(folder)}
+          title="Change icon and color"
+          className="flex size-10 shrink-0 items-center justify-center rounded-xl border transition-all"
+          style={{
+            backgroundColor: iconBg(folder.iconColor),
+            borderColor: iconBorder(folder.iconColor),
+          }}
+        >
+          <FolderIcon
+            iconKey={folder.iconKey}
+            color={folder.iconColor ?? undefined}
+            className="size-5 text-[hsl(var(--brand-from))]"
+          />
+        </button>
+
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium text-[hsl(var(--text))]">{folder.name}</p>
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            {linkedPath ? (
+              <span className="truncate text-xs text-[hsl(var(--text-faint))]">{linkedPath}</span>
+            ) : (
+              <span className="text-xs text-[hsl(var(--text-faint))]">
+                Created {new Date(folder.createdAt).toLocaleDateString()}
+              </span>
+            )}
+            {otherDevices.length > 0 && (
+              <span className="text-xs text-[hsl(var(--text-faint))] opacity-60">
+                · also on {otherDevices.map((d) => d.name).join(", ")}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+          {deviceId ? (
+            <Button variant="secondary" size="sm" onClick={() => onLink(folder)}>
+              <LinkIcon className="size-3.5" />
+              {linkedPath ? "Change path" : "Link folder"}
+            </Button>
+          ) : (
+            <span className="text-xs text-[hsl(var(--text-faint))]">Registering…</span>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            loading={isDeleting}
+            onClick={() => onDelete(folder.id)}
+            className="text-[hsl(var(--text-muted))] hover:text-[hsl(var(--danger))]"
+          >
+            <Trash2 className="size-4" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SectionHeader({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[hsl(var(--text-faint))]">
+      {children}
+    </p>
+  );
+}
+
+export function SyncFoldersPage() {
+  const queryClient = useQueryClient();
+  const deviceId = useAuthStore((s) => s.deviceId);
+  const setFolderPath = useLinksStore((s) => s.setFolderPath);
+  const folderPaths = useLinksStore((s) => s.folderPaths);
+
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [linkingFolder, setLinkingFolder] = useState<SyncFolder | undefined>(undefined);
+  const [appearanceFolder, setAppearanceFolder] = useState<SyncFolder | undefined>(undefined);
+  const [selectedPath, setSelectedPath] = useState<string | undefined>(undefined);
+
+  const { data, isLoading, isError } = useQuery(getApiSyncFoldersOptions());
+  const folders = (data as SyncFolder[] | undefined) ?? [];
+
+  const syncedFolders = folders.filter((f) => Object.hasOwn(folderPaths, f.id));
+  const unsyncedFolders = folders.filter((f) => !Object.hasOwn(folderPaths, f.id));
+
+  const newFolderMutation = useMutation({
+    ...postApiSyncFoldersMutation(),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: getApiSyncFoldersQueryKey() });
+      setIsCreateOpen(false);
+      toast.success("Sync folder created");
+    },
+    onError: (thrown) => {
+      toast.error("Failed to create folder", { description: toMessage(thrown) });
+    },
+  });
+
+  const appearanceMutation = useMutation({
+    ...patchApiSyncFoldersByIdMutation(),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: getApiSyncFoldersQueryKey() });
+    },
+    onError: (thrown) => {
+      toast.error("Failed to update appearance", { description: toMessage(thrown) });
+    },
+  });
+
+  const linkFolderMutation = useMutation({
+    ...postApiSyncFoldersByIdLinksMutation(),
+    onSuccess: (_, variables) => {
+      void queryClient.invalidateQueries({ queryKey: getApiSyncFoldersQueryKey() });
+      const syncFolderId = variables.path.id;
+      const localPath = variables.body.localPath;
+      setFolderPath(syncFolderId, localPath);
+      void invoke("start_watching", { syncFolderId, localPath });
+      setLinkingFolder(undefined);
+      setSelectedPath(undefined);
+      toast.success("Folder linked — sync starting");
+    },
+    onError: (thrown) => {
+      toast.error("Failed to link folder", { description: toMessage(thrown) });
+    },
+  });
+
+  const folderDeleteMutation = useMutation({
+    ...deleteApiSyncFoldersByIdMutation(),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: getApiSyncFoldersQueryKey() });
+      toast.success("Sync folder deleted");
+    },
+    onError: (thrown) => {
+      toast.error("Failed to delete folder", { description: toMessage(thrown) });
+    },
+  });
+
+  function handleCreate(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const name = (new FormData(event.currentTarget).get("name") as string | null) ?? "";
+    if (!name) return;
+    newFolderMutation.mutate({ body: { name } });
+  }
+
+  async function pickFolder() {
+    const path = await open({ directory: true, multiple: false });
+    if (typeof path === "string") setSelectedPath(path);
+  }
+
+  function handleLink() {
+    if (!linkingFolder || !selectedPath || !deviceId) return;
+    linkFolderMutation.mutate({
+      path: { id: linkingFolder.id },
+      body: { deviceId, localPath: selectedPath },
+    });
+  }
+
+  function closeLinkDialog(isOpen: boolean) {
+    if (isOpen) return;
+    setLinkingFolder(undefined);
+    setSelectedPath(undefined);
+  }
+
+  function handleAppearancePick(icon: string, color: string | undefined) {
+    if (!appearanceFolder) return;
+    appearanceMutation.mutate({
+      path: { id: appearanceFolder.id },
+      body:
+        color === undefined
+          ? { iconKey: icon, clearIconColor: true }
+          : { iconKey: icon, iconColor: color },
+    });
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-24 text-sm text-[hsl(var(--text-muted))]">
+        <div className="mr-2 size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+        Loading folders…
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-center">
+        <p className="mb-1 text-sm font-medium text-[hsl(var(--text))]">
+          Could not load sync folders
+        </p>
+        <p className="text-xs text-[hsl(var(--text-muted))]">
+          Check the server connection and try again.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-semibold text-[hsl(var(--text))]">Sync Folders</h1>
+          <p className="mt-0.5 text-sm text-[hsl(var(--text-muted))]">
+            {folders.length === 0
+              ? "No folders yet"
+              : `${syncedFolders.length} of ${folders.length} syncing on this device`}
+          </p>
+        </div>
+        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm">
+              <Plus className="size-3.5" />
+              New Folder
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>New Sync Folder</DialogTitle>
+              <DialogDescription>
+                Give it a name. Each device picks its own local directory to sync with it.
+              </DialogDescription>
+            </DialogHeader>
+            <form id="create-form" onSubmit={handleCreate}>
+              <Input name="name" label="Name" placeholder="e.g. Documents" required autoFocus />
+            </form>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setIsCreateOpen(false)}>
+                Cancel
+              </Button>
+              <Button form="create-form" type="submit" loading={newFolderMutation.isPending}>
+                Create
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {folders.length === 0 && <EmptyState onOpen={() => setIsCreateOpen(true)} />}
+
+      {syncedFolders.length > 0 && (
+        <section className="mb-6">
+          <SectionHeader>Syncing on this device</SectionHeader>
+          <div className="flex flex-col gap-2">
+            {syncedFolders.map((folder) => (
+              <FolderCard
+                key={folder.id}
+                folder={folder}
+                linkedPath={folderPaths[folder.id]}
+                deviceId={deviceId}
+                onLink={(f) => {
+                  setLinkingFolder(f);
+                  setSelectedPath(undefined);
+                }}
+                onDelete={(id) => folderDeleteMutation.mutate({ path: { id } })}
+                onPickAppearance={setAppearanceFolder}
+                isDeleting={folderDeleteMutation.isPending}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {unsyncedFolders.length > 0 && (
+        <section>
+          {syncedFolders.length > 0 && <Separator className="mb-5 bg-white/[0.06]" />}
+          <SectionHeader>Not synced on this device</SectionHeader>
+          <p className="mb-3 text-xs text-[hsl(var(--text-muted))]">
+            Click <strong>Link folder</strong> to choose a local directory to sync.
+          </p>
+          <div className="flex flex-col gap-2">
+            {unsyncedFolders.map((folder) => (
+              <FolderCard
+                key={folder.id}
+                folder={folder}
+                linkedPath={undefined}
+                deviceId={deviceId}
+                onLink={(f) => {
+                  setLinkingFolder(f);
+                  setSelectedPath(undefined);
+                }}
+                onDelete={(id) => folderDeleteMutation.mutate({ path: { id } })}
+                onPickAppearance={setAppearanceFolder}
+                isDeleting={folderDeleteMutation.isPending}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Appearance picker */}
+      {appearanceFolder && (
+        <FolderIconPicker
+          open
+          currentIcon={appearanceFolder.iconKey}
+          currentColor={appearanceFolder.iconColor}
+          onPick={handleAppearancePick}
+          onClose={() => setAppearanceFolder(undefined)}
+        />
+      )}
+
+      {/* Link local folder dialog */}
+      <Dialog open={linkingFolder !== undefined} onOpenChange={closeLinkDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Choose Local Folder</DialogTitle>
+            <DialogDescription>
+              Select the folder on this device to sync with <strong>{linkingFolder?.name}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2">
+            <div className="min-w-0 flex-1">
+              <Input
+                label="Local path"
+                value={selectedPath ?? ""}
+                readOnly
+                placeholder="No folder selected"
+              />
+            </div>
+            <Button variant="secondary" className="mt-6 shrink-0" onClick={() => void pickFolder()}>
+              Browse
+            </Button>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setLinkingFolder(undefined)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleLink}
+              loading={linkFolderMutation.isPending}
+              disabled={!selectedPath}
+            >
+              <LinkIcon className="size-4" />
+              Sync this folder
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
