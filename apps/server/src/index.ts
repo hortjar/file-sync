@@ -3,8 +3,10 @@ import { networkInterfaces } from "node:os";
 import { createApp } from "./app";
 
 function getLocalIp(): string | undefined {
-  for (const addrs of Object.values(networkInterfaces())) {
-    for (const addr of addrs ?? []) {
+  const interfaces = Object.values(networkInterfaces());
+  for (const addrs of interfaces) {
+    const addresses = addrs ?? [];
+    for (const addr of addresses) {
       if (addr.family === "IPv4" && !addr.internal) return addr.address;
     }
   }
