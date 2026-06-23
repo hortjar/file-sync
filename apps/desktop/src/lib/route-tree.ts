@@ -2,6 +2,7 @@ import { createRootRoute, createRoute } from "@tanstack/react-router";
 
 import { App } from "../App";
 import { ConflictsPage } from "../pages/Conflicts";
+import { FolderDetailPage } from "../pages/FolderDetail";
 import { LoginPage } from "../pages/Login";
 import { SettingsPage } from "../pages/Settings";
 import { SyncFoldersPage } from "../pages/SyncFolders";
@@ -20,6 +21,12 @@ const syncFoldersRoute = createRoute({
   component: SyncFoldersPage,
 });
 
+const folderDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/folders/$id",
+  component: FolderDetailPage,
+});
+
 const conflictsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/conflicts",
@@ -35,6 +42,7 @@ const settingsRoute = createRoute({
 export const routeTree = rootRoute.addChildren([
   loginRoute,
   syncFoldersRoute,
+  folderDetailRoute,
   conflictsRoute,
   settingsRoute,
 ]);

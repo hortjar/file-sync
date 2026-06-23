@@ -4,7 +4,9 @@ import { invoke } from "@tauri-apps/api/core";
 import { join } from "@tauri-apps/api/path";
 import { remove } from "@tauri-apps/plugin-fs";
 
+import { getApiSyncFoldersQueryKey } from "../generated/@tanstack/react-query.gen";
 import { fetchWithAuth } from "../lib/fetch-with-auth";
+import { queryClient } from "../lib/query";
 import { useAuthStore } from "../stores/auth";
 import { useLinksStore } from "../stores/links";
 import { useSyncStatusStore } from "../stores/sync-status";
@@ -121,6 +123,22 @@ async function handleMessage(event: MessageEvent): Promise<void> {
       await remove(localPath);
     } catch (error: unknown) {
       logger.error(`Failed to remove ${relativePath}`, error);
+    }
+    return;
+  }
+
+  if (message.type === "folder:created" || message.type === "folder:linked") {
+    void queryClient.invalidateQueries({ queryKey: getApiSyncFoldersQueryKey() });
+
+    if (message.type === "folder:linked") {
+      const localBase = folderPaths[message.payload.syncFolderId];
+      if (localBase) {
+        try {
+          await reconcile(message.payload.syncFolderId, localBase);
+        } catch (error: unknown) {
+          logger.error("Reconcile after folder:linked failed", error);
+        }
+      }
     }
   }
 }

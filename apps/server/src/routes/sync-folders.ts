@@ -1,9 +1,11 @@
+import type { WsMessage } from "@file-sync/shared";
 import { type SQL, and, eq, inArray, sql } from "drizzle-orm";
 import { Elysia, t } from "elysia";
 
 import { database } from "../db";
 import { deviceFolderLinks, devices, syncFolders } from "../db/schema";
 import { authPlugin } from "../middleware/auth";
+import { broadcast } from "../ws/connections";
 
 const patchAppearanceBody = t.Object({
   iconKey: t.Optional(t.String({ maxLength: 50 })),
@@ -67,6 +69,11 @@ export const syncFoldersRoutes = new Elysia({ prefix: "/api/sync-folders" })
         set.status = 500;
         return { message: "Failed to create sync folder" };
       }
+
+      broadcast(userId, "", {
+        type: "folder:created",
+        payload: { id: folder.id, name: folder.name },
+      } satisfies WsMessage);
 
       return {
         id: folder.id,
@@ -233,6 +240,11 @@ export const syncFoldersRoutes = new Elysia({ prefix: "/api/sync-folders" })
         set.status = 500;
         return { message: "Failed to link device" };
       }
+
+      broadcast(userId, body.deviceId, {
+        type: "folder:linked",
+        payload: { syncFolderId: params.id, deviceId: body.deviceId },
+      } satisfies WsMessage);
 
       return { ok: true };
     },

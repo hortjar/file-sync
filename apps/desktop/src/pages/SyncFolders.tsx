@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { LinkIcon, Plus, Trash2 } from "lucide-react";
@@ -85,6 +86,7 @@ type FolderCardProperties = {
   onLink: (folder: SyncFolder) => void;
   onDelete: (id: string) => void;
   onPickAppearance: (folder: SyncFolder) => void;
+  onViewDetail: (folder: SyncFolder) => void;
   isDeleting: boolean;
 };
 
@@ -95,6 +97,7 @@ function FolderCard({
   onLink,
   onDelete,
   onPickAppearance,
+  onViewDetail,
   isDeleting,
 }: FolderCardProperties) {
   const otherDevices = folder.devices;
@@ -119,7 +122,12 @@ function FolderCard({
         </button>
 
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-[hsl(var(--text))]">{folder.name}</p>
+          <button
+            onClick={() => onViewDetail(folder)}
+            className="truncate text-left text-sm font-medium text-[hsl(var(--text))] hover:text-[hsl(var(--brand-from))] hover:underline"
+          >
+            {folder.name}
+          </button>
           <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
             {linkedPath ? (
               <span className="truncate text-xs text-[hsl(var(--text-faint))]">{linkedPath}</span>
@@ -170,6 +178,7 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
 
 export function SyncFoldersPage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const deviceId = useAuthStore((s) => s.deviceId);
   const setFolderPath = useLinksStore((s) => s.setFolderPath);
   const folderPaths = useLinksStore((s) => s.folderPaths);
@@ -352,6 +361,7 @@ export function SyncFoldersPage() {
                 }}
                 onDelete={(id) => folderDeleteMutation.mutate({ path: { id } })}
                 onPickAppearance={setAppearanceFolder}
+                onViewDetail={(f) => void navigate({ to: "/folders/$id", params: { id: f.id } })}
                 isDeleting={folderDeleteMutation.isPending}
               />
             ))}
@@ -379,6 +389,7 @@ export function SyncFoldersPage() {
                 }}
                 onDelete={(id) => folderDeleteMutation.mutate({ path: { id } })}
                 onPickAppearance={setAppearanceFolder}
+                onViewDetail={(f) => void navigate({ to: "/folders/$id", params: { id: f.id } })}
                 isDeleting={folderDeleteMutation.isPending}
               />
             ))}

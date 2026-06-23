@@ -3,20 +3,13 @@ import type { FileEntry } from "./file-entry";
 
 export type WsMessage =
   | { type: "file:changed"; payload: FileEntry }
-  | {
-      type: "file:deleted";
-      payload: { syncFolderId: string; relativePath: string };
-    }
+  | { type: "file:deleted"; payload: { syncFolderId: string; relativePath: string } }
   | { type: "conflict:created"; payload: Conflict }
-  | {
-      type: "conflict:resolved";
-      payload: { conflictId: string; resolution: string };
-    }
-  | {
-      type: "device:connected";
-      payload: { deviceId: string; deviceName: string };
-    }
+  | { type: "conflict:resolved"; payload: { conflictId: string; resolution: string } }
+  | { type: "device:connected"; payload: { deviceId: string; deviceName: string } }
   | { type: "device:disconnected"; payload: { deviceId: string } }
+  | { type: "folder:created"; payload: { id: string; name: string } }
+  | { type: "folder:linked"; payload: { syncFolderId: string; deviceId: string } }
   | { type: "ping" }
   | { type: "pong" };
 
