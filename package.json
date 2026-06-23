@@ -17,7 +17,7 @@
     "seed": "bun --env-file .env.dev apps/server/src/db/seed.ts",
     "generate:api": "bun run --cwd apps/desktop generate:api",
     "lint": "prettier --check . && eslint .",
-    "typecheck": "tsc --noEmit -p tsconfig.base.json && bun run --filter './packages/*' typecheck && bun run --filter './apps/server' typecheck",
+    "typecheck": "bun run --filter './packages/*' typecheck && bun run --filter './apps/server' typecheck",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "build:mac": "bun run --cwd apps/desktop tauri build --target aarch64-apple-darwin --bundles app"

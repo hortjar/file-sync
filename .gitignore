@@ -20,8 +20,6 @@ out/
 # Tauri build output
 apps/desktop/src-tauri/target/
 
-# Generated API client (regenerated via bun run generate:api)
-apps/desktop/src/generated/
 
 # Bun
 bun.lock
