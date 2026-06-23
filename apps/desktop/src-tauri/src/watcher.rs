@@ -23,6 +23,7 @@ fn should_skip(path: &PathBuf) -> bool {
 }
 
 #[derive(serde::Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct FileChangeEvent {
     pub kind: String,
     pub paths: Vec<String>,

@@ -1,2 +1,3 @@
 # Generated files — formatting is controlled by the generator
 apps/desktop/src/generated/
+apps/desktop/src-tauri/gen/
