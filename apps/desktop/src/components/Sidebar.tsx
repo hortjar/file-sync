@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { AlertTriangle, FolderSync, LogOut, Settings, Wifi, WifiOff } from "lucide-react";
+import { AlertTriangle, FileText, FolderSync, LogOut, Settings, Wifi, WifiOff } from "lucide-react";
 
 import { useConflictCount } from "../hooks/use-conflict-count";
 import { cn } from "../lib/cn";
@@ -19,6 +19,7 @@ import { Separator } from "./ui/separator";
 const navItems = [
   { to: "/", label: "Sync Folders", icon: FolderSync },
   { to: "/conflicts", label: "Conflicts", icon: AlertTriangle },
+  { to: "/logs", label: "Logs", icon: FileText },
 ] as const;
 
 const navLinkClass = cn(

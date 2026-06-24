@@ -1,29 +1,42 @@
+import { type LogEntry, LogViewer } from "@file-sync/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { client } from "../generated/client.gen";
+import { cacheLogEntries } from "../lib/log-entry-cache";
 
 type LogLevel = "debug" | "info" | "warn" | "error";
-type LogEntry = { id: string; ts: string; level: LogLevel; msg: string; data?: unknown };
 type LevelResponse = { level: LogLevel };
-
-const LEVEL_COLOR: Record<LogLevel, string> = {
-  debug: "text-[hsl(var(--text-faint))]",
-  info: "text-blue-400",
-  warn: "text-amber-400",
-  error: "text-[hsl(var(--danger))]",
-};
 
 const LEVELS: LogLevel[] = ["debug", "info", "warn", "error"];
 
+// Extract [source] tag from message prefix
+const SOURCE_RE = /^\[(\w[\w-]*)\]\s*/u;
+
+function enrichEntries(raw: LogEntry[]): LogEntry[] {
+  return raw.map((entry) => {
+    if (entry.source) return entry;
+    const match = SOURCE_RE.exec(entry.msg);
+    if (!match) return entry;
+    return {
+      ...entry,
+      source: match[1],
+      msg: entry.msg.slice(match[0].length),
+    };
+  });
+}
+
 async function fetchLogs(viewLevel: LogLevel): Promise<LogEntry[]> {
   const response = await client.get({ url: "/api/logs", query: { level: viewLevel } });
-  return (response.data as LogEntry[]) ?? [];
+  const entries = enrichEntries((response.data as LogEntry[]) ?? []);
+  cacheLogEntries(entries);
+  return entries;
 }
 
 async function fetchServerLevel(): Promise<LevelResponse> {
@@ -42,6 +55,7 @@ const SERVER_LEVEL_QUERY_KEY = ["logs", "level"] as const;
 export function LogsPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [viewLevel, setViewLevel] = useState<LogLevel>("warn");
 
   const {
@@ -69,8 +83,12 @@ export function LogsPage() {
     },
   });
 
+  function handleViewDetail(entry: LogEntry) {
+    void navigate(`/logs/${entry.id}`);
+  }
+
   return (
-    <div>
+    <div className="flex h-full flex-col">
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-[hsl(var(--text))]">{t("logs.title")}</h1>
@@ -93,6 +111,7 @@ export function LogsPage() {
             {LEVELS.map((level) => (
               <button
                 key={level}
+                type="button"
                 onClick={() => setViewLevel(level)}
                 className={`rounded-lg border px-3 py-1.5 text-xs font-medium capitalize transition-all ${
                   viewLevel === level
@@ -114,6 +133,7 @@ export function LogsPage() {
             {LEVELS.map((level) => (
               <button
                 key={level}
+                type="button"
                 onClick={() => levelMutation.mutate(level)}
                 className={`rounded-lg border px-3 py-1.5 text-xs font-medium capitalize transition-all ${
                   serverLevel === level
@@ -128,44 +148,18 @@ export function LogsPage() {
         </div>
       </div>
 
-      <Card>
-        <CardHeader className="border-b border-[hsl(var(--border))]">
+      <Card className="min-h-0 flex-1 overflow-hidden">
+        <CardHeader className="border-b border-[hsl(var(--border))] py-3">
           <CardTitle className="font-mono text-sm">
             {logs.length} {logs.length === 1 ? "entry" : "entries"}
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
-          {logs.length === 0 ? (
-            <p className="py-10 text-center text-sm text-[hsl(var(--text-muted))]">
-              {t("logs.noLogs")}
-            </p>
-          ) : (
-            <div className="max-h-[600px] overflow-y-auto font-mono text-xs">
-              {logs.toReversed().map((entry) => (
-                <div
-                  key={entry.id}
-                  className="flex gap-3 border-b border-[hsl(var(--border-subtle))] px-4 py-2 last:border-0 hover:bg-[hsl(var(--surface-2))]"
-                >
-                  <span className="shrink-0 text-[hsl(var(--text-faint))]">
-                    {new Date(entry.ts).toLocaleTimeString()}
-                  </span>
-                  <span
-                    className={`w-12 shrink-0 font-semibold uppercase ${LEVEL_COLOR[entry.level]}`}
-                  >
-                    {entry.level}
-                  </span>
-                  <span className="break-all text-[hsl(var(--text))]">
-                    {entry.msg}
-                    {entry.data !== undefined && (
-                      <span className="ml-2 text-[hsl(var(--text-faint))]">
-                        {typeof entry.data === "string" ? entry.data : JSON.stringify(entry.data)}
-                      </span>
-                    )}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
+        <CardContent className="h-full p-0">
+          <LogViewer
+            entries={logs}
+            className="h-full overflow-y-auto"
+            onViewDetail={handleViewDetail}
+          />
         </CardContent>
       </Card>
     </div>

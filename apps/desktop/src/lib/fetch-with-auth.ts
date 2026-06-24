@@ -81,9 +81,9 @@ async function fetchOnce(url: string, init?: RequestInit): Promise<Response> {
 }
 
 function logRequestDebug(method: string, safe: string, init?: RequestInit): void {
-  const headers = serializeHeaders(init?.headers as Record<string, string> | undefined);
-  const body = serializeRequestBody(init);
-  logger.debug(`[http] → ${method} ${safe}\n  headers: ${headers}\n  body: ${body}`);
+  const requestHeaders = serializeHeaders(init?.headers as Record<string, string> | undefined);
+  const requestBody = serializeRequestBody(init);
+  logger.debug(`[http] → ${method} ${safe}`, { requestHeaders, requestBody });
 }
 
 async function logResponseDebug(
@@ -92,11 +92,14 @@ async function logResponseDebug(
   response: Response,
   elapsed: number,
 ): Promise<Response> {
-  const headers = serializeHeaders(response.headers);
-  const [body, original] = await peekResponseBody(response);
-  logger.debug(
-    `[http] ${label} ${safe} ${response.status} (${elapsed}ms)\n  headers: ${headers}\n  body: ${body}`,
-  );
+  const responseHeaders = serializeHeaders(response.headers);
+  const [responseBody, original] = await peekResponseBody(response);
+  logger.debug(`[http] ${label} ${safe} ${response.status} (${elapsed}ms)`, {
+    status: response.status,
+    ms: elapsed,
+    responseHeaders,
+    responseBody,
+  });
   return original;
 }
 

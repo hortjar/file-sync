@@ -15,6 +15,7 @@ import { Dashboard } from "./pages/Dashboard";
 import { DevicesPage } from "./pages/DevicesPage";
 import { FolderDetailPage } from "./pages/FolderDetailPage";
 import { FoldersPage } from "./pages/FoldersPage";
+import { LogDetailPage } from "./pages/LogDetailPage";
 import { Login } from "./pages/Login";
 import { LogsPage } from "./pages/LogsPage";
 import { useAuthStore } from "./stores/auth";
@@ -40,6 +41,7 @@ const router = createBrowserRouter([
       { path: "folders/:id", element: <FolderDetailPage /> },
       { path: "devices", element: <DevicesPage /> },
       { path: "logs", element: <LogsPage /> },
+      { path: "logs/:id", element: <LogDetailPage /> },
     ],
   },
   { path: "*", element: <Navigate to="/" replace /> },
