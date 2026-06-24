@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 type AuthState = {
   accessToken: string | undefined;
@@ -16,30 +17,35 @@ type AuthState = {
   logout: () => void;
 };
 
-export const useAuthStore = create<AuthState>()((set) => ({
-  accessToken: undefined,
-  refreshToken: undefined,
-  serverUrl: "http://localhost:3001",
-  userId: undefined,
-  userEmail: undefined,
-  deviceId: undefined,
-  isAuthenticated: false,
-
-  setTokens: (accessToken, refreshToken) =>
-    set({ accessToken, refreshToken, isAuthenticated: true }),
-
-  setServerUrl: (serverUrl) => set({ serverUrl }),
-  setDeviceId: (deviceId) => set({ deviceId }),
-  setUserId: (userId) => set({ userId }),
-  setUserEmail: (userEmail) => set({ userEmail }),
-
-  logout: () =>
-    set({
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
       accessToken: undefined,
       refreshToken: undefined,
+      serverUrl: "http://localhost:3001",
       userId: undefined,
       userEmail: undefined,
       deviceId: undefined,
       isAuthenticated: false,
+
+      setTokens: (accessToken, refreshToken) =>
+        set({ accessToken, refreshToken, isAuthenticated: true }),
+
+      setServerUrl: (serverUrl) => set({ serverUrl }),
+      setDeviceId: (deviceId) => set({ deviceId }),
+      setUserId: (userId) => set({ userId }),
+      setUserEmail: (userEmail) => set({ userEmail }),
+
+      logout: () =>
+        set({
+          accessToken: undefined,
+          refreshToken: undefined,
+          userId: undefined,
+          userEmail: undefined,
+          deviceId: undefined,
+          isAuthenticated: false,
+        }),
     }),
-}));
+    { name: "filesync-auth" },
+  ),
+);

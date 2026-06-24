@@ -38,25 +38,24 @@ function buildWsUrl(): string | undefined {
   return `${wsBase}/ws?token=${encodeURIComponent(accessToken)}&deviceId=${encodeURIComponent(deviceId)}`;
 }
 
-async function fetchFolderLinks(): Promise<DeviceLink[]> {
+async function fetchFolderLinks(): Promise<DeviceLink[] | undefined> {
   const { serverUrl, deviceId } = useAuthStore.getState();
-  if (!serverUrl || !deviceId) return [];
+  if (!serverUrl || !deviceId) return undefined;
 
   const response = await fetchWithAuth(`${serverUrl}/api/devices/${deviceId}/links`);
 
   if (!response.ok) {
     logger.error("Failed to fetch device folder links");
-    return [];
+    return undefined;
   }
 
   return (await response.json()) as DeviceLink[];
 }
 
-async function onConnect(): Promise<void> {
-  ws.reconnectDelay = WS_RECONNECT_MIN_MS;
-  useSyncStatusStore.getState().setStatus("idle");
-
+export async function loadAndRestoreLinks(): Promise<void> {
   const links = await fetchFolderLinks();
+  if (links === undefined) return;
+
   const paths: Record<string, string> = {};
   for (const link of links) {
     paths[link.syncFolderId] = link.localPath;
@@ -71,6 +70,12 @@ async function onConnect(): Promise<void> {
       logger.error("Reconcile failed", error);
     }
   }
+}
+
+async function onConnect(): Promise<void> {
+  ws.reconnectDelay = WS_RECONNECT_MIN_MS;
+  useSyncStatusStore.getState().setStatus("idle");
+  await loadAndRestoreLinks();
 }
 
 async function handleMessage(event: MessageEvent): Promise<void> {

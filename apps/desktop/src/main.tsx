@@ -11,21 +11,15 @@ import { router } from "./lib/router";
 import { registerDevice, startHeartbeat } from "./services/device";
 import { startSyncEngine } from "./services/sync-engine";
 import { scheduleTokenRefresh, stopTokenRefresh } from "./services/token-refresh";
-import { startWsClient } from "./services/ws-client";
+import { loadAndRestoreLinks, startWsClient } from "./services/ws-client";
 import { useAuthStore } from "./stores/auth";
 import { useLinksStore } from "./stores/links";
 import { useThemeStore } from "./stores/theme";
 
 initApiClient();
-
-// Restore auth header and token refresh if already authenticated (hot-reload / app restart)
-const { accessToken } = useAuthStore.getState();
-if (accessToken) {
-  setAuthHeader(accessToken);
-  scheduleTokenRefresh(accessToken);
-}
-
 useThemeStore.getState().initTheme();
+
+type AuthState = ReturnType<typeof useAuthStore.getState>;
 
 const services = {
   stopSyncEngine: undefined as (() => void) | undefined,
@@ -34,31 +28,53 @@ const services = {
   isRunning: false,
 };
 
-useAuthStore.subscribe((state) => {
-  if (state.isAuthenticated && !services.isRunning) {
-    services.isRunning = true;
+function startServices(state: AuthState): void {
+  if (!state.isAuthenticated || services.isRunning) return;
+  services.isRunning = true;
 
-    if (state.accessToken) scheduleTokenRefresh(state.accessToken);
+  if (state.accessToken) {
+    setAuthHeader(state.accessToken);
+    scheduleTokenRefresh(state.accessToken);
+  }
 
-    void registerDevice().then((deviceId) => {
-      services.stopHeartbeat = startHeartbeat(deviceId);
-      void startSyncEngine().then((stop) => {
-        services.stopSyncEngine = stop;
-      });
-      services.stopWsClient = startWsClient();
+  void registerDevice().then((deviceId) => {
+    services.stopHeartbeat = startHeartbeat(deviceId);
+
+    void loadAndRestoreLinks().catch((error: unknown) => {
+      console.error("Failed to load folder links on startup", error);
     });
-  } else if (!state.isAuthenticated && services.isRunning) {
-    services.isRunning = false;
-    stopTokenRefresh();
-    services.stopHeartbeat?.();
-    services.stopSyncEngine?.();
-    services.stopWsClient?.();
-    services.stopHeartbeat = undefined;
-    services.stopSyncEngine = undefined;
-    services.stopWsClient = undefined;
-    useLinksStore.getState().setFolderPaths({});
+
+    void startSyncEngine().then((stop) => {
+      services.stopSyncEngine = stop;
+    });
+
+    services.stopWsClient = startWsClient();
+  });
+}
+
+function stopServices(): void {
+  if (!services.isRunning) return;
+  services.isRunning = false;
+  stopTokenRefresh();
+  services.stopHeartbeat?.();
+  services.stopSyncEngine?.();
+  services.stopWsClient?.();
+  services.stopHeartbeat = undefined;
+  services.stopSyncEngine = undefined;
+  services.stopWsClient = undefined;
+  useLinksStore.getState().setFolderPaths({});
+}
+
+useAuthStore.subscribe((state) => {
+  if (state.isAuthenticated) {
+    startServices(state);
+  } else {
+    stopServices();
   }
 });
+
+// Handle the case where persist already hydrated synchronously before subscribe was set up
+startServices(useAuthStore.getState());
 
 const rootElement = document.querySelector("#root");
 if (!rootElement) throw new Error("Root element not found");
