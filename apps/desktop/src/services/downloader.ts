@@ -1,7 +1,10 @@
 import { join } from "@tauri-apps/api/path";
 import { mkdir, writeFile } from "@tauri-apps/plugin-fs";
 
-import { getApiSyncFoldersByIdQueryKey } from "../generated/@tanstack/react-query.gen";
+import {
+  getApiSyncFoldersByIdQueryKey,
+  getApiSyncStateBySyncFolderIdQueryKey,
+} from "../generated/@tanstack/react-query.gen";
 import { fetchWithAuth } from "../lib/fetch-with-auth";
 import { queryClient } from "../lib/query";
 import { useFileVersionsStore } from "../stores/file-versions";
@@ -31,25 +34,50 @@ export async function downloadFile(
   serverUrl: string,
 ): Promise<void> {
   const url = `${serverUrl}/api/sync/download/${fileEntryId}`;
+  logger.info(`[download] fetching ${relativePath} from ${url}`);
+
   const response = await fetchWithAuth(url);
+  logger.info(
+    `[download] response status=${response.status} ok=${String(response.ok)} for ${relativePath}`,
+  );
 
   if (!response.ok) {
-    throw new Error(`Download failed: ${response.status} ${await response.text()}`);
+    const text = await response.text();
+    throw new Error(`Download failed: ${response.status} ${text}`);
   }
 
   const buffer = new Uint8Array(await response.arrayBuffer());
+  logger.info(`[download] buffer size=${buffer.byteLength} bytes for ${relativePath}`);
+
   const localPath = await join(localBasePath, relativePath);
   const directory = localPath.split("/").slice(0, -1).join("/");
+  logger.info(`[download] localPath=${localPath} directory=${directory}`);
 
-  await mkdir(directory, { recursive: true });
+  try {
+    await mkdir(directory, { recursive: true });
+    logger.info(`[download] mkdir ok: ${directory}`);
+  } catch (mkdirError: unknown) {
+    logger.error(`[download] mkdir failed for ${directory}`, mkdirError);
+    throw mkdirError;
+  }
 
   markExpectedWrite(localPath, contentHash);
-  await writeFile(localPath, buffer);
+
+  try {
+    await writeFile(localPath, buffer);
+    logger.info(`[download] writeFile ok: ${localPath}`);
+  } catch (writeError: unknown) {
+    logger.error(`[download] writeFile failed for ${localPath}`, writeError);
+    throw writeError;
+  }
 
   useFileVersionsStore.getState().setVersion(syncFolderId, relativePath, version);
 
   void queryClient.invalidateQueries({
     queryKey: getApiSyncFoldersByIdQueryKey({ path: { id: syncFolderId } }),
   });
-  logger.debug(`Downloaded: ${relativePath}`);
+  void queryClient.invalidateQueries({
+    queryKey: getApiSyncStateBySyncFolderIdQueryKey({ path: { syncFolderId } }),
+  });
+  logger.info(`[download] complete: ${relativePath}`);
 }

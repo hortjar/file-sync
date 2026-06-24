@@ -1,5 +1,3 @@
-import { Readable } from "node:stream";
-
 import type { WsMessage } from "@file-sync/shared";
 import { and, eq, isNull } from "drizzle-orm";
 import { Elysia, t } from "elysia";
@@ -270,10 +268,11 @@ export const syncRoutes = new Elysia({ prefix: "/api/sync" })
         return { message: "Access denied" };
       }
 
-      const nodeStream = await readBlob(entry.contentHash);
+      const data = await readBlob(entry.contentHash);
       set.headers["Content-Disposition"] =
         `attachment; filename="${entry.relativePath.split("/").at(-1) ?? "file"}"`;
-      return new Response(Readable.toWeb(nodeStream) as ReadableStream);
+      set.headers["Content-Type"] = "application/octet-stream";
+      return new Response(data);
     },
     {
       params: t.Object({ fileEntryId: t.String() }),

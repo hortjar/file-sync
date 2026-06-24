@@ -10,9 +10,11 @@ import {
   HardDrive,
   Monitor,
   RefreshCw,
+  RotateCcw,
   XCircle,
 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { FolderIcon } from "../components/FolderIconPicker";
 import { Button } from "../components/ui/button";
@@ -23,6 +25,7 @@ import {
   getApiSyncStateBySyncFolderIdOptions,
   getApiSyncStateBySyncFolderIdQueryKey,
 } from "../generated/@tanstack/react-query.gen";
+import { reconcile } from "../services/reconciler";
 import { useAuthStore } from "../stores/auth";
 import { useLinksStore } from "../stores/links";
 
@@ -200,6 +203,9 @@ export function FolderDetailPage() {
   const folderPaths = useLinksStore((s) => s.folderPaths);
   const localPathInStore = folderPaths[folderId];
 
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [isDevicesExpanded, setIsDevicesExpanded] = useState(true);
+
   const { data: foldersData } = useQuery(getApiSyncFoldersOptions());
   const folder = ((foldersData as SyncFolder[] | undefined) ?? []).find((f) => f.id === folderId);
 
@@ -225,6 +231,22 @@ export function FolderDetailPage() {
     void queryClient.invalidateQueries({
       queryKey: getApiSyncFoldersByIdQueryKey({ path: { id: folderId } }),
     });
+  }
+
+  async function handleForceSync() {
+    if (!localPathInStore || isSyncing) return;
+    setIsSyncing(true);
+    try {
+      await reconcile(folderId, localPathInStore);
+      handleRefresh();
+      toast.success("Force sync complete");
+    } catch (error: unknown) {
+      toast.error("Sync failed", {
+        description: error instanceof Error ? error.message : "Unknown error",
+      });
+    } finally {
+      setIsSyncing(false);
+    }
   }
 
   return (
@@ -262,6 +284,17 @@ export function FolderDetailPage() {
           <span className="text-xs text-[hsl(var(--text-faint))]">
             {entries.length} {entries.length === 1 ? "file" : "files"}
           </span>
+          {localPathInStore && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => void handleForceSync()}
+              title="Force sync"
+              loading={isSyncing}
+            >
+              <RotateCcw className="size-4" />
+            </Button>
+          )}
           <Button variant="ghost" size="icon" onClick={handleRefresh} title="Refresh">
             <RefreshCw className="size-4" />
           </Button>
@@ -270,63 +303,77 @@ export function FolderDetailPage() {
 
       {/* Server-confirmed sync status */}
       <div className="mb-4 rounded-lg border border-white/[0.07] bg-white/[0.03]">
-        <div className="flex items-center justify-between border-b border-white/[0.05] px-4 py-3">
+        <button
+          className="flex w-full items-center justify-between border-b border-white/[0.05] px-4 py-3"
+          onClick={() => setIsDevicesExpanded((v) => !v)}
+        >
           <span className="text-xs font-semibold uppercase tracking-wider text-[hsl(var(--text-faint))]">
             Linked Devices
           </span>
-          {isServerFolderLoading && (
-            <div className="size-3 animate-spin rounded-full border border-current border-t-transparent text-[hsl(var(--text-faint))]" />
-          )}
-        </div>
-
-        {serverFolder && serverFolder.links.length === 0 && (
-          <p className="px-4 py-3 text-xs text-[hsl(var(--text-faint))]">No devices linked yet.</p>
-        )}
-
-        {serverFolder?.links.map((link) => {
-          const isThis = link.deviceId === deviceId;
-          return (
-            <div
-              key={link.deviceId}
-              className="flex items-start gap-3 border-b border-white/[0.04] px-4 py-3 last:border-0"
-            >
-              <Monitor className="mt-0.5 size-3.5 shrink-0 text-[hsl(var(--text-faint))]" />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-[hsl(var(--text))]">
-                    {link.deviceName}
-                  </span>
-                  {isThis && (
-                    <span className="rounded-full bg-[hsl(var(--brand-from)/.15)] px-1.5 py-0.5 text-[10px] font-medium text-[hsl(var(--brand-from))]">
-                      this device
-                    </span>
-                  )}
-                  <span className="capitalize text-xs text-[hsl(var(--text-faint))]">
-                    {link.platform}
-                  </span>
-                </div>
-                <p className="mt-0.5 truncate font-mono text-[11px] text-[hsl(var(--text-faint))]">
-                  {link.localPath}
-                </p>
-              </div>
-              <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-green-500" />
-            </div>
-          );
-        })}
-
-        {/* This device not linked on server */}
-        {!isServerFolderLoading && !thisDeviceLink && (
-          <div className="flex items-center gap-3 border-t border-white/[0.04] px-4 py-3">
-            <XCircle className="size-4 shrink-0 text-[hsl(var(--text-faint))]" />
-            <div className="min-w-0 flex-1">
-              <p className="text-sm text-[hsl(var(--text-muted))]">
-                This device is not linked on the server.
-              </p>
-              <p className="mt-0.5 text-xs text-[hsl(var(--text-faint))]">
-                Go back and use "Link folder" to connect a local directory.
-              </p>
-            </div>
+          <div className="flex items-center gap-2">
+            {isServerFolderLoading && (
+              <div className="size-3 animate-spin rounded-full border border-current border-t-transparent text-[hsl(var(--text-faint))]" />
+            )}
+            <ChevronDown
+              className={`size-3.5 text-[hsl(var(--text-faint))] transition-transform ${isDevicesExpanded ? "" : "-rotate-90"}`}
+            />
           </div>
+        </button>
+
+        {isDevicesExpanded && (
+          <>
+            {serverFolder && serverFolder.links.length === 0 && (
+              <p className="px-4 py-3 text-xs text-[hsl(var(--text-faint))]">
+                No devices linked yet.
+              </p>
+            )}
+
+            {serverFolder?.links.map((link) => {
+              const isThis = link.deviceId === deviceId;
+              return (
+                <div
+                  key={link.deviceId}
+                  className="flex items-start gap-3 border-b border-white/[0.04] px-4 py-3 last:border-0"
+                >
+                  <Monitor className="mt-0.5 size-3.5 shrink-0 text-[hsl(var(--text-faint))]" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-[hsl(var(--text))]">
+                        {link.deviceName}
+                      </span>
+                      {isThis && (
+                        <span className="rounded-full bg-[hsl(var(--brand-from)/.15)] px-1.5 py-0.5 text-[10px] font-medium text-[hsl(var(--brand-from))]">
+                          this device
+                        </span>
+                      )}
+                      <span className="capitalize text-xs text-[hsl(var(--text-faint))]">
+                        {link.platform}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 truncate font-mono text-[11px] text-[hsl(var(--text-faint))]">
+                      {link.localPath}
+                    </p>
+                  </div>
+                  <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-green-500" />
+                </div>
+              );
+            })}
+
+            {/* This device not linked on server */}
+            {!isServerFolderLoading && !thisDeviceLink && (
+              <div className="flex items-center gap-3 border-t border-white/[0.04] px-4 py-3">
+                <XCircle className="size-4 shrink-0 text-[hsl(var(--text-faint))]" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm text-[hsl(var(--text-muted))]">
+                    This device is not linked on the server.
+                  </p>
+                  <p className="mt-0.5 text-xs text-[hsl(var(--text-faint))]">
+                    Go back and use "Link folder" to connect a local directory.
+                  </p>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 

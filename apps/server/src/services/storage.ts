@@ -1,7 +1,5 @@
-import { createReadStream } from "node:fs";
 import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import nodePath from "node:path";
-import { Readable } from "node:stream";
 import { promisify } from "node:util";
 import { gunzip, gzip } from "node:zlib";
 
@@ -63,7 +61,7 @@ export async function writeBlob(
   return { size: data.byteLength, compressed: isCompressed };
 }
 
-export async function readBlob(contentHash: string): Promise<Readable> {
+export async function readBlob(contentHash: string): Promise<Buffer> {
   const [blob] = await database
     .select()
     .from(fileBlobs)
@@ -73,12 +71,10 @@ export async function readBlob(contentHash: string): Promise<Readable> {
   if (!blob) throw new Error(`Blob not found: ${contentHash}`);
 
   const path = blobPath(contentHash);
+  const data = await readFile(path);
 
-  if (!blob.compressed) return createReadStream(path);
-
-  const compressed = await readFile(path);
-  const decompressed = await gunzipAsync(compressed);
-  return Readable.from(decompressed);
+  if (!blob.compressed) return data;
+  return gunzipAsync(data);
 }
 
 export async function addBlobReference(contentHash: string): Promise<void> {

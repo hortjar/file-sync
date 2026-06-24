@@ -9,6 +9,30 @@
     "sql:default",
     "dialog:default",
     "fs:default",
+    {
+      "identifier": "fs:allow-read-file",
+      "allow": [{ "path": "/**" }, { "path": "?:\\**" }]
+    },
+    {
+      "identifier": "fs:allow-write-file",
+      "allow": [{ "path": "/**" }, { "path": "?:\\**" }]
+    },
+    {
+      "identifier": "fs:allow-mkdir",
+      "allow": [{ "path": "/**" }, { "path": "?:\\**" }]
+    },
+    {
+      "identifier": "fs:allow-exists",
+      "allow": [{ "path": "/**" }, { "path": "?:\\**" }]
+    },
+    {
+      "identifier": "fs:allow-remove",
+      "allow": [{ "path": "/**" }, { "path": "?:\\**" }]
+    },
+    {
+      "identifier": "fs:allow-read-dir",
+      "allow": [{ "path": "/**" }, { "path": "?:\\**" }]
+    },
     "notification:default"
   ]
 }

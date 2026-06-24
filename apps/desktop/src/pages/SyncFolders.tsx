@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
-import { LinkIcon, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { AlertTriangle, LinkIcon, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
 
@@ -28,6 +28,8 @@ import {
   postApiSyncFoldersByIdLinksMutation,
   postApiSyncFoldersMutation,
 } from "../generated/@tanstack/react-query.gen";
+import { testWritePermission } from "../services/permission-check";
+import { reconcile } from "../services/reconciler";
 import { useAuthStore } from "../stores/auth";
 import { useLinksStore } from "../stores/links";
 
@@ -204,6 +206,8 @@ export function SyncFoldersPage() {
   const [linkingFolder, setLinkingFolder] = useState<SyncFolder | undefined>(undefined);
   const [appearanceFolder, setAppearanceFolder] = useState<SyncFolder | undefined>(undefined);
   const [selectedPath, setSelectedPath] = useState<string | undefined>(undefined);
+  const [isCheckingPermission, setIsCheckingPermission] = useState(false);
+  const [permissionError, setPermissionError] = useState<string | undefined>(undefined);
 
   const { data, isLoading, isError } = useQuery(getApiSyncFoldersOptions());
   const folders = (data as SyncFolder[] | undefined) ?? [];
@@ -241,6 +245,7 @@ export function SyncFoldersPage() {
       const localPath = variables.body.localPath;
       setFolderPath(syncFolderId, localPath);
       void invoke("start_watching", { syncFolderId, localPath });
+      void reconcile(syncFolderId, localPath);
       setLinkingFolder(undefined);
       setSelectedPath(undefined);
       toast.success("Folder linked — sync starting");
@@ -270,11 +275,34 @@ export function SyncFoldersPage() {
 
   async function pickFolder() {
     const path = await open({ directory: true, multiple: false });
-    if (typeof path === "string") setSelectedPath(path);
+    if (typeof path !== "string") return;
+
+    setSelectedPath(path);
+    setPermissionError(undefined);
+    setIsCheckingPermission(true);
+    try {
+      const canWrite = await testWritePermission(path);
+      if (!canWrite) {
+        setPermissionError(
+          "FileSync can't write to this folder. Choose a different location or check System Settings → Privacy & Security → Files and Folders.",
+        );
+      }
+    } finally {
+      setIsCheckingPermission(false);
+    }
   }
 
-  function handleLink() {
+  async function handleLink() {
     if (!linkingFolder || !selectedPath || !deviceId) return;
+
+    const canWrite = await testWritePermission(selectedPath);
+    if (!canWrite) {
+      setPermissionError(
+        "FileSync can't write to this folder. Choose a different location or check System Settings → Privacy & Security → Files and Folders.",
+      );
+      return;
+    }
+
     linkFolderMutation.mutate({
       path: { id: linkingFolder.id },
       body: { deviceId, localPath: selectedPath },
@@ -285,6 +313,7 @@ export function SyncFoldersPage() {
     if (isOpen) return;
     setLinkingFolder(undefined);
     setSelectedPath(undefined);
+    setPermissionError(undefined);
   }
 
   function handleAppearancePick(icon: string, color: string | undefined) {
@@ -387,6 +416,7 @@ export function SyncFoldersPage() {
                 onLink={(f) => {
                   setLinkingFolder(f);
                   setSelectedPath(undefined);
+                  setPermissionError(undefined);
                 }}
                 onDelete={(id) => folderDeleteMutation.mutate({ path: { id } })}
                 onPickAppearance={setAppearanceFolder}
@@ -415,6 +445,7 @@ export function SyncFoldersPage() {
                 onLink={(f) => {
                   setLinkingFolder(f);
                   setSelectedPath(undefined);
+                  setPermissionError(undefined);
                 }}
                 onDelete={(id) => folderDeleteMutation.mutate({ path: { id } })}
                 onPickAppearance={setAppearanceFolder}
@@ -455,18 +486,31 @@ export function SyncFoldersPage() {
                 placeholder="No folder selected"
               />
             </div>
-            <Button variant="secondary" className="mt-6 shrink-0" onClick={() => void pickFolder()}>
+            <Button
+              variant="secondary"
+              className="mt-6 shrink-0"
+              onClick={() => void pickFolder()}
+              loading={isCheckingPermission}
+            >
               Browse
             </Button>
           </div>
+
+          {permissionError && (
+            <div className="flex items-start gap-2 rounded-lg bg-[hsl(var(--danger)/.1)] px-3 py-2 text-xs text-[hsl(var(--danger))]">
+              <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
+              <p>{permissionError}</p>
+            </div>
+          )}
+
           <DialogFooter>
             <Button variant="ghost" onClick={() => setLinkingFolder(undefined)}>
               Cancel
             </Button>
             <Button
-              onClick={handleLink}
-              loading={linkFolderMutation.isPending}
-              disabled={!selectedPath}
+              onClick={() => void handleLink()}
+              loading={linkFolderMutation.isPending || isCheckingPermission}
+              disabled={!selectedPath || !!permissionError || isCheckingPermission}
             >
               <LinkIcon className="size-4" />
               Sync this folder
