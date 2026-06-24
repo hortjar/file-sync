@@ -41,6 +41,7 @@
       "identifier": "fs:allow-read-dir",
       "allow": [{ "path": "/**" }, { "path": "?:\\**" }]
     },
+    "log:default",
     "notification:default"
   ]
 }

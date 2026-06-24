@@ -9,6 +9,7 @@ import { initApiClient, setAuthHeader } from "./lib/api-client";
 import { queryClient } from "./lib/query";
 import { router } from "./lib/router";
 import { registerDevice, startHeartbeat } from "./services/device";
+import { initLogger } from "./services/logger";
 import { startSyncEngine } from "./services/sync-engine";
 import { scheduleTokenRefresh, stopTokenRefresh } from "./services/token-refresh";
 import { loadAndRestoreLinks, startWsClient } from "./services/ws-client";
@@ -18,6 +19,7 @@ import { useThemeStore } from "./stores/theme";
 
 initApiClient();
 useThemeStore.getState().initTheme();
+void initLogger();
 
 type AuthState = ReturnType<typeof useAuthStore.getState>;
 

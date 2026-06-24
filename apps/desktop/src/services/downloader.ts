@@ -1,4 +1,4 @@
-import { join } from "@tauri-apps/api/path";
+import { dirname, join } from "@tauri-apps/api/path";
 import { mkdir, writeFile } from "@tauri-apps/plugin-fs";
 
 import {
@@ -50,7 +50,7 @@ export async function downloadFile(
   logger.info(`[download] buffer size=${buffer.byteLength} bytes for ${relativePath}`);
 
   const localPath = await join(localBasePath, relativePath);
-  const directory = localPath.split("/").slice(0, -1).join("/");
+  const directory = await dirname(localPath);
   logger.info(`[download] localPath=${localPath} directory=${directory}`);
 
   try {

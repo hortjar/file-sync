@@ -1,6 +1,7 @@
 import { logger } from "../services/logger";
 import { tryRefreshToken } from "../services/token-refresh";
 import { useAuthStore } from "../stores/auth";
+import { useLogLevelStore } from "../stores/log-level";
 
 function authHeaders(): Record<string, string> {
   const { accessToken } = useAuthStore.getState();
@@ -17,6 +18,61 @@ function redactedUrl(url: string): string {
   }
 }
 
+function isDebugMode(): boolean {
+  return useLogLevelStore.getState().logLevel === "debug";
+}
+
+function serializeHeaders(headers: Headers | Record<string, string> | undefined): string {
+  if (!headers) return "{}";
+  const result: Record<string, string> = {};
+  if (headers instanceof Headers) {
+    headers.forEach((value, key) => {
+      result[key] = key.toLowerCase() === "authorization" ? "Bearer [redacted]" : value;
+    });
+  } else {
+    for (const [key, value] of Object.entries(headers)) {
+      result[key] = key.toLowerCase() === "authorization" ? "Bearer [redacted]" : value;
+    }
+  }
+  return JSON.stringify(result);
+}
+
+function serializeRequestBody(init: RequestInit | undefined): string {
+  if (!init?.body) return "(none)";
+  if (typeof init.body === "string") {
+    try {
+      return JSON.stringify(JSON.parse(init.body), undefined, 2);
+    } catch {
+      return init.body.slice(0, 500);
+    }
+  }
+  return "(binary)";
+}
+
+// Clones the response before reading so the original stream is still consumable.
+async function peekResponseBody(response: Response): Promise<[string, Response]> {
+  const cloned = response.clone();
+  const contentType = response.headers.get("content-type") ?? "";
+
+  if (contentType.includes("application/json")) {
+    try {
+      const text = await cloned.text();
+      const pretty = JSON.stringify(JSON.parse(text), undefined, 2);
+      return [pretty.slice(0, 2000), response];
+    } catch {
+      return ["(could not parse JSON body)", response];
+    }
+  }
+
+  if (contentType.startsWith("text/")) {
+    const text = await cloned.text();
+    return [text.slice(0, 500), response];
+  }
+
+  const buffer = await cloned.arrayBuffer();
+  return [`(binary ${buffer.byteLength} bytes)`, response];
+}
+
 async function fetchOnce(url: string, init?: RequestInit): Promise<Response> {
   return fetch(url, {
     ...init,
@@ -24,23 +80,56 @@ async function fetchOnce(url: string, init?: RequestInit): Promise<Response> {
   });
 }
 
+function logRequestDebug(method: string, safe: string, init?: RequestInit): void {
+  const headers = serializeHeaders(init?.headers as Record<string, string> | undefined);
+  const body = serializeRequestBody(init);
+  logger.debug(`[http] → ${method} ${safe}\n  headers: ${headers}\n  body: ${body}`);
+}
+
+async function logResponseDebug(
+  label: string,
+  safe: string,
+  response: Response,
+  elapsed: number,
+): Promise<Response> {
+  const headers = serializeHeaders(response.headers);
+  const [body, original] = await peekResponseBody(response);
+  logger.debug(
+    `[http] ${label} ${safe} ${response.status} (${elapsed}ms)\n  headers: ${headers}\n  body: ${body}`,
+  );
+  return original;
+}
+
 export async function fetchWithAuth(url: string, init?: RequestInit): Promise<Response> {
   const method = init?.method ?? "GET";
   const safe = redactedUrl(url);
   const t0 = Date.now();
+  const shouldLogDebug = isDebugMode();
 
-  logger.debug(`[http] → ${method} ${safe}`);
+  if (shouldLogDebug) {
+    logRequestDebug(method, safe, init);
+  } else {
+    logger.debug(`[http] → ${method} ${safe}`);
+  }
 
-  const response = await fetchOnce(url, init);
+  let response = await fetchOnce(url, init);
   const elapsed = Date.now() - t0;
 
   if (response.ok) {
-    logger.debug(`[http] ← ${method} ${safe} ${response.status} (${elapsed}ms)`);
+    if (shouldLogDebug) {
+      response = await logResponseDebug(`← ${method}`, safe, response, elapsed);
+    } else {
+      logger.debug(`[http] ← ${method} ${safe} ${response.status} (${elapsed}ms)`);
+    }
     return response;
   }
 
   if (response.status !== 401) {
-    logger.warn(`[http] ← ${method} ${safe} ${response.status} (${elapsed}ms)`);
+    if (shouldLogDebug) {
+      response = await logResponseDebug(`← ${method}`, safe, response, elapsed);
+    } else {
+      logger.warn(`[http] ← ${method} ${safe} ${response.status} (${elapsed}ms)`);
+    }
     return response;
   }
 
@@ -52,9 +141,13 @@ export async function fetchWithAuth(url: string, init?: RequestInit): Promise<Re
   }
 
   const retryT0 = Date.now();
-  const retryResponse = await fetchOnce(url, init);
-  logger.debug(
-    `[http] ← retry ${method} ${safe} ${retryResponse.status} (${Date.now() - retryT0}ms)`,
-  );
+  let retryResponse = await fetchOnce(url, init);
+  const retryElapsed = Date.now() - retryT0;
+
+  if (shouldLogDebug) {
+    retryResponse = await logResponseDebug(`← retry ${method}`, safe, retryResponse, retryElapsed);
+  } else {
+    logger.debug(`[http] ← retry ${method} ${safe} ${retryResponse.status} (${retryElapsed}ms)`);
+  }
   return retryResponse;
 }

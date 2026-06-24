@@ -1,6 +1,17 @@
 import { type ThemeColor, THEME_LABELS } from "@file-sync/ui";
 import { useQuery } from "@tanstack/react-query";
-import { FileText, Laptop, Moon, Monitor, Palette, Server, Sun, SunMoon } from "lucide-react";
+import { invoke } from "@tauri-apps/api/core";
+import {
+  ExternalLink,
+  FileText,
+  Laptop,
+  Moon,
+  Monitor,
+  Palette,
+  Server,
+  Sun,
+  SunMoon,
+} from "lucide-react";
 import { type FormEvent, useRef } from "react";
 import { toast } from "sonner";
 
@@ -226,20 +237,39 @@ export function SettingsPage() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-col gap-3">
-              <select
-                value={logLevel}
-                onChange={(event) => setLogLevel(event.target.value as LogLevel)}
-                className="w-full rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--surface-1))] px-3 py-2 text-sm text-[hsl(var(--text))] focus:outline-none focus:ring-1 focus:ring-[hsl(var(--brand-from))]"
-              >
-                {LOG_LEVEL_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label} — {option.description}
-                  </option>
+              <div className="grid grid-cols-4 gap-2">
+                {LOG_LEVEL_OPTIONS.map(({ value, label }) => (
+                  <button
+                    key={value}
+                    onClick={() => setLogLevel(value)}
+                    className={cn(
+                      "rounded-lg border py-2 text-xs font-medium transition-all",
+                      logLevel === value
+                        ? "border-[hsl(var(--text-muted)/.4)] bg-[hsl(var(--surface-2))] text-[hsl(var(--text))] shadow-[var(--shadow-xs)]"
+                        : "border-[hsl(var(--border))] text-[hsl(var(--text-muted))] hover:border-[hsl(var(--text-muted)/.3)] hover:text-[hsl(var(--text))]",
+                    )}
+                  >
+                    {label}
+                  </button>
                 ))}
-              </select>
-              <p className="text-xs text-[hsl(var(--text-faint))]">
-                {LOG_LEVEL_OPTIONS.find((o) => o.value === logLevel)?.description}
-              </p>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs text-[hsl(var(--text-faint))]">
+                  {LOG_LEVEL_OPTIONS.find((o) => o.value === logLevel)?.description}
+                </p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="shrink-0 gap-1.5 text-xs"
+                  onClick={() => {
+                    void invoke("open_log_file");
+                    toast.info("Opening log file…");
+                  }}
+                >
+                  <ExternalLink className="size-3.5" />
+                  Open log
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
