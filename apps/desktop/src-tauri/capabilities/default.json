@@ -9,37 +9,33 @@
     "sql:default",
     "dialog:default",
     "fs:default",
+    "fs:allow-home-read-recursive",
+    "fs:allow-home-write-recursive",
+    "fs:allow-home-meta-recursive",
+    "fs:allow-remove",
     {
       "identifier": "fs:allow-read-file",
-      "allow": [{ "path": "/**" }, { "path": "?:\\**" }]
+      "allow": [{ "path": "/Volumes/**/*" }]
     },
     {
       "identifier": "fs:allow-write-file",
-      "allow": [{ "path": "/**" }, { "path": "?:\\**" }]
+      "allow": [{ "path": "/Volumes/**/*" }]
     },
     {
       "identifier": "fs:allow-write-text-file",
-      "allow": [{ "path": "/**" }, { "path": "?:\\**" }]
-    },
-    {
-      "identifier": "fs:allow-create",
-      "allow": [{ "path": "/**" }, { "path": "?:\\**" }]
+      "allow": [{ "path": "/Volumes/**/*" }]
     },
     {
       "identifier": "fs:allow-mkdir",
-      "allow": [{ "path": "/**" }, { "path": "?:\\**" }]
+      "allow": [{ "path": "/Volumes/**/*" }]
     },
     {
       "identifier": "fs:allow-exists",
-      "allow": [{ "path": "/**" }, { "path": "?:\\**" }]
+      "allow": [{ "path": "/Volumes/**/*" }]
     },
     {
-      "identifier": "fs:allow-remove",
-      "allow": [{ "path": "/**" }, { "path": "?:\\**" }]
-    },
-    {
-      "identifier": "fs:allow-read-dir",
-      "allow": [{ "path": "/**" }, { "path": "?:\\**" }]
+      "identifier": "fs:allow-create",
+      "allow": [{ "path": "/Volumes/**/*" }]
     },
     "log:default",
     "notification:default"
