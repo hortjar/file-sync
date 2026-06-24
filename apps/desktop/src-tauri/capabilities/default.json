@@ -18,6 +18,14 @@
       "allow": [{ "path": "/**" }, { "path": "?:\\**" }]
     },
     {
+      "identifier": "fs:allow-write-text-file",
+      "allow": [{ "path": "/**" }, { "path": "?:\\**" }]
+    },
+    {
+      "identifier": "fs:allow-create",
+      "allow": [{ "path": "/**" }, { "path": "?:\\**" }]
+    },
+    {
       "identifier": "fs:allow-mkdir",
       "allow": [{ "path": "/**" }, { "path": "?:\\**" }]
     },

@@ -30,16 +30,22 @@ async function handleFileChange(
   isDelete: boolean,
 ): Promise<void> {
   const { serverUrl, deviceId } = useAuthStore.getState();
-  if (!deviceId) return;
+  if (!deviceId) {
+    logger.warn("[sync] handleFileChange: no deviceId, skipping");
+    return;
+  }
 
   const relativePath = localPath.replace(localBase, "").replace(/^[/\\]/u, "");
+  logger.debug(`[sync] processing ${isDelete ? "delete" : "change"}: ${relativePath}`);
 
   if (isDelete) {
+    logger.info(`[sync] delete: ${relativePath}`);
     await fetchWithAuth(`${serverUrl}/api/sync/delete`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ syncFolderId, relativePath, deviceId }),
     });
+    logger.debug(`[sync] delete reported: ${relativePath}`);
     return;
   }
 
@@ -47,14 +53,16 @@ async function handleFileChange(
   const rawData = await readFile(localPath);
   const data = new Uint8Array(rawData instanceof Uint8Array ? rawData.buffer : rawData);
   const contentHash = await computeHash(data);
+  logger.debug(`[sync] hash=${contentHash} size=${data.byteLength} for ${relativePath}`);
 
   if (isExpectedWrite(localPath, contentHash)) {
-    logger.debug(`Skipping expected write: ${relativePath}`);
+    logger.debug(`[sync] skipping expected write: ${relativePath}`);
     return;
   }
 
   const versionStore = useFileVersionsStore.getState();
   const nextVersion = versionStore.getVersion(syncFolderId, relativePath) + 1;
+  logger.debug(`[sync] checking ${relativePath} v${nextVersion} hash=${contentHash}`);
 
   const checkResponse = await fetchWithAuth(`${serverUrl}/api/sync/check`, {
     method: "POST",
@@ -71,18 +79,20 @@ async function handleFileChange(
   });
 
   const { result } = (await checkResponse.json()) as CheckResult;
+  logger.info(`[sync] check result for ${relativePath}: ${result}`);
 
   if (result === "up-to-date") {
-    logger.debug(`Up to date: ${relativePath}`);
+    logger.debug(`[sync] up-to-date: ${relativePath}`);
     return;
   }
 
   if (result === "conflict") {
-    logger.warn(`Conflict detected: ${relativePath}`);
+    logger.warn(`[sync] conflict detected: ${relativePath}`);
     void queryClient.invalidateQueries({ queryKey: getApiConflictsQueryKey() });
     return;
   }
 
+  logger.info(`[sync] uploading: ${relativePath} v${nextVersion} (${data.byteLength} bytes)`);
   useSyncStatusStore.getState().setStatus("syncing");
 
   const { accessToken } = useAuthStore.getState();
@@ -97,12 +107,17 @@ async function handleFileChange(
   );
   versionStore.setVersion(syncFolderId, relativePath, nextVersion);
   useSyncStatusStore.getState().markSynced();
+  logger.info(`[sync] upload complete: ${relativePath} v${nextVersion}`);
 }
 
 export async function startSyncEngine(): Promise<() => void> {
   const unlisten = await listen<FileChangeEvent>("fs:change", ({ payload }) => {
     const { kind, paths, syncFolderId, localBase } = payload;
     const isDelete = kind.toLowerCase().includes("remove");
+
+    logger.debug(
+      `[sync] fs:change event kind=${kind} paths=${paths.length} folder=${syncFolderId}`,
+    );
 
     for (const filePath of paths) {
       const key = `${syncFolderId}::${filePath}`;
@@ -113,7 +128,7 @@ export async function startSyncEngine(): Promise<() => void> {
           debounceTimers.delete(key);
           void handleFileChange(filePath, syncFolderId, localBase, isDelete).catch(
             (syncError: unknown) => {
-              logger.error("Sync engine error", syncError);
+              logger.error(`[sync] unhandled error for ${filePath}`, syncError);
               useSyncStatusStore.getState().setStatus("error", "Sync error — check logs");
             },
           );
@@ -122,6 +137,6 @@ export async function startSyncEngine(): Promise<() => void> {
     }
   });
 
-  logger.info("Sync engine started");
+  logger.info("[sync] sync engine started");
   return unlisten;
 }

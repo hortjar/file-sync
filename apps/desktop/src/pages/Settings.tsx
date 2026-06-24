@@ -1,6 +1,6 @@
 import { type ThemeColor, THEME_LABELS } from "@file-sync/ui";
 import { useQuery } from "@tanstack/react-query";
-import { Laptop, Moon, Monitor, Palette, Server, Sun, SunMoon } from "lucide-react";
+import { FileText, Laptop, Moon, Monitor, Palette, Server, Sun, SunMoon } from "lucide-react";
 import { type FormEvent, useRef } from "react";
 import { toast } from "sonner";
 
@@ -12,7 +12,24 @@ import { getApiDevicesOptions } from "../generated/@tanstack/react-query.gen";
 import { configureApiClient } from "../lib/api-client";
 import { cn } from "../lib/cn";
 import { useAuthStore } from "../stores/auth";
+import type { LogLevel } from "../stores/log-level";
+import { useLogLevelStore } from "../stores/log-level";
 import { useThemeStore } from "../stores/theme";
+
+const LOG_LEVEL_OPTIONS: { value: LogLevel; label: string; description: string }[] = [
+  {
+    value: "debug",
+    label: "Debug",
+    description: "Everything — all requests, data flow, decisions",
+  },
+  { value: "info", label: "Info", description: "General events — connections, syncs, downloads" },
+  {
+    value: "warn",
+    label: "Warn",
+    description: "Problems only — failures, retries, unexpected states",
+  },
+  { value: "error", label: "Error", description: "Failures only — exceptions and hard errors" },
+];
 
 const COLOR_OPTIONS: ThemeColor[] = ["purple", "blue", "green", "rose", "orange", "teal", "slate"];
 
@@ -46,6 +63,7 @@ export function SettingsPage() {
   const setServerUrl = useAuthStore((s) => s.setServerUrl);
   const deviceId = useAuthStore((s) => s.deviceId);
   const colorInputReference = useRef<HTMLInputElement>(null);
+  const { logLevel, setLogLevel } = useLogLevelStore();
 
   const { data: devicesRaw } = useQuery(getApiDevicesOptions());
   const devices = (devicesRaw as DeviceRow[] | undefined) ?? [];
@@ -189,6 +207,39 @@ export function SettingsPage() {
                   {label}
                 </button>
               ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Logging */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <FileText className="size-4 text-[hsl(var(--text-muted))]" />
+              <CardTitle>Logging</CardTitle>
+            </div>
+            <CardDescription>
+              Controls what gets written to{" "}
+              <span className="font-mono text-[hsl(var(--text))]">filesync.log</span> in the app
+              data directory. Default is Warn.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-3">
+              <select
+                value={logLevel}
+                onChange={(event) => setLogLevel(event.target.value as LogLevel)}
+                className="w-full rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--surface-1))] px-3 py-2 text-sm text-[hsl(var(--text))] focus:outline-none focus:ring-1 focus:ring-[hsl(var(--brand-from))]"
+              >
+                {LOG_LEVEL_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label} — {option.description}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-[hsl(var(--text-faint))]">
+                {LOG_LEVEL_OPTIONS.find((o) => o.value === logLevel)?.description}
+              </p>
             </div>
           </CardContent>
         </Card>
