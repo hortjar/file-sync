@@ -8,9 +8,10 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently --names server,desktop --prefix-colors cyan,magenta --kill-others-on-fail \"bun --env-file .env.dev apps/server/src/index.ts\" \"bun run --cwd apps/desktop tauri:dev\"",
+    "dev": "concurrently --names server,desktop,web --prefix-colors cyan,magenta,blue --kill-others-on-fail \"bun --env-file .env.dev apps/server/src/index.ts\" \"bun run --cwd apps/desktop tauri:dev\" \"bun run --cwd apps/web dev\"",
     "dev:server": "bun --env-file .env.dev apps/server/src/index.ts",
     "dev:desktop": "bun run --cwd apps/desktop tauri:dev",
+    "dev:web": "bun run --cwd apps/web dev",
     "db": "docker compose -f docker-compose.local.yml up -d",
     "db:stop": "docker compose -f docker-compose.local.yml down",
     "migrate": "bun --env-file .env.dev apps/server/src/db/migrate.ts",

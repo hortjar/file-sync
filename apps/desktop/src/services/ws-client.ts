@@ -106,6 +106,12 @@ async function handleMessage(event: MessageEvent): Promise<void> {
   const { serverUrl, accessToken, deviceId } = useAuthStore.getState();
   const { folderPaths } = useLinksStore.getState();
 
+  if (message.type === "device:logout") {
+    logger.warn(`[ws] device:logout signal received — reason: ${message.payload.reason}`);
+    useAuthStore.getState().logout();
+    return;
+  }
+
   if (message.type === "file:changed") {
     const { id, syncFolderId, relativePath, contentHash, version, updatedByDeviceId } =
       message.payload;

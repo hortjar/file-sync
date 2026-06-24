@@ -1,5 +1,6 @@
 import { type ThemeColor, THEME_LABELS } from "@file-sync/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { getVersion } from "@tauri-apps/api/app";
 import { invoke } from "@tauri-apps/api/core";
 import {
   ExternalLink,
@@ -65,7 +66,13 @@ const MODE_OPTIONS = [
   { value: "system" as const, icon: SunMoon, label: "System" },
 ];
 
-type DeviceRow = { id: string; name: string; platform: string; lastSeenAt: string };
+type DeviceRow = {
+  id: string;
+  name: string;
+  platform: string;
+  lastSeenAt: string;
+  appVersion?: string;
+};
 
 const ONLINE_THRESHOLD_MS = 2 * 60 * 1000;
 
@@ -81,6 +88,12 @@ export function SettingsPage() {
   const colorInputReference = useRef<HTMLInputElement>(null);
   const { logLevel, setLogLevel } = useLogLevelStore();
   const queryClient = useQueryClient();
+
+  const { data: appVersion } = useQuery({
+    queryKey: ["app-version"],
+    queryFn: getVersion,
+    staleTime: Infinity,
+  });
 
   const { data: devicesRaw } = useQuery(getApiDevicesOptions());
   const devices = (devicesRaw as DeviceRow[] | undefined) ?? [];
@@ -108,7 +121,12 @@ export function SettingsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-xl font-semibold text-[hsl(var(--text))]">Settings</h1>
+        <div className="flex items-baseline gap-3">
+          <h1 className="text-xl font-semibold text-[hsl(var(--text))]">Settings</h1>
+          {appVersion && (
+            <span className="text-xs text-[hsl(var(--text-faint))]">v{appVersion}</span>
+          )}
+        </div>
         <p className="mt-0.5 text-sm text-[hsl(var(--text-muted))]">
           Manage your connection, appearance, and device.
         </p>
@@ -323,8 +341,13 @@ export function SettingsPage() {
                               this device
                             </span>
                           )}
+                          {device.appVersion && (
+                            <span className="rounded-full bg-[hsl(var(--surface-2))] px-1.5 py-0.5 text-[10px] text-[hsl(var(--text-faint))]">
+                              v{device.appVersion}
+                            </span>
+                          )}
                         </div>
-                        <p className="text-xs text-[hsl(var(--text-faint))] capitalize">
+                        <p className="text-xs capitalize text-[hsl(var(--text-faint))]">
                           {device.platform}
                         </p>
                       </div>

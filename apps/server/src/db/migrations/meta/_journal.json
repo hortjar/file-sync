@@ -15,6 +15,13 @@
       "when": 1782156056117,
       "tag": "0001_rainy_hemingway",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782321810110,
+      "tag": "0002_brief_eddie_brock",
+      "breakpoints": true
     }
   ]
 }

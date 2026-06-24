@@ -31,11 +31,24 @@ jobs:
       - name: 🖥️ Typecheck (desktop)
         run: bun run --cwd apps/desktop typecheck
 
+      - name: 🌐 Typecheck (web)
+        run: bun run --cwd apps/web typecheck
+
   build-macos:
     name: 🍎 Build macOS (Apple Silicon)
     runs-on: macos-latest
     needs: ci
-    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || startsWith(github.ref, 'refs/tags/v')
+    # Only run when desktop or server code changed, not for web-only changes.
+    if: |
+      (
+        (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+        startsWith(github.ref, 'refs/tags/v')
+      ) && (
+        contains(github.event.head_commit.modified, 'apps/desktop/') ||
+        contains(github.event.head_commit.modified, 'apps/server/') ||
+        contains(github.event.head_commit.modified, 'packages/') ||
+        startsWith(github.ref, 'refs/tags/v')
+      )
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@v4
@@ -93,7 +106,17 @@ jobs:
     name: 🪟 Build Windows (x64)
     runs-on: windows-latest
     needs: ci
-    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || startsWith(github.ref, 'refs/tags/v')
+    # Only run when desktop or server code changed, not for web-only changes.
+    if: |
+      (
+        (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+        startsWith(github.ref, 'refs/tags/v')
+      ) && (
+        contains(github.event.head_commit.modified, 'apps/desktop/') ||
+        contains(github.event.head_commit.modified, 'apps/server/') ||
+        contains(github.event.head_commit.modified, 'packages/') ||
+        startsWith(github.ref, 'refs/tags/v')
+      )
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@v4

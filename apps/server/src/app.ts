@@ -6,6 +6,7 @@ import { logger, logRequest } from "./lib/logger";
 import { authRoutes } from "./routes/auth";
 import { conflictsRoutes } from "./routes/conflicts";
 import { devicesRoutes } from "./routes/devices";
+import { logsRoutes } from "./routes/logs";
 import { syncRoutes } from "./routes/sync";
 import { syncFoldersRoutes } from "./routes/sync-folders";
 import { wsRoutes } from "./ws/index";
@@ -55,6 +56,7 @@ export function createApp() {
     .use(syncFoldersRoutes)
     .use(syncRoutes)
     .use(conflictsRoutes)
+    .use(logsRoutes)
     .use(wsRoutes);
 }
 

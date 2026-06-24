@@ -45,3 +45,7 @@ export function broadcast(userId: string, senderDeviceId: string, message: unkno
     handle.send(payload);
   }
 }
+
+export function sendToDevice(userId: string, deviceId: string, message: unknown): void {
+  connections.get(userId)?.get(deviceId)?.send(JSON.stringify(message));
+}

@@ -40,6 +40,7 @@ export const devices = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     name: varchar("name", { length: 255 }).notNull(),
     platform: platformEnum("platform").notNull(),
+    appVersion: varchar("app_version", { length: 50 }),
     lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },

@@ -1,15 +1,12 @@
+import { getVersion } from "@tauri-apps/api/app";
 import { invoke } from "@tauri-apps/api/core";
 
-import { patchApiDevicesByIdHeartbeat, postApiDevices } from "../generated/sdk.gen";
+import { fetchWithAuth } from "../lib/fetch-with-auth";
 import { useAuthStore } from "../stores/auth";
 
 import { logger } from "./logger";
 
-type RegisteredDevice = {
-  id: string;
-  name: string;
-  platform: string;
-};
+type RegisteredDevice = { id: string; name: string; platform: string };
 
 function detectPlatform(): "windows" | "macos" | "linux" {
   const ua = navigator.userAgent.toLowerCase();
@@ -18,8 +15,16 @@ function detectPlatform(): "windows" | "macos" | "linux" {
   return "linux";
 }
 
+async function getAppVersion(): Promise<string> {
+  try {
+    return await getVersion();
+  } catch {
+    return "unknown";
+  }
+}
+
 export async function registerDevice(): Promise<string> {
-  const { deviceId, setDeviceId } = useAuthStore.getState();
+  const { deviceId, setDeviceId, serverUrl } = useAuthStore.getState();
   if (deviceId) {
     logger.debug(`[device] already registered: ${deviceId}`);
     return deviceId;
@@ -35,13 +40,20 @@ export async function registerDevice(): Promise<string> {
     hostname = "Unknown Device";
   }
 
-  logger.info(`[device] registering new device: name=${hostname} platform=${platform}`);
-  const { data } = await postApiDevices({
-    body: { name: hostname, platform },
-    throwOnError: true,
+  const appVersion = await getAppVersion();
+  logger.info(
+    `[device] registering new device: name=${hostname} platform=${platform} v${appVersion}`,
+  );
+
+  const response = await fetchWithAuth(`${serverUrl}/api/devices`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: hostname, platform, appVersion }),
   });
 
-  const device = data as RegisteredDevice;
+  if (!response.ok) throw new Error(`Device registration failed: ${response.status}`);
+
+  const device = (await response.json()) as RegisteredDevice;
   setDeviceId(device.id);
   logger.info(`[device] registered with id=${device.id}`);
   return device.id;
@@ -49,10 +61,14 @@ export async function registerDevice(): Promise<string> {
 
 export function startHeartbeat(deviceId: string): () => void {
   const sendHeartbeat = () => {
+    const { serverUrl } = useAuthStore.getState();
     logger.debug(`[device] heartbeat for ${deviceId}`);
-    void patchApiDevicesByIdHeartbeat({
-      path: { id: deviceId },
-      throwOnError: false,
+    void getAppVersion().then((appVersion) => {
+      void fetchWithAuth(`${serverUrl}/api/devices/${deviceId}/heartbeat`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ appVersion }),
+      });
     });
   };
 

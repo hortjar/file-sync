@@ -204,7 +204,7 @@ export function FolderDetailPage() {
   const localPathInStore = folderPaths[folderId];
 
   const [isSyncing, setIsSyncing] = useState(false);
-  const [isDevicesExpanded, setIsDevicesExpanded] = useState(true);
+  const [isDevicesExpanded, setIsDevicesExpanded] = useState(false);
 
   const { data: foldersData } = useQuery(getApiSyncFoldersOptions());
   const folder = ((foldersData as SyncFolder[] | undefined) ?? []).find((f) => f.id === folderId);

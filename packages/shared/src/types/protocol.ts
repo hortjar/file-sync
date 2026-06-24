@@ -10,6 +10,7 @@ export type WsMessage =
   | { type: "device:disconnected"; payload: { deviceId: string } }
   | { type: "folder:created"; payload: { id: string; name: string } }
   | { type: "folder:linked"; payload: { syncFolderId: string; deviceId: string } }
+  | { type: "device:logout"; payload: { reason: string } }
   | { type: "ping" }
   | { type: "pong" };
 

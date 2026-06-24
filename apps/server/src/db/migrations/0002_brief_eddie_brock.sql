@@ -1,0 +1,1 @@
+ALTER TABLE "devices" ADD COLUMN "app_version" varchar(50);

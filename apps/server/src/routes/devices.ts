@@ -4,8 +4,11 @@ import { Elysia, t } from "elysia";
 import { database } from "../db";
 import { deviceFolderLinks, devices } from "../db/schema";
 import { authPlugin } from "../middleware/auth";
+import { sendToDevice } from "../ws/connections";
 
 const platformSchema = t.Union([t.Literal("windows"), t.Literal("macos"), t.Literal("linux")]);
+const optionalVersionString = t.Optional(t.String());
+const heartbeatBodySchema = t.Optional(t.Object({ appVersion: optionalVersionString }));
 
 export const devicesRoutes = new Elysia({ prefix: "/api/devices" })
   .use(authPlugin)
@@ -23,6 +26,7 @@ export const devicesRoutes = new Elysia({ prefix: "/api/devices" })
         id: device.id,
         name: device.name,
         platform: device.platform,
+        appVersion: device.appVersion ?? undefined,
         lastSeenAt: device.lastSeenAt.toISOString(),
         createdAt: device.createdAt.toISOString(),
       }));
@@ -43,6 +47,7 @@ export const devicesRoutes = new Elysia({ prefix: "/api/devices" })
           userId,
           name: body.name,
           platform: body.platform,
+          appVersion: body.appVersion,
         })
         .returning();
 
@@ -55,6 +60,7 @@ export const devicesRoutes = new Elysia({ prefix: "/api/devices" })
         id: device.id,
         name: device.name,
         platform: device.platform,
+        appVersion: device.appVersion ?? undefined,
         lastSeenAt: device.lastSeenAt.toISOString(),
         createdAt: device.createdAt.toISOString(),
       };
@@ -63,21 +69,25 @@ export const devicesRoutes = new Elysia({ prefix: "/api/devices" })
       body: t.Object({
         name: t.String({ minLength: 1, maxLength: 255 }),
         platform: platformSchema,
+        appVersion: optionalVersionString,
       }),
       detail: { summary: "Register a new device" },
     },
   )
   .patch(
     "/:id/heartbeat",
-    async ({ params, userId, set }) => {
+    async ({ params, body, userId, set }) => {
       if (!userId) {
         set.status = 401;
         return { message: "Unauthorized" };
       }
 
+      const updateData: { lastSeenAt: Date; appVersion?: string } = { lastSeenAt: new Date() };
+      if (body?.appVersion) updateData.appVersion = body.appVersion;
+
       const [device] = await database
         .update(devices)
-        .set({ lastSeenAt: new Date() })
+        .set(updateData)
         .where(and(eq(devices.id, params.id), eq(devices.userId, userId)))
         .returning({ id: devices.id });
 
@@ -90,7 +100,8 @@ export const devicesRoutes = new Elysia({ prefix: "/api/devices" })
     },
     {
       params: t.Object({ id: t.String() }),
-      detail: { summary: "Update device last-seen timestamp" },
+      body: heartbeatBodySchema,
+      detail: { summary: "Update device last-seen timestamp and app version" },
     },
   )
   .get(
@@ -148,10 +159,16 @@ export const devicesRoutes = new Elysia({ prefix: "/api/devices" })
         return { message: "Device not found" };
       }
 
+      // Signal the device to log out if it is currently connected via WebSocket.
+      sendToDevice(userId, params.id, {
+        type: "device:logout",
+        payload: { reason: "Device removed by account owner" },
+      });
+
       return { ok: true };
     },
     {
       params: t.Object({ id: t.String() }),
-      detail: { summary: "Remove a device" },
+      detail: { summary: "Remove a device and signal it to log out" },
     },
   );

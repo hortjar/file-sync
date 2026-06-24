@@ -1,0 +1,90 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "folders": "Folders",
+    "devices": "Devices",
+    "logs": "Logs"
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "email": "Email",
+    "password": "Password",
+    "serverUrl": "Server URL",
+    "signingIn": "Signing in…",
+    "invalidCredentials": "Invalid email or password",
+    "connectionError": "Could not connect to server"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Overview of your FileSync server",
+    "serverStatus": "Server status",
+    "online": "Online",
+    "offline": "Offline",
+    "totalFolders": "Sync Folders",
+    "totalDevices": "Devices",
+    "onlineDevices": "Online Devices",
+    "serverVersion": "Version"
+  },
+  "folders": {
+    "title": "Sync Folders",
+    "subtitle_one": "{{count}} folder",
+    "subtitle_other": "{{count}} folders",
+    "noFolders": "No sync folders yet",
+    "noFoldersHint": "Create a sync folder from a connected desktop app.",
+    "linkedDevices": "Linked Devices",
+    "noDevices": "No devices linked to this folder.",
+    "files_one": "{{count}} file",
+    "files_other": "{{count}} files",
+    "deleteFolder": "Delete folder",
+    "confirmDelete": "Delete \"{{name}}\"?",
+    "confirmDeleteHint": "This will permanently delete the folder and all its file history. Connected devices will stop syncing.",
+    "path": "Local path",
+    "noFiles": "No files synced yet."
+  },
+  "devices": {
+    "title": "Devices",
+    "subtitle_one": "{{count}} device",
+    "subtitle_other": "{{count}} devices",
+    "noDevices": "No devices registered",
+    "online": "Online",
+    "offline": "Offline",
+    "lastSeen": "Last seen",
+    "platform": "Platform",
+    "removeDevice": "Remove device",
+    "confirmRemove": "Remove \"{{name}}\"?",
+    "confirmRemoveHint": "The device will be signed out immediately if it is connected.",
+    "thisDevice": "This device",
+    "appVersion": "App version"
+  },
+  "logs": {
+    "title": "Server Logs",
+    "subtitle": "Recent log entries from the server",
+    "level": "Level",
+    "levelDebug": "Debug",
+    "levelInfo": "Info",
+    "levelWarn": "Warn",
+    "levelError": "Error",
+    "setLevel": "Set log level",
+    "noLogs": "No log entries match the current filter.",
+    "refresh": "Refresh",
+    "serverLevel": "Server log level",
+    "viewLevel": "View level"
+  },
+  "common": {
+    "loading": "Loading…",
+    "error": "Something went wrong",
+    "retry": "Retry",
+    "refresh": "Refresh",
+    "delete": "Delete",
+    "remove": "Remove",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "close": "Close",
+    "search": "Search",
+    "language": "Language",
+    "version": "Version",
+    "unknownError": "Unknown error"
+  }
+}
