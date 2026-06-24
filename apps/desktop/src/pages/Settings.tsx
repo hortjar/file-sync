@@ -1,5 +1,5 @@
 import { type ThemeColor, THEME_LABELS } from "@file-sync/ui";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
 import {
   ExternalLink,
@@ -11,6 +11,7 @@ import {
   Server,
   Sun,
   SunMoon,
+  Trash2,
 } from "lucide-react";
 import { type FormEvent, useRef } from "react";
 import { toast } from "sonner";
@@ -19,7 +20,11 @@ import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Separator } from "../components/ui/separator";
-import { getApiDevicesOptions } from "../generated/@tanstack/react-query.gen";
+import {
+  deleteApiDevicesByIdMutation,
+  getApiDevicesOptions,
+  getApiDevicesQueryKey,
+} from "../generated/@tanstack/react-query.gen";
 import { configureApiClient } from "../lib/api-client";
 import { cn } from "../lib/cn";
 import { useAuthStore } from "../stores/auth";
@@ -75,9 +80,21 @@ export function SettingsPage() {
   const deviceId = useAuthStore((s) => s.deviceId);
   const colorInputReference = useRef<HTMLInputElement>(null);
   const { logLevel, setLogLevel } = useLogLevelStore();
+  const queryClient = useQueryClient();
 
   const { data: devicesRaw } = useQuery(getApiDevicesOptions());
   const devices = (devicesRaw as DeviceRow[] | undefined) ?? [];
+
+  const deviceDeletion = useMutation({
+    ...deleteApiDevicesByIdMutation(),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: getApiDevicesQueryKey() });
+      toast.success("Device removed");
+    },
+    onError: () => {
+      toast.error("Failed to remove device");
+    },
+  });
 
   function handleSaveServer(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -311,19 +328,32 @@ export function SettingsPage() {
                           {device.platform}
                         </p>
                       </div>
-                      <div className="flex shrink-0 flex-col items-end gap-1">
-                        <div className="flex items-center gap-1.5">
-                          <span
-                            className={`size-1.5 rounded-full ${isOnline ? "bg-green-500" : "bg-[hsl(var(--text-faint))]"}`}
-                          />
-                          <span className="text-xs text-[hsl(var(--text-faint))]">
-                            {isOnline ? "Online" : "Offline"}
-                          </span>
+                      <div className="flex shrink-0 items-center gap-3">
+                        <div className="flex flex-col items-end gap-1">
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className={`size-1.5 rounded-full ${isOnline ? "bg-green-500" : "bg-[hsl(var(--text-faint))]"}`}
+                            />
+                            <span className="text-xs text-[hsl(var(--text-faint))]">
+                              {isOnline ? "Online" : "Offline"}
+                            </span>
+                          </div>
+                          {!isOnline && (
+                            <span className="text-[10px] text-[hsl(var(--text-faint))]">
+                              {lastSeen.toLocaleString()}
+                            </span>
+                          )}
                         </div>
-                        {!isOnline && (
-                          <span className="text-[10px] text-[hsl(var(--text-faint))]">
-                            {lastSeen.toLocaleString()}
-                          </span>
+                        {!isThis && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            loading={deviceDeletion.isPending}
+                            onClick={() => deviceDeletion.mutate({ path: { id: device.id } })}
+                            className="text-[hsl(var(--text-muted))] hover:text-[hsl(var(--danger))]"
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
                         )}
                       </div>
                     </div>

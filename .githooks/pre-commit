@@ -9,42 +9,46 @@ bump_patch() {
     printf '%s.%s.%d' "$major" "$minor" "$((patch + 1))"
 }
 
-# Escape dots in a version string for use in sed/perl regex
-escape_ver() {
-    printf '%s' "$1" | sed 's/\./\\./g'
+# Read the first "version": "..." value from a JSON file.
+read_json_version() {
+    perl -ne 'if (/^\s*"version":\s*"([^"]+)"/) { print $1; exit }' "$1"
+}
+
+# Replace "version": "<old>" with "version": "<new>" in a JSON file.
+write_json_version() {
+    local file="$1" old="$2" new="$3"
+    local old_esc
+    old_esc=$(printf '%s' "$old" | sed 's/\./\\./g')
+    perl -pi -e "s/\"version\": \"${old_esc}\"/\"version\": \"${new}\"/" "$file"
 }
 
 # ── Desktop: tauri.conf.json ─────────────────────────────────────────────────
 TAURI_CONF="apps/desktop/src-tauri/tauri.conf.json"
-tauri_old=$(node -e "const fs=require('fs');process.stdout.write(JSON.parse(fs.readFileSync('${TAURI_CONF}','utf8')).version)")
+tauri_old=$(read_json_version "$TAURI_CONF")
 tauri_new=$(bump_patch "$tauri_old")
-node -e "
-const fs = require('fs');
-const data = JSON.parse(fs.readFileSync('${TAURI_CONF}', 'utf8'));
-data.version = '${tauri_new}';
-fs.writeFileSync('${TAURI_CONF}', JSON.stringify(data, null, 2) + '\n');
-"
-git add "${TAURI_CONF}"
+write_json_version "$TAURI_CONF" "$tauri_old" "$tauri_new"
+git add "$TAURI_CONF"
 
 # ── Desktop: Cargo.toml ──────────────────────────────────────────────────────
 CARGO_TOML="apps/desktop/src-tauri/Cargo.toml"
-perl -pi -e "s/^version = \"$(escape_ver "$tauri_old")\"/version = \"${tauri_new}\"/" "${CARGO_TOML}"
-git add "${CARGO_TOML}"
+tauri_old_esc=$(printf '%s' "$tauri_old" | sed 's/\./\\./g')
+perl -pi -e "s/^version = \"${tauri_old_esc}\"/version = \"${tauri_new}\"/" "$CARGO_TOML"
+git add "$CARGO_TOML"
 
 # ── Desktop: package.json ────────────────────────────────────────────────────
 DESKTOP_PKG="apps/desktop/package.json"
-desktop_old=$(node -e "const fs=require('fs');process.stdout.write(JSON.parse(fs.readFileSync('${DESKTOP_PKG}','utf8')).version)")
+desktop_old=$(read_json_version "$DESKTOP_PKG")
 desktop_new=$(bump_patch "$desktop_old")
-perl -pi -e "s/\"version\": \"$(escape_ver "$desktop_old")\"/\"version\": \"${desktop_new}\"/" "${DESKTOP_PKG}"
-git add "${DESKTOP_PKG}"
+write_json_version "$DESKTOP_PKG" "$desktop_old" "$desktop_new"
+git add "$DESKTOP_PKG"
 
 # ── Server: package.json ─────────────────────────────────────────────────────
 SERVER_PKG="apps/server/package.json"
-server_old=$(node -e "const fs=require('fs');process.stdout.write(JSON.parse(fs.readFileSync('${SERVER_PKG}','utf8')).version)")
+server_old=$(read_json_version "$SERVER_PKG")
 server_new=$(bump_patch "$server_old")
-perl -pi -e "s/\"version\": \"$(escape_ver "$server_old")\"/\"version\": \"${server_new}\"/" "${SERVER_PKG}"
-git add "${SERVER_PKG}"
+write_json_version "$SERVER_PKG" "$server_old" "$server_new"
+git add "$SERVER_PKG"
 
 printf '\n📦 version bump\n'
-printf '   desktop  %s → %s\n' "${tauri_old}" "${tauri_new}"
-printf '   server   %s → %s\n' "${server_old}" "${server_new}"
+printf '   desktop  %s → %s\n' "$tauri_old" "$tauri_new"
+printf '   server   %s → %s\n' "$server_old" "$server_new"

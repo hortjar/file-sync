@@ -5,7 +5,7 @@ import { RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
-import { initApiClient, setAuthHeader } from "./lib/api-client";
+import { configureApiClient, initApiClient, setAuthHeader } from "./lib/api-client";
 import { queryClient } from "./lib/query";
 import { router } from "./lib/router";
 import { registerDevice, startHeartbeat } from "./services/device";
@@ -18,6 +18,10 @@ import { useLinksStore } from "./stores/links";
 import { useThemeStore } from "./stores/theme";
 
 initApiClient();
+// Apply the persisted server URL immediately so the generated API client has a base URL
+// before any requests fire. Without this the client has no baseUrl until the user
+// manually saves the URL in Settings.
+configureApiClient(useAuthStore.getState().serverUrl);
 useThemeStore.getState().initTheme();
 void initLogger();
 
@@ -33,6 +37,10 @@ const services = {
 function startServices(state: AuthState): void {
   if (!state.isAuthenticated || services.isRunning) return;
   services.isRunning = true;
+
+  // Re-apply the server URL in case Zustand hydration was async and the call
+  // at module load ran before the persisted value was available.
+  configureApiClient(state.serverUrl);
 
   if (state.accessToken) {
     setAuthHeader(state.accessToken);
