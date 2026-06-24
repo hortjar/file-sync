@@ -1,4 +1,4 @@
-import { getName } from "@tauri-apps/api/app";
+import { invoke } from "@tauri-apps/api/core";
 
 import { patchApiDevicesByIdHeartbeat, postApiDevices } from "../generated/sdk.gen";
 import { useAuthStore } from "../stores/auth";
@@ -23,7 +23,7 @@ export async function registerDevice(): Promise<string> {
   const platform = detectPlatform();
   let hostname: string;
   try {
-    hostname = await getName();
+    hostname = await invoke<string>("get_hostname");
   } catch {
     hostname = "Unknown Device";
   }

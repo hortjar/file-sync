@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
-import { LinkIcon, Plus, Trash2 } from "lucide-react";
+import { LinkIcon, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
 
@@ -101,12 +101,24 @@ function FolderCard({
   isDeleting,
 }: FolderCardProperties) {
   const otherDevices = folder.devices;
+  const uniqueDeviceNames = [...new Set(otherDevices.map((d) => d.name))];
 
   return (
-    <Card className="group transition-shadow hover:shadow-[var(--shadow-sm)]">
+    <Card
+      className="group cursor-pointer transition-shadow hover:shadow-[var(--shadow-sm)]"
+      onClick={() => onViewDetail(folder)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") onViewDetail(folder);
+      }}
+    >
       <CardContent className="flex items-center gap-4 p-4">
         <button
-          onClick={() => onPickAppearance(folder)}
+          onClick={(event) => {
+            event.stopPropagation();
+            onPickAppearance(folder);
+          }}
           title="Change icon and color"
           className="flex size-10 shrink-0 items-center justify-center rounded-xl border transition-all"
           style={{
@@ -122,12 +134,7 @@ function FolderCard({
         </button>
 
         <div className="min-w-0 flex-1">
-          <button
-            onClick={() => onViewDetail(folder)}
-            className="truncate text-left text-sm font-medium text-[hsl(var(--text))] hover:text-[hsl(var(--brand-from))] hover:underline"
-          >
-            {folder.name}
-          </button>
+          <p className="truncate text-sm font-medium text-[hsl(var(--text))]">{folder.name}</p>
           <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
             {linkedPath ? (
               <span className="truncate text-xs text-[hsl(var(--text-faint))]">{linkedPath}</span>
@@ -136,9 +143,9 @@ function FolderCard({
                 Created {new Date(folder.createdAt).toLocaleDateString()}
               </span>
             )}
-            {otherDevices.length > 0 && (
+            {uniqueDeviceNames.length > 0 && (
               <span className="text-xs text-[hsl(var(--text-faint))] opacity-60">
-                · also on {otherDevices.map((d) => d.name).join(", ")}
+                · also on {uniqueDeviceNames.join(", ")}
               </span>
             )}
           </div>
@@ -146,7 +153,14 @@ function FolderCard({
 
         <div className="flex shrink-0 items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
           {deviceId ? (
-            <Button variant="secondary" size="sm" onClick={() => onLink(folder)}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={(event) => {
+                event.stopPropagation();
+                onLink(folder);
+              }}
+            >
               <LinkIcon className="size-3.5" />
               {linkedPath ? "Change path" : "Link folder"}
             </Button>
@@ -157,7 +171,10 @@ function FolderCard({
             variant="ghost"
             size="icon"
             loading={isDeleting}
-            onClick={() => onDelete(folder.id)}
+            onClick={(event) => {
+              event.stopPropagation();
+              onDelete(folder.id);
+            }}
             className="text-[hsl(var(--text-muted))] hover:text-[hsl(var(--danger))]"
           >
             <Trash2 className="size-4" />
@@ -314,33 +331,45 @@ export function SyncFoldersPage() {
               : `${syncedFolders.length} of ${folders.length} syncing on this device`}
           </p>
         </div>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm">
-              <Plus className="size-3.5" />
-              New Folder
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>New Sync Folder</DialogTitle>
-              <DialogDescription>
-                Give it a name. Each device picks its own local directory to sync with it.
-              </DialogDescription>
-            </DialogHeader>
-            <form id="create-form" onSubmit={handleCreate}>
-              <Input name="name" label="Name" placeholder="e.g. Documents" required autoFocus />
-            </form>
-            <DialogFooter>
-              <Button variant="ghost" onClick={() => setIsCreateOpen(false)}>
-                Cancel
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            title="Refresh"
+            onClick={() =>
+              void queryClient.invalidateQueries({ queryKey: getApiSyncFoldersQueryKey() })
+            }
+          >
+            <RefreshCw className="size-4" />
+          </Button>
+          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm">
+                <Plus className="size-3.5" />
+                New Folder
               </Button>
-              <Button form="create-form" type="submit" loading={newFolderMutation.isPending}>
-                Create
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>New Sync Folder</DialogTitle>
+                <DialogDescription>
+                  Give it a name. Each device picks its own local directory to sync with it.
+                </DialogDescription>
+              </DialogHeader>
+              <form id="create-form" onSubmit={handleCreate}>
+                <Input name="name" label="Name" placeholder="e.g. Documents" required autoFocus />
+              </form>
+              <DialogFooter>
+                <Button variant="ghost" onClick={() => setIsCreateOpen(false)}>
+                  Cancel
+                </Button>
+                <Button form="create-form" type="submit" loading={newFolderMutation.isPending}>
+                  Create
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {folders.length === 0 && <EmptyState onOpen={() => setIsCreateOpen(true)} />}

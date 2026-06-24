@@ -1,6 +1,6 @@
 import { type ThemeColor, THEME_LABELS } from "@file-sync/ui";
 import { useQuery } from "@tanstack/react-query";
-import { Laptop, Moon, Palette, Server, Sun, SunMoon } from "lucide-react";
+import { Laptop, Moon, Monitor, Palette, Server, Sun, SunMoon } from "lucide-react";
 import { type FormEvent, useRef } from "react";
 import { toast } from "sonner";
 
@@ -34,6 +34,12 @@ const MODE_OPTIONS = [
 
 type DeviceRow = { id: string; name: string; platform: string; lastSeenAt: string };
 
+const ONLINE_THRESHOLD_MS = 2 * 60 * 1000;
+
+function isDeviceOnline(lastSeenAt: string): boolean {
+  return Date.now() - new Date(lastSeenAt).getTime() < ONLINE_THRESHOLD_MS;
+}
+
 export function SettingsPage() {
   const { theme, customColor, setTheme, setCustomColor } = useThemeStore();
   const serverUrl = useAuthStore((s) => s.serverUrl);
@@ -43,7 +49,6 @@ export function SettingsPage() {
 
   const { data: devicesRaw } = useQuery(getApiDevicesOptions());
   const devices = (devicesRaw as DeviceRow[] | undefined) ?? [];
-  const thisDevice = devices.find((d) => d.id === deviceId);
 
   function handleSaveServer(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -188,44 +193,61 @@ export function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* This device */}
-        {thisDevice && (
+        {/* All devices */}
+        {devices.length > 0 && (
           <Card className="lg:col-span-2">
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Laptop className="size-4 text-[hsl(var(--text-muted))]" />
-                <CardTitle>This Device</CardTitle>
+                <CardTitle>Devices</CardTitle>
               </div>
-              <CardDescription>
-                How this device is registered on the server. Read-only.
-              </CardDescription>
+              <CardDescription>All devices registered to your account.</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
-                <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
-                  <span className="text-sm text-[hsl(var(--text-muted))]">Name</span>
-                  <span className="text-sm font-medium text-[hsl(var(--text))]">
-                    {thisDevice.name}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
-                  <span className="text-sm text-[hsl(var(--text-muted))]">Platform</span>
-                  <span className="capitalize text-sm text-[hsl(var(--text))]">
-                    {thisDevice.platform}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
-                  <span className="text-sm text-[hsl(var(--text-muted))]">Last seen</span>
-                  <span className="text-xs text-[hsl(var(--text-faint))]">
-                    {new Date(thisDevice.lastSeenAt).toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
-                  <span className="text-sm text-[hsl(var(--text-muted))]">Device ID</span>
-                  <span className="font-mono text-[11px] text-[hsl(var(--text-faint))]">
-                    {thisDevice.id.slice(0, 8)}…
-                  </span>
-                </div>
+              <div className="flex flex-col divide-y divide-white/[0.05]">
+                {devices.map((device) => {
+                  const isThis = device.id === deviceId;
+                  const lastSeen = new Date(device.lastSeenAt);
+                  const isOnline = isDeviceOnline(device.lastSeenAt);
+                  return (
+                    <div
+                      key={device.id}
+                      className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
+                    >
+                      <Monitor className="size-4 shrink-0 text-[hsl(var(--text-faint))]" />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-[hsl(var(--text))]">
+                            {device.name}
+                          </span>
+                          {isThis && (
+                            <span className="rounded-full bg-[hsl(var(--brand-from)/.15)] px-2 py-0.5 text-[10px] font-medium text-[hsl(var(--brand-from))]">
+                              this device
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-[hsl(var(--text-faint))] capitalize">
+                          {device.platform}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 flex-col items-end gap-1">
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`size-1.5 rounded-full ${isOnline ? "bg-green-500" : "bg-[hsl(var(--text-faint))]"}`}
+                          />
+                          <span className="text-xs text-[hsl(var(--text-faint))]">
+                            {isOnline ? "Online" : "Offline"}
+                          </span>
+                        </div>
+                        {!isOnline && (
+                          <span className="text-[10px] text-[hsl(var(--text-faint))]">
+                            {lastSeen.toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>

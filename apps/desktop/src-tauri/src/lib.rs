@@ -15,6 +15,27 @@ fn start_watching(
     watcher::watch(app, sync_folder_id, path);
 }
 
+#[tauri::command]
+fn get_hostname() -> String {
+    get_hostname_inner()
+}
+
+#[cfg(windows)]
+fn get_hostname_inner() -> String {
+    std::env::var("COMPUTERNAME").unwrap_or_else(|_| "Unknown Device".to_string())
+}
+
+#[cfg(not(windows))]
+fn get_hostname_inner() -> String {
+    std::process::Command::new("hostname")
+        .output()
+        .ok()
+        .and_then(|o| String::from_utf8(o.stdout).ok())
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "Unknown Device".to_string())
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_store::Builder::new().build())
@@ -22,7 +43,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_notification::init())
-        .invoke_handler(tauri::generate_handler![start_watching])
+        .invoke_handler(tauri::generate_handler![start_watching, get_hostname])
         .setup(|app| {
             tray::setup_tray(&app.handle())?;
             Ok(())
