@@ -1,7 +1,7 @@
 import { FolderIcon, iconBg, iconBorder } from "@file-sync/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { type MouseEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -131,7 +131,7 @@ export function FoldersPage() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={(event) => {
+                  onClick={(event: MouseEvent<HTMLButtonElement>) => {
                     event.stopPropagation();
                     setConfirmDelete(folder);
                   }}

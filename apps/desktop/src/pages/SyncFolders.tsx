@@ -4,7 +4,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { AlertTriangle, LinkIcon, Plus, RefreshCw, Trash2 } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, type MouseEvent, useState } from "react";
 import { toast } from "sonner";
 
 import { FolderIconPicker } from "../components/FolderIconPicker";
@@ -143,7 +143,7 @@ function FolderCard({
             <Button
               variant="secondary"
               size="sm"
-              onClick={(event) => {
+              onClick={(event: MouseEvent<HTMLButtonElement>) => {
                 event.stopPropagation();
                 onLink(folder);
               }}
@@ -158,7 +158,7 @@ function FolderCard({
             variant="ghost"
             size="icon"
             loading={isDeleting}
-            onClick={(event) => {
+            onClick={(event: MouseEvent<HTMLButtonElement>) => {
               event.stopPropagation();
               onDelete(folder.id);
             }}
