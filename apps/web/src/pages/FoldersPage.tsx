@@ -1,5 +1,6 @@
+import { FolderIcon, iconBg, iconBorder } from "@file-sync/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FolderSync, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -11,6 +12,7 @@ import {
   deleteApiSyncFoldersByIdMutation,
   getApiSyncFoldersOptions,
   getApiSyncFoldersQueryKey,
+  postApiSyncFoldersMutation,
 } from "../generated/@tanstack/react-query.gen";
 
 type SyncFolder = {
@@ -27,6 +29,8 @@ export function FoldersPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState<SyncFolder | undefined>(undefined);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [newName, setNewName] = useState("");
 
   const { data: foldersRaw, isLoading } = useQuery(getApiSyncFoldersOptions());
   const folders = (foldersRaw as SyncFolder[] | undefined) ?? [];
@@ -41,6 +45,23 @@ export function FoldersPage() {
     onError: () => toast.error(t("common.error")),
   });
 
+  const folderCreation = useMutation({
+    ...postApiSyncFoldersMutation(),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: getApiSyncFoldersQueryKey() });
+      setIsCreateOpen(false);
+      setNewName("");
+      toast.success(t("folders.created"));
+    },
+    onError: () => toast.error(t("common.error")),
+  });
+
+  function handleCreate() {
+    const name = newName.trim();
+    if (!name) return;
+    folderCreation.mutate({ body: { name } });
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24 text-sm text-[hsl(var(--text-muted))]">
@@ -52,16 +73,24 @@ export function FoldersPage() {
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-[hsl(var(--text))]">{t("folders.title")}</h1>
-        <p className="mt-1 text-sm text-[hsl(var(--text-muted))]">
-          {t("folders.subtitle", { count: folders.length })}
-        </p>
+      <div className="mb-8 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-[hsl(var(--text))]">{t("folders.title")}</h1>
+          <p className="mt-1 text-sm text-[hsl(var(--text-muted))]">
+            {t("folders.subtitle", { count: folders.length })}
+          </p>
+        </div>
+        <Button size="sm" onClick={() => setIsCreateOpen(true)}>
+          <Plus className="size-3.5" />
+          {t("folders.newFolder")}
+        </Button>
       </div>
 
       {folders.length === 0 ? (
         <div className="flex flex-col items-center py-20 text-center">
-          <FolderSync className="mb-4 size-10 text-[hsl(var(--text-faint))]" />
+          <div className="mb-4 flex size-16 items-center justify-center rounded-2xl border border-[hsl(var(--brand-from)/.2)] bg-[hsl(var(--brand-from)/.1)]">
+            <FolderIcon iconKey="folder" className="size-8 text-[hsl(var(--brand-from)/.6)]" />
+          </div>
           <p className="font-medium text-[hsl(var(--text))]">{t("folders.noFolders")}</p>
           <p className="mt-1 text-sm text-[hsl(var(--text-muted))]">{t("folders.noFoldersHint")}</p>
         </div>
@@ -74,9 +103,20 @@ export function FoldersPage() {
               onClick={() => void navigate(`/folders/${folder.id}`)}
             >
               <CardContent className="flex items-center gap-4 p-4">
-                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--surface-2))]">
-                  <FolderSync className="size-5 text-[hsl(var(--brand-from))]" />
+                <div
+                  className="flex size-10 shrink-0 items-center justify-center rounded-xl border"
+                  style={{
+                    backgroundColor: iconBg(folder.iconColor),
+                    borderColor: iconBorder(folder.iconColor),
+                  }}
+                >
+                  <FolderIcon
+                    iconKey={folder.iconKey}
+                    color={folder.iconColor ?? undefined}
+                    className="size-5 text-[hsl(var(--brand-from))]"
+                  />
                 </div>
+
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-[hsl(var(--text))]">
                     {folder.name}
@@ -87,6 +127,7 @@ export function FoldersPage() {
                       : t("folders.noDevices")}
                   </p>
                 </div>
+
                 <Button
                   variant="ghost"
                   size="icon"
@@ -104,6 +145,52 @@ export function FoldersPage() {
         </div>
       )}
 
+      {/* Create dialog */}
+      {isCreateOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-sm rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--surface))] p-6 shadow-[var(--shadow-lg)]">
+            <h2 className="text-base font-semibold text-[hsl(var(--text))]">
+              {t("folders.newFolder")}
+            </h2>
+            <p className="mt-1 text-sm text-[hsl(var(--text-muted))]">
+              {t("folders.newFolderHint")}
+            </p>
+            <input
+              type="text"
+              value={newName}
+              onChange={(event) => setNewName(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") handleCreate();
+              }}
+              placeholder={t("folders.namePlaceholder")}
+              className="mt-4 w-full rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--surface-2))] px-3 py-2 text-sm text-[hsl(var(--text))] placeholder:text-[hsl(var(--text-faint))] focus:outline-none focus:ring-1 focus:ring-[hsl(var(--brand-from))]"
+              autoFocus
+            />
+            <div className="mt-5 flex gap-2">
+              <Button
+                variant="secondary"
+                className="flex-1"
+                onClick={() => {
+                  setIsCreateOpen(false);
+                  setNewName("");
+                }}
+              >
+                {t("common.cancel")}
+              </Button>
+              <Button
+                className="flex-1"
+                loading={folderCreation.isPending}
+                disabled={!newName.trim()}
+                onClick={handleCreate}
+              >
+                {t("folders.create")}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirm dialog */}
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-sm rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--surface))] p-6 shadow-[var(--shadow-lg)]">

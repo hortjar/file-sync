@@ -1,27 +1,4 @@
-import {
-  Archive,
-  BookOpen,
-  Briefcase,
-  Camera,
-  Code2,
-  Coffee,
-  Database,
-  DollarSign,
-  Dumbbell,
-  FileText,
-  FolderOpen,
-  Globe,
-  Heart,
-  Home,
-  Image,
-  type LucideIcon,
-  Music,
-  Package,
-  Smile,
-  Star,
-  Terminal,
-  Video,
-} from "lucide-react";
+import { FolderIcon, FOLDER_ICONS } from "@file-sync/ui";
 import { useState } from "react";
 
 import { cn } from "../lib/cn";
@@ -29,30 +6,6 @@ import { cn } from "../lib/cn";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Separator } from "./ui/separator";
-
-export const FOLDER_ICONS: Record<string, LucideIcon> = {
-  folder: FolderOpen,
-  file: FileText,
-  book: BookOpen,
-  image: Image,
-  music: Music,
-  video: Video,
-  camera: Camera,
-  code: Code2,
-  terminal: Terminal,
-  database: Database,
-  globe: Globe,
-  home: Home,
-  star: Star,
-  heart: Heart,
-  briefcase: Briefcase,
-  package: Package,
-  archive: Archive,
-  coffee: Coffee,
-  dumbbell: Dumbbell,
-  dollar: DollarSign,
-  smile: Smile,
-};
 
 type ColorOption = { label: string; value: string | undefined };
 
@@ -104,8 +57,6 @@ export function FolderIconPicker({
     onClose();
   }
 
-  const PreviewIcon = FOLDER_ICONS[selectedIcon] ?? FolderOpen;
-
   return (
     <Dialog
       open={open}
@@ -124,7 +75,7 @@ export function FolderIconPicker({
             className="flex size-14 items-center justify-center rounded-2xl transition-all"
             style={{ backgroundColor: iconBg(selectedColor) }}
           >
-            <PreviewIcon className="size-7" style={{ color: iconFg(selectedColor) }} />
+            <FolderIcon iconKey={selectedIcon} color={iconFg(selectedColor)} className="size-7" />
           </div>
         </div>
 
@@ -216,17 +167,4 @@ export function FolderIconPicker({
       </DialogContent>
     </Dialog>
   );
-}
-
-export function FolderIcon({
-  iconKey,
-  color,
-  className,
-}: {
-  iconKey: string;
-  color?: string;
-  className?: string;
-}) {
-  const Icon = FOLDER_ICONS[iconKey] ?? FolderOpen;
-  return <Icon className={className} style={color ? { color } : undefined} />;
 }

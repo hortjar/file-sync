@@ -1,11 +1,11 @@
+import { FolderIcon, TreeItem, buildTree, iconBg, iconBorder } from "@file-sync/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ChevronDown, File, FolderOpen, Monitor, RefreshCw } from "lucide-react";
+import { ArrowLeft, ChevronDown, Monitor, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router-dom";
 
 import { Button } from "../components/ui/button";
-import { Card, CardContent, CardTitle } from "../components/ui/card";
 import {
   getApiSyncFoldersByIdOptions,
   getApiSyncFoldersOptions,
@@ -16,14 +16,7 @@ import {
 type FileEntry = { id: string; relativePath: string; size: number; mtime: string };
 type ServerLink = { deviceId: string; deviceName: string; platform: string; localPath: string };
 type ServerFolder = { id: string; name: string; createdAt: string; links: ServerLink[] };
-type SyncFolder = { id: string; name: string };
-
-function formatSize(bytes: number): string {
-  if (bytes === 0) return "—";
-  const units = ["B", "KB", "MB", "GB"];
-  const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
-  return `${(bytes / 1024 ** index).toFixed(index === 0 ? 0 : 1)} ${units[index] ?? "B"}`;
-}
+type SyncFolder = { id: string; name: string; iconKey: string; iconColor: string | undefined };
 
 export function FolderDetailPage() {
   const { t } = useTranslation();
@@ -44,6 +37,7 @@ export function FolderDetailPage() {
     getApiSyncStateBySyncFolderIdOptions({ path: { syncFolderId: folderId } }),
   );
   const entries = (stateRaw as FileEntry[] | undefined) ?? [];
+  const tree = buildTree(entries);
 
   function handleRefresh() {
     void queryClient.invalidateQueries({
@@ -53,103 +47,130 @@ export function FolderDetailPage() {
 
   return (
     <div>
+      {/* Header */}
       <div className="mb-6 flex items-center gap-3">
         <Link
           to="/folders"
-          className="flex size-8 items-center justify-center rounded-xl text-[hsl(var(--text-muted))] hover:bg-[hsl(var(--surface-2))] hover:text-[hsl(var(--text))] transition-colors"
+          className="flex size-8 items-center justify-center rounded-xl text-[hsl(var(--text-muted))] transition-colors hover:bg-[hsl(var(--surface-2))] hover:text-[hsl(var(--text))]"
         >
           <ArrowLeft className="size-4" />
         </Link>
-        <div className="min-w-0 flex-1">
-          <h1 className="truncate text-xl font-semibold text-[hsl(var(--text))]">
-            {folder?.name ?? folderId}
+
+        {folder ? (
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <div
+              className="flex size-9 shrink-0 items-center justify-center rounded-xl border"
+              style={{
+                backgroundColor: iconBg(folder.iconColor),
+                borderColor: iconBorder(folder.iconColor),
+              }}
+            >
+              <FolderIcon
+                iconKey={folder.iconKey}
+                color={folder.iconColor ?? undefined}
+                className="size-4 text-[hsl(var(--brand-from))]"
+              />
+            </div>
+            <div className="min-w-0">
+              <h1 className="truncate text-xl font-semibold text-[hsl(var(--text))]">
+                {folder.name}
+              </h1>
+              <p className="text-sm text-[hsl(var(--text-muted))]">
+                {t("folders.files", { count: entries.length })}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <h1 className="flex-1 truncate text-xl font-semibold text-[hsl(var(--text))]">
+            {folderId}
           </h1>
-          <p className="text-sm text-[hsl(var(--text-muted))]">
-            {t("folders.files", { count: entries.length })}
-          </p>
-        </div>
-        <Button variant="ghost" size="icon" onClick={handleRefresh}>
+        )}
+
+        <Button variant="ghost" size="icon" onClick={handleRefresh} title={t("common.refresh")}>
           <RefreshCw className="size-4" />
         </Button>
       </div>
 
-      {/* Linked devices (collapsed by default) */}
-      <Card className="mb-4">
+      {/* Linked devices (collapsible) */}
+      <div className="mb-4 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--surface))]">
         <button
-          className="flex w-full items-center justify-between border-b border-[hsl(var(--border))] px-5 py-3"
+          type="button"
+          className="flex w-full items-center justify-between border-b border-[hsl(var(--border))] px-4 py-3"
           onClick={() => setDevicesOpen((v) => !v)}
         >
-          <CardTitle className="text-sm">{t("folders.linkedDevices")}</CardTitle>
+          <span className="text-xs font-semibold uppercase tracking-wider text-[hsl(var(--text-faint))]">
+            {t("folders.linkedDevices")}
+          </span>
           <div className="flex items-center gap-2">
             {isServerLoading && (
               <span className="size-3 animate-spin rounded-full border border-current border-t-transparent text-[hsl(var(--text-faint))]" />
             )}
             <ChevronDown
-              className={`size-4 text-[hsl(var(--text-faint))] transition-transform ${devicesOpen ? "" : "-rotate-90"}`}
+              className={`size-3.5 text-[hsl(var(--text-faint))] transition-transform ${devicesOpen ? "" : "-rotate-90"}`}
             />
           </div>
         </button>
+
         {devicesOpen && (
-          <CardContent className="p-0">
+          <>
             {serverFolder?.links.length === 0 && (
-              <p className="px-5 py-3 text-sm text-[hsl(var(--text-faint))]">
+              <p className="px-4 py-3 text-xs text-[hsl(var(--text-faint))]">
                 {t("folders.noDevices")}
               </p>
             )}
             {serverFolder?.links.map((link) => (
               <div
                 key={link.deviceId}
-                className="flex items-start gap-3 border-b border-[hsl(var(--border-subtle))] px-5 py-3 last:border-0"
+                className="flex items-start gap-3 border-b border-[hsl(var(--border-subtle))] px-4 py-3 last:border-0"
               >
-                <Monitor className="mt-0.5 size-4 shrink-0 text-[hsl(var(--text-faint))]" />
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-[hsl(var(--text))]">{link.deviceName}</p>
-                  <p className="truncate font-mono text-xs text-[hsl(var(--text-faint))]">
+                <Monitor className="mt-0.5 size-3.5 shrink-0 text-[hsl(var(--text-faint))]" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-[hsl(var(--text))]">
+                      {link.deviceName}
+                    </span>
+                    <span className="capitalize text-xs text-[hsl(var(--text-faint))]">
+                      {link.platform}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 truncate font-mono text-[11px] text-[hsl(var(--text-faint))]">
                     {link.localPath}
                   </p>
                 </div>
               </div>
             ))}
-          </CardContent>
+          </>
         )}
-      </Card>
+      </div>
 
-      {/* File list */}
-      <Card>
-        <div className="flex items-center gap-2 border-b border-[hsl(var(--border))] px-5 py-3">
-          <FolderOpen className="size-4 text-[hsl(var(--brand-from))]" />
-          <CardTitle className="text-sm">{t("folders.files", { count: entries.length })}</CardTitle>
+      {/* File tree */}
+      <div className="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--surface))]">
+        <div className="flex items-center gap-2 border-b border-[hsl(var(--border))] px-4 py-3">
+          <FolderIcon
+            iconKey={folder?.iconKey ?? "folder"}
+            color={folder?.iconColor}
+            className="size-3.5 text-[hsl(var(--brand-from))]"
+          />
+          <span className="text-xs font-semibold uppercase tracking-wider text-[hsl(var(--text-faint))]">
+            {t("folders.files", { count: entries.length })}
+          </span>
         </div>
-        <CardContent className="p-2">
+
+        <div className="p-2">
           {isFilesLoading ? (
-            <div className="flex items-center justify-center py-10 text-sm text-[hsl(var(--text-muted))]">
+            <div className="flex items-center justify-center py-12 text-sm text-[hsl(var(--text-muted))]">
               <span className="mr-2 inline-block size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
               {t("common.loading")}
             </div>
-          ) : entries.length === 0 ? (
-            <p className="py-10 text-center text-sm text-[hsl(var(--text-muted))]">
+          ) : tree.length === 0 ? (
+            <p className="py-12 text-center text-sm text-[hsl(var(--text-muted))]">
               {t("folders.noFiles")}
             </p>
           ) : (
-            <div>
-              {entries.map((entry) => (
-                <div
-                  key={entry.id}
-                  className="flex items-center gap-2 rounded px-2 py-1 text-sm hover:bg-[hsl(var(--surface-2))]"
-                >
-                  <File className="size-3.5 shrink-0 text-[hsl(var(--text-faint))]" />
-                  <span className="flex-1 truncate text-[hsl(var(--text))]">
-                    {entry.relativePath}
-                  </span>
-                  <span className="shrink-0 text-xs text-[hsl(var(--text-faint))]">
-                    {formatSize(entry.size)}
-                  </span>
-                </div>
-              ))}
-            </div>
+            tree.map((node) => <TreeItem key={node.path} node={node} depth={0} />)
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

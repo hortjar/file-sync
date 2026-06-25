@@ -1,6 +1,13 @@
 // Utilities
 export { cn } from "./lib/cn";
 
+// Folder icons
+export { FolderIcon, FOLDER_ICONS, iconBg, iconBorder } from "./components/folder-icon";
+
+// File tree
+export { buildTree, formatSize, formatDate, TreeItem } from "./components/file-tree";
+export type { TreeNode, FileEntryForTree } from "./components/file-tree";
+
 // UI components
 export { Button, buttonVariants } from "./components/button";
 export {

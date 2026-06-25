@@ -1,3 +1,4 @@
+import { FolderIcon, iconBg, iconBorder } from "@file-sync/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { invoke } from "@tauri-apps/api/core";
@@ -6,7 +7,7 @@ import { AlertTriangle, LinkIcon, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
 
-import { FolderIcon, FolderIconPicker } from "../components/FolderIconPicker";
+import { FolderIconPicker } from "../components/FolderIconPicker";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
 import {
@@ -45,22 +46,6 @@ type SyncFolder = {
 
 function toMessage(thrown: unknown): string {
   return thrown instanceof Error ? thrown.message : "Unknown error";
-}
-
-function iconBg(color: string | undefined): string {
-  if (!color) return "hsl(var(--brand-from) / 0.1)";
-  const r = Number.parseInt(color.slice(1, 3), 16);
-  const g = Number.parseInt(color.slice(3, 5), 16);
-  const b = Number.parseInt(color.slice(5, 7), 16);
-  return `rgba(${r}, ${g}, ${b}, 0.1)`;
-}
-
-function iconBorder(color: string | undefined): string {
-  if (!color) return "hsl(var(--brand-from) / 0.2)";
-  const r = Number.parseInt(color.slice(1, 3), 16);
-  const g = Number.parseInt(color.slice(3, 5), 16);
-  const b = Number.parseInt(color.slice(5, 7), 16);
-  return `rgba(${r}, ${g}, ${b}, 0.2)`;
 }
 
 function EmptyState({ onOpen }: { onOpen: () => void }) {
