@@ -1,8 +1,9 @@
 import { type LogEntry, LogViewer } from "@file-sync/ui";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { appLogDir } from "@tauri-apps/api/path";
+import { appLogDir, join } from "@tauri-apps/api/path";
 import { readDir, readTextFile } from "@tauri-apps/plugin-fs";
-import { FileText, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "../components/ui/button";
@@ -51,7 +52,7 @@ function parseLine(line: string): LogEntry | undefined {
   }
 
   return {
-    id: `${ts ?? ""}-${crypto.randomUUID()}`,
+    id: `${ts ?? ""}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`,
     ts: ts ?? "",
     level,
     source,
@@ -85,15 +86,21 @@ async function loadLatestLogFile(): Promise<{ name: string; entries: LogEntry[];
 
   const logFiles = files
     .filter((file) => typeof file.name === "string" && file.name.endsWith(".log") && file.isFile)
-    .toSorted((fileA, fileB) => (fileA.name ?? "").localeCompare(fileB.name ?? ""));
+    .toSorted((a, b) => {
+      const an = a.name ?? "";
+      const bn = b.name ?? "";
+      return an < bn ? -1 : an > bn ? 1 : 0;
+    });
 
-  const latest = logFiles.at(-1);
+  // Prefer session files (filesync_YYYY-...) over the legacy plain filesync.log
+  const sessionFiles = logFiles.filter((f) => /^filesync_\d{4}-/u.test(f.name ?? ""));
+  const latest = (sessionFiles.length > 0 ? sessionFiles : logFiles).at(-1);
   if (!latest?.name)
     return { name: "", entries: [], error: `No .log files found in ${logDirectory}` };
 
   let content: string;
   try {
-    content = await readTextFile(`${logDirectory}/${latest.name}`);
+    content = await readTextFile(await join(logDirectory, latest.name));
   } catch (readError: unknown) {
     return {
       name: latest.name,
@@ -123,27 +130,27 @@ export function LogsPage() {
   const navigate = useNavigate();
   const { logLevel, setLogLevel } = useLogLevelStore();
   const [viewLevel, setViewLevel] = useState<LogLevel>("debug");
-  const [isLoading, setIsLoading] = useState(false);
-  const [fileName, setFileName] = useState<string>("");
-  const [loadError, setLoadError] = useState<string | undefined>();
-  const [entries, setEntries] = useState<LogEntry[]>([]);
-  const [hasLoaded, setHasLoaded] = useState(false);
 
-  async function load() {
-    setIsLoading(true);
-    setLoadError(undefined);
-    try {
-      const result = await loadLatestLogFile();
-      setFileName(result.name);
-      setEntries(result.entries);
-      cacheLogEntries(result.entries);
-      setLoadError(result.error);
-      setHasLoaded(true);
-    } catch (loadError_: unknown) {
-      setLoadError(loadError_ instanceof Error ? loadError_.message : "Unknown error");
-    } finally {
-      setIsLoading(false);
-    }
+  const {
+    data: logResult,
+    isLoading,
+    isFetching,
+    isError,
+    error: fetchError,
+    refetch,
+  } = useQuery({
+    queryKey: ["desktop-logs"],
+    queryFn: loadLatestLogFile,
+    refetchOnWindowFocus: false,
+    staleTime: Infinity,
+  });
+
+  const entries = logResult?.entries ?? [];
+  const loadError = logResult?.error;
+  const fileName = logResult?.name ?? "";
+
+  if (logResult?.entries) {
+    cacheLogEntries(logResult.entries);
   }
 
   function handleViewDetail(entry: LogEntry) {
@@ -168,8 +175,8 @@ export function LogsPage() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => void load()}
-          loading={isLoading}
+          onClick={() => void refetch()}
+          loading={isLoading || isFetching}
           title="Refresh"
         >
           <RefreshCw className="size-4" />
@@ -219,29 +226,29 @@ export function LogsPage() {
       </div>
 
       <Card className="min-h-0 flex-1 overflow-hidden">
-        {hasLoaded ? (
-          loadError ? (
-            <div className="p-5">
-              <p className="text-sm font-medium text-[hsl(var(--danger))]">Failed to load logs</p>
-              <p className="mt-1 font-mono text-xs text-[hsl(var(--text-faint))]">{loadError}</p>
-            </div>
-          ) : (
-            <LogViewer
-              entries={filtered}
-              className="h-full overflow-y-auto"
-              onViewDetail={handleViewDetail}
-            />
-          )
-        ) : (
-          <div className="flex flex-col items-center gap-3 py-16 text-center">
-            <FileText className="size-8 text-[hsl(var(--text-faint))]" />
-            <p className="text-sm text-[hsl(var(--text-muted))]">
-              Press refresh to load the latest log file
-            </p>
-            <Button variant="secondary" size="sm" onClick={() => void load()} loading={isLoading}>
-              Load logs
-            </Button>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-16 text-sm text-[hsl(var(--text-muted))]">
+            <div className="mr-2 size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            Loading logs…
           </div>
+        ) : isError ? (
+          <div className="p-5">
+            <p className="text-sm font-medium text-[hsl(var(--danger))]">Failed to load logs</p>
+            <p className="mt-1 font-mono text-xs text-[hsl(var(--text-faint))]">
+              {fetchError instanceof Error ? fetchError.message : String(fetchError)}
+            </p>
+          </div>
+        ) : loadError ? (
+          <div className="p-5">
+            <p className="text-sm font-medium text-[hsl(var(--danger))]">Failed to load logs</p>
+            <p className="mt-1 font-mono text-xs text-[hsl(var(--text-faint))]">{loadError}</p>
+          </div>
+        ) : (
+          <LogViewer
+            entries={filtered}
+            className="h-full overflow-y-auto"
+            onViewDetail={handleViewDetail}
+          />
         )}
       </Card>
     </div>

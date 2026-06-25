@@ -61,6 +61,11 @@ body {
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+.gradient-bg {
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -10%, hsl(var(--brand-from) / 0.15) 0%, transparent 60%),
+    hsl(var(--bg));
+}
 
 ::-webkit-scrollbar {
   width: 6px;

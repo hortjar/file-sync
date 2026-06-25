@@ -119,11 +119,11 @@ export function DevicesPage() {
                           {t(isOnline ? "devices.isOnline" : "devices.offline")}
                         </span>
                       </div>
-                      {!isOnline && (
-                        <p className="mt-0.5 text-[10px] text-[hsl(var(--text-faint))]">
-                          {new Date(device.lastSeenAt).toLocaleString()}
-                        </p>
-                      )}
+                      <p
+                        className={`mt-0.5 text-[10px] text-[hsl(var(--text-faint))] ${isOnline ? "invisible" : ""}`}
+                      >
+                        {new Date(device.lastSeenAt).toLocaleString()}
+                      </p>
                     </div>
                     <Button
                       variant="ghost"

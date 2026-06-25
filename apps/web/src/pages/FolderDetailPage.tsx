@@ -1,6 +1,6 @@
 import { FolderIcon, TreeItem, buildTree, iconBg, iconBorder } from "@file-sync/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ChevronDown, Monitor, RefreshCw } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ChevronDown, Monitor, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router-dom";
@@ -51,7 +51,7 @@ export function FolderDetailPage() {
       <div className="mb-6 flex items-center gap-3">
         <Link
           to="/folders"
-          className="flex size-8 items-center justify-center rounded-xl text-[hsl(var(--text-muted))] transition-colors hover:bg-[hsl(var(--surface-2))] hover:text-[hsl(var(--text))]"
+          className="flex size-8 items-center justify-center rounded-xl text-[hsl(var(--text-muted))] transition-colors hover:bg-white/[0.06] hover:text-[hsl(var(--text))]"
         >
           <ArrowLeft className="size-4" />
         </Link>
@@ -92,10 +92,10 @@ export function FolderDetailPage() {
       </div>
 
       {/* Linked devices (collapsible) */}
-      <div className="mb-4 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--surface))]">
+      <div className="mb-4 rounded-lg border border-white/[0.07] bg-white/[0.03]">
         <button
           type="button"
-          className="flex w-full items-center justify-between border-b border-[hsl(var(--border))] px-4 py-3"
+          className="flex w-full cursor-pointer items-center justify-between border-b border-white/[0.05] px-4 py-3"
           onClick={() => setDevicesOpen((v) => !v)}
         >
           <span className="text-xs font-semibold uppercase tracking-wider text-[hsl(var(--text-faint))]">
@@ -121,7 +121,7 @@ export function FolderDetailPage() {
             {serverFolder?.links.map((link) => (
               <div
                 key={link.deviceId}
-                className="flex items-start gap-3 border-b border-[hsl(var(--border-subtle))] px-4 py-3 last:border-0"
+                className="flex items-start gap-3 border-b border-white/[0.04] px-4 py-3 last:border-0"
               >
                 <Monitor className="mt-0.5 size-3.5 shrink-0 text-[hsl(var(--text-faint))]" />
                 <div className="min-w-0 flex-1">
@@ -137,6 +137,7 @@ export function FolderDetailPage() {
                     {link.localPath}
                   </p>
                 </div>
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-green-500" />
               </div>
             ))}
           </>
@@ -144,8 +145,8 @@ export function FolderDetailPage() {
       </div>
 
       {/* File tree */}
-      <div className="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--surface))]">
-        <div className="flex items-center gap-2 border-b border-[hsl(var(--border))] px-4 py-3">
+      <div className="rounded-lg border border-white/[0.07] bg-white/[0.03]">
+        <div className="flex items-center gap-2 border-b border-white/[0.05] px-4 py-3">
           <FolderIcon
             iconKey={folder?.iconKey ?? "folder"}
             color={folder?.iconColor}
