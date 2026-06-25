@@ -29,7 +29,7 @@ import {
   postApiSyncFoldersByIdLinksMutation,
   postApiSyncFoldersMutation,
 } from "../generated/@tanstack/react-query.gen";
-import { testWritePermission } from "../services/permission-check";
+import { requestFolderPermissions } from "../services/permission-check";
 import { reconcile } from "../services/reconciler";
 import { useAuthStore } from "../stores/auth";
 import { useLinksStore } from "../stores/links";
@@ -46,6 +46,17 @@ type SyncFolder = {
 
 function toMessage(thrown: unknown): string {
   return thrown instanceof Error ? thrown.message : "Unknown error";
+}
+
+const SETTINGS_HINT =
+  "Choose a different location or grant access in System Settings → Privacy & Security → Files and Folders.";
+
+function permissionMessage(canRead: boolean, canWrite: boolean): string | undefined {
+  if (!canRead && !canWrite)
+    return `FileSync can't access the files in this folder. ${SETTINGS_HINT}`;
+  if (!canRead) return `FileSync can't read the files in this folder. ${SETTINGS_HINT}`;
+  if (!canWrite) return `FileSync can't write to this folder. ${SETTINGS_HINT}`;
+  return undefined;
 }
 
 function EmptyState({ onOpen }: { onOpen: () => void }) {
@@ -266,12 +277,9 @@ export function SyncFoldersPage() {
     setPermissionError(undefined);
     setIsCheckingPermission(true);
     try {
-      const canWrite = await testWritePermission(path);
-      if (!canWrite) {
-        setPermissionError(
-          "FileSync can't write to this folder. Choose a different location or check System Settings → Privacy & Security → Files and Folders.",
-        );
-      }
+      const { canRead, canWrite } = await requestFolderPermissions(path);
+      const error = permissionMessage(canRead, canWrite);
+      if (error) setPermissionError(error);
     } finally {
       setIsCheckingPermission(false);
     }
@@ -280,11 +288,10 @@ export function SyncFoldersPage() {
   async function handleLink() {
     if (!linkingFolder || !selectedPath || !deviceId) return;
 
-    const canWrite = await testWritePermission(selectedPath);
-    if (!canWrite) {
-      setPermissionError(
-        "FileSync can't write to this folder. Choose a different location or check System Settings → Privacy & Security → Files and Folders.",
-      );
+    const { canRead, canWrite } = await requestFolderPermissions(selectedPath);
+    const error = permissionMessage(canRead, canWrite);
+    if (error) {
+      setPermissionError(error);
       return;
     }
 

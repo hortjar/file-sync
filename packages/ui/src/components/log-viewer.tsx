@@ -30,7 +30,9 @@ const LEVEL_BG: Record<string, string> = {
   error: "bg-[hsl(var(--danger)/.1)] text-[hsl(var(--danger))]",
 };
 
-// ── JSON tree renderer ───────────────────────────────────────────────────────
+const PAGE_SIZE = 50;
+
+// ── JSON tree renderer (raw mode) ────────────────────────────────────────────
 
 type JsonNodeProperties = { value: unknown; depth?: number };
 
@@ -94,95 +96,340 @@ function JsonNode({ value, depth = 0 }: JsonNodeProperties): React.ReactNode {
   return <span className="text-[hsl(var(--text))]">{JSON.stringify(value)}</span>;
 }
 
-// ── HTTP structured data helpers ─────────────────────────────────────────────
-
-type HttpRequestPayload = { requestHeaders: unknown; requestBody: unknown };
-type HttpResponsePayload = {
-  status: number;
-  ms: number;
-  responseHeaders: unknown;
-  responseBody: unknown;
-};
-
-function isHttpRequest(data: unknown): data is HttpRequestPayload {
-  return typeof data === "object" && data !== null && "requestHeaders" in data;
-}
-
-function isHttpResponse(data: unknown): data is HttpResponsePayload {
-  return typeof data === "object" && data !== null && "responseHeaders" in data;
-}
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
 function tryParseJsonString(value: unknown): unknown {
   if (typeof value !== "string") return value;
+  const trimmed = value.trim();
+  if (!(trimmed.startsWith("{") || trimmed.startsWith("["))) return value;
   try {
-    return JSON.parse(value);
+    return JSON.parse(trimmed);
   } catch {
     return value;
   }
 }
 
-// ── Data block (labelled code box) ───────────────────────────────────────────
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
 
-type DataBlockProperties = { label: string; value: unknown };
+// ── HTTP method badge ──────────────────────────────────────────────────────────
 
-function DataBlock({ label, value }: DataBlockProperties) {
+const METHOD_COLOR: Record<string, string> = {
+  GET: "bg-blue-500/10 text-blue-400",
+  POST: "bg-green-500/10 text-green-400",
+  PUT: "bg-amber-500/10 text-amber-400",
+  PATCH: "bg-violet-500/10 text-violet-400",
+  DELETE: "bg-[hsl(var(--danger)/.1)] text-[hsl(var(--danger))]",
+  HEAD: "bg-[hsl(var(--surface-2))] text-[hsl(var(--text-faint))]",
+  OPTIONS: "bg-[hsl(var(--surface-2))] text-[hsl(var(--text-faint))]",
+};
+
+const METHOD_RE = /^\s*(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\b/u;
+
+/** Resolve the HTTP method from the entry's structured data or message prefix. */
+function getHttpMethod(entry: LogEntry): string | undefined {
+  if (isPlainObject(entry.data) && typeof entry.data["method"] === "string") {
+    const method = entry.data["method"].toUpperCase();
+    if (Object.hasOwn(METHOD_COLOR, method)) return method;
+  }
+  const match = METHOD_RE.exec(entry.msg);
+  return match ? match[1] : undefined;
+}
+
+function MethodBadge({ method, className }: { method: string; className?: string }) {
+  return (
+    <span
+      className={cn(
+        "shrink-0 rounded px-1.5 py-0.5 text-center font-bold uppercase leading-none",
+        METHOD_COLOR[method] ?? "bg-[hsl(var(--surface-2))] text-[hsl(var(--text-faint))]",
+        className,
+      )}
+    >
+      {method}
+    </span>
+  );
+}
+
+// ── Pretty (structured form) renderer ─────────────────────────────────────────
+
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="mb-1 break-all font-mono text-[10px] font-medium text-[hsl(var(--text-faint))]">
+      {children}
+    </p>
+  );
+}
+
+function ScalarValue({ value }: { value: string | number | boolean | null | undefined }) {
+  let display: string;
+  let tone: string;
+
+  if (value === null) {
+    display = "null";
+    tone = "text-purple-400 italic";
+  } else if (value === undefined) {
+    display = "—";
+    tone = "text-[hsl(var(--text-faint))] italic";
+  } else if (typeof value === "boolean") {
+    display = String(value);
+    tone = "text-purple-400";
+  } else if (typeof value === "number") {
+    display = String(value);
+    tone = "text-orange-400";
+  } else if (value === "") {
+    display = "(empty string)";
+    tone = "text-[hsl(var(--text-faint))] italic";
+  } else {
+    display = value;
+    tone = "text-[hsl(var(--text))]";
+  }
+
+  return (
+    <div
+      className={cn(
+        "whitespace-pre-wrap break-all rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--bg))] px-3 py-1.5 font-mono text-xs",
+        tone,
+      )}
+    >
+      {display}
+    </div>
+  );
+}
+
+/** Renders any value: scalars as read-only fields, objects/arrays as nested field groups. */
+function PrettyValue({ value }: { value: unknown }): React.ReactNode {
   const parsed = tryParseJsonString(value);
+
+  if (parsed === null || parsed === undefined || typeof parsed !== "object") {
+    return <ScalarValue value={parsed as string | number | boolean | null | undefined} />;
+  }
+
+  if (Array.isArray(parsed)) {
+    if (parsed.length === 0) {
+      return (
+        <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--bg))] px-3 py-1.5 font-mono text-xs italic text-[hsl(var(--text-faint))]">
+          (empty array)
+        </div>
+      );
+    }
+    return (
+      <div className="space-y-2 border-l-2 border-[hsl(var(--border))] pl-3">
+        {(parsed as unknown[]).map((item, itemIndex) => (
+          <div key={itemIndex}>
+            <FieldLabel>[{itemIndex}]</FieldLabel>
+            <PrettyValue value={item} />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  const entries = Object.entries(parsed as Record<string, unknown>);
+  if (entries.length === 0) {
+    return (
+      <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--bg))] px-3 py-1.5 font-mono text-xs italic text-[hsl(var(--text-faint))]">
+        (empty object)
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-2 border-l-2 border-[hsl(var(--border))] pl-3">
+      {entries.map(([entryKey, entryValue]) => (
+        <div key={entryKey}>
+          <FieldLabel>{entryKey}</FieldLabel>
+          <PrettyValue value={entryValue} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Top-level pretty form: object/array entries become fields without the nesting border. */
+function PrettyForm({ value }: { value: unknown }) {
+  const parsed = tryParseJsonString(value);
+
+  if (isPlainObject(parsed)) {
+    const entries = Object.entries(parsed);
+    if (entries.length === 0) return <ScalarValue value="" />;
+    return (
+      <div className="space-y-3">
+        {entries.map(([entryKey, entryValue]) => (
+          <div key={entryKey}>
+            <FieldLabel>{entryKey}</FieldLabel>
+            <PrettyValue value={entryValue} />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (Array.isArray(parsed)) {
+    return (
+      <div className="space-y-3">
+        {(parsed as unknown[]).map((item, itemIndex) => (
+          <div key={itemIndex}>
+            <FieldLabel>[{itemIndex}]</FieldLabel>
+            <PrettyValue value={item} />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return <PrettyValue value={parsed} />;
+}
+
+// ── Data block (labelled, switches between pretty form and raw JSON) ───────────
+
+type DataBlockProperties = { label: string; value: unknown; pretty: boolean };
+
+function DataBlock({ label, value, pretty }: DataBlockProperties) {
+  const parsed = tryParseJsonString(value);
+
   return (
     <div>
       <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-[hsl(var(--text-faint))]">
         {label}
       </p>
-      <div className="overflow-x-auto rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--bg))] p-4 font-mono text-xs leading-relaxed">
-        <pre className="whitespace-pre-wrap break-all">
-          {typeof parsed === "string" ? (
-            <span className="text-[hsl(var(--text))]">{parsed}</span>
-          ) : (
-            <JsonNode value={parsed} />
-          )}
-        </pre>
-      </div>
+      {pretty ? (
+        <PrettyForm value={parsed} />
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--bg))] p-4 font-mono text-xs leading-relaxed">
+          <pre className="whitespace-pre-wrap break-all">
+            {typeof parsed === "string" ? (
+              <span className="text-[hsl(var(--text))]">{parsed}</span>
+            ) : (
+              <JsonNode value={parsed} />
+            )}
+          </pre>
+        </div>
+      )}
     </div>
   );
 }
 
-// ── Structured data renderer (request / response / generic) ──────────────────
+// ── HTTP structured data ───────────────────────────────────────────────────────
 
-function DetailDataSection({ data }: { data: unknown }) {
-  if (isHttpRequest(data)) {
-    return (
-      <>
-        <DataBlock label="Request Headers" value={data.requestHeaders} />
-        <DataBlock label="Request Body" value={data.requestBody} />
-      </>
-    );
-  }
+function hasAnyKey(data: unknown, keys: string[]): boolean {
+  return isPlainObject(data) && keys.some((key) => Object.hasOwn(data, key));
+}
 
-  if (isHttpResponse(data)) {
-    return (
-      <>
-        <div className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--surface-2))] p-4 font-mono text-xs">
-          <span className="text-[hsl(var(--text-faint))]">Status</span>
-          <span className="text-[hsl(var(--text))]">{String(data.status)}</span>
-          <span className="text-[hsl(var(--text-faint))]">Duration</span>
-          <span className="text-[hsl(var(--text))]">{String(data.ms)}ms</span>
-        </div>
-        <DataBlock label="Response Headers" value={data.responseHeaders} />
-        <DataBlock label="Response Body" value={data.responseBody} />
-      </>
-    );
-  }
+const REQUEST_KEYS = ["requestHeaders", "requestBody", "method", "url"];
+const RESPONSE_KEYS = ["responseHeaders", "responseBody", "status", "ms"];
+
+function StatusGrid({ data }: { data: Record<string, unknown> }) {
+  const rows: [string, string][] = [];
+  if ("status" in data) rows.push(["Status", String(data["status"])]);
+  if ("ms" in data) rows.push(["Duration", `${String(data["ms"])}ms`]);
+  if (rows.length === 0) return <></>;
 
   return (
-    <div>
-      <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[hsl(var(--text-faint))]">
-        Data
-      </p>
-      <div className="overflow-x-auto rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--bg))] p-4 font-mono text-xs leading-relaxed">
-        <pre className="whitespace-pre-wrap break-all">
-          <JsonNode value={data} />
-        </pre>
-      </div>
+    <div className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--surface-2))] p-4 font-mono text-xs">
+      {rows.map(([key, value]) => (
+        <span key={key} className="contents">
+          <span className="text-[hsl(var(--text-faint))]">{key}</span>
+          <span className="text-[hsl(var(--text))]">{value}</span>
+        </span>
+      ))}
     </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-3">
+      <p className="text-xs font-semibold text-[hsl(var(--text-muted))]">{title}</p>
+      {children}
+    </div>
+  );
+}
+
+function DetailDataSection({ data, pretty }: { data: unknown; pretty: boolean }) {
+  const hasRequest = hasAnyKey(data, REQUEST_KEYS);
+  const hasResponse = hasAnyKey(data, RESPONSE_KEYS);
+
+  if ((hasRequest || hasResponse) && isPlainObject(data)) {
+    const handled = new Set([...REQUEST_KEYS, ...RESPONSE_KEYS]);
+    const extra = Object.fromEntries(Object.entries(data).filter(([key]) => !handled.has(key)));
+
+    return (
+      <div className="space-y-6">
+        {hasRequest && (
+          <Section title="Request">
+            {"method" in data && typeof data["method"] === "string" && (
+              <div>
+                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-[hsl(var(--text-faint))]">
+                  Method
+                </p>
+                <MethodBadge
+                  method={data["method"].toUpperCase()}
+                  className="px-2 py-0.5 text-xs"
+                />
+              </div>
+            )}
+            {"url" in data && <DataBlock label="URL" value={data["url"]} pretty={pretty} />}
+            {"requestHeaders" in data && (
+              <DataBlock label="Request Headers" value={data["requestHeaders"]} pretty={pretty} />
+            )}
+            {"requestBody" in data && (
+              <DataBlock label="Request Body" value={data["requestBody"]} pretty={pretty} />
+            )}
+          </Section>
+        )}
+
+        {hasResponse && (
+          <Section title="Response">
+            <StatusGrid data={data} />
+            {"responseHeaders" in data && (
+              <DataBlock label="Response Headers" value={data["responseHeaders"]} pretty={pretty} />
+            )}
+            {"responseBody" in data && (
+              <DataBlock label="Response Body" value={data["responseBody"]} pretty={pretty} />
+            )}
+          </Section>
+        )}
+
+        {Object.keys(extra).length > 0 && <DataBlock label="Other" value={extra} pretty={pretty} />}
+      </div>
+    );
+  }
+
+  return <DataBlock label="Data" value={data} pretty={pretty} />;
+}
+
+// ── Pretty switch ──────────────────────────────────────────────────────────────
+
+function PrettyToggle({
+  pretty,
+  onChange,
+}: {
+  pretty: boolean;
+  onChange: (isPretty: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={pretty}
+      onClick={() => onChange(!pretty)}
+      className="inline-flex shrink-0 items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-[hsl(var(--text-faint))] transition-colors hover:text-[hsl(var(--text-muted))]"
+    >
+      Pretty
+      <span
+        className={cn(
+          "relative inline-block h-5 w-9 shrink-0 rounded-full transition-colors",
+          pretty ? "bg-[hsl(var(--brand-from))]" : "bg-[hsl(var(--border))]",
+        )}
+      >
+        <span
+          className={cn(
+            "absolute left-0.5 top-0.5 size-4 rounded-full bg-white shadow-sm transition-transform",
+            pretty ? "translate-x-4" : "translate-x-0",
+          )}
+        />
+      </span>
+    </button>
   );
 }
 
@@ -196,9 +443,12 @@ export type LogDetailProperties = {
 };
 
 export function LogDetail({ entry, onClose, showBack = false }: LogDetailProperties) {
+  const [pretty, setPretty] = useState(true);
+
   const level = (entry.level ?? "info").toLowerCase();
   const levelColor = LEVEL_COLOR[level] ?? LEVEL_COLOR["info"];
   const levelBg = LEVEL_BG[level] ?? LEVEL_BG["info"];
+  const method = getHttpMethod(entry);
 
   const hasData = entry.data !== undefined && entry.data !== null && entry.data !== "";
   let displayMessage = entry.msg;
@@ -220,6 +470,14 @@ export function LogDetail({ entry, onClose, showBack = false }: LogDetailPropert
       <span className="text-[hsl(var(--text))]">{entry.ts}</span>
       <span className="text-[hsl(var(--text-faint))]">Level</span>
       <span className={levelColor}>{level.toUpperCase()}</span>
+      {method && (
+        <>
+          <span className="text-[hsl(var(--text-faint))]">Method</span>
+          <span>
+            <MethodBadge method={method} className="text-[10px]" />
+          </span>
+        </>
+      )}
       {entry.source && (
         <>
           <span className="text-[hsl(var(--text-faint))]">Source</span>
@@ -242,7 +500,15 @@ export function LogDetail({ entry, onClose, showBack = false }: LogDetailPropert
 
   const dataBlock =
     expandableData !== undefined && expandableData !== null ? (
-      <DetailDataSection data={expandableData} />
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-[hsl(var(--text-faint))]">
+            Payload
+          </p>
+          <PrettyToggle pretty={pretty} onChange={setPretty} />
+        </div>
+        <DetailDataSection data={expandableData} pretty={pretty} />
+      </div>
     ) : undefined;
 
   // ── Page mode ──────────────────────────────────────────────────────────────
@@ -264,6 +530,7 @@ export function LogDetail({ entry, onClose, showBack = false }: LogDetailPropert
             <span className={cn("rounded px-2 py-0.5 text-xs font-bold uppercase", levelBg)}>
               {level}
             </span>
+            {method && <MethodBadge method={method} className="px-2 py-0.5 text-xs" />}
             <span className="font-mono text-xs text-[hsl(var(--text-faint))]">{entry.ts}</span>
           </div>
         </div>
@@ -289,6 +556,7 @@ export function LogDetail({ entry, onClose, showBack = false }: LogDetailPropert
         <span className={cn("rounded px-2 py-0.5 text-xs font-bold uppercase", levelBg)}>
           {level}
         </span>
+        {method && <MethodBadge method={method} className="px-2 py-0.5 text-xs" />}
         <span className="flex-1 truncate font-mono text-xs text-[hsl(var(--text-faint))]">
           {entry.ts}
         </span>
@@ -333,6 +601,7 @@ function LogRow({ entry, onViewDetail }: LogRowProperties) {
 
   const expandableData = entry.data ?? embeddedData;
   const canExpand = expandableData !== undefined && expandableData !== null;
+  const method = getHttpMethod(entry);
 
   const time = new Date(entry.ts).toLocaleTimeString(undefined, {
     hour: "2-digit",
@@ -379,6 +648,9 @@ function LogRow({ entry, onViewDetail }: LogRowProperties) {
             {entry.source}
           </span>
         )}
+
+        {/* HTTP method badge */}
+        {method && <MethodBadge method={method} className="text-[9px]" />}
 
         {/* Message */}
         <span className="min-w-0 flex-1 break-all text-left text-[hsl(var(--text))]">
@@ -435,6 +707,57 @@ function LogRow({ entry, onViewDetail }: LogRowProperties) {
   );
 }
 
+// ── Pagination controls ────────────────────────────────────────────────────────
+
+type PaginationProperties = {
+  page: number;
+  totalPages: number;
+  rangeStart: number;
+  rangeEnd: number;
+  total: number;
+  onPage: (next: number) => void;
+};
+
+function Pagination({
+  page,
+  totalPages,
+  rangeStart,
+  rangeEnd,
+  total,
+  onPage,
+}: PaginationProperties) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-t border-[hsl(var(--border))] bg-[hsl(var(--surface-2))] px-4 py-2 text-[11px] text-[hsl(var(--text-faint))]">
+      <span className="tabular-nums">
+        {rangeStart}–{rangeEnd} of {total}
+      </span>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          disabled={page === 0}
+          onClick={() => onPage(page - 1)}
+          className="flex items-center gap-1 rounded-md border border-[hsl(var(--border))] px-2 py-1 transition-colors hover:text-[hsl(var(--text))] disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <ChevronLeft className="size-3" />
+          Prev
+        </button>
+        <span className="tabular-nums">
+          {page + 1} / {totalPages}
+        </span>
+        <button
+          type="button"
+          disabled={page >= totalPages - 1}
+          onClick={() => onPage(page + 1)}
+          className="flex items-center gap-1 rounded-md border border-[hsl(var(--border))] px-2 py-1 transition-colors hover:text-[hsl(var(--text))] disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Next
+          <ChevronRight className="size-3" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── Public LogViewer ─────────────────────────────────────────────────────────
 
 export type LogViewerProperties = {
@@ -451,6 +774,7 @@ export function LogViewer({
   onViewDetail,
 }: LogViewerProperties) {
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(0);
 
   const filtered = search
     ? entries.filter(
@@ -462,7 +786,18 @@ export function LogViewer({
 
   const ordered = newestFirst ? filtered.toReversed() : filtered;
 
+  const totalPages = Math.max(1, Math.ceil(ordered.length / PAGE_SIZE));
+  // Clamp during render so the page stays valid after filtering/refetch without an effect.
+  const currentPage = Math.min(page, totalPages - 1);
+  const rangeStart = currentPage * PAGE_SIZE;
+  const visible = ordered.slice(rangeStart, rangeStart + PAGE_SIZE);
+
   const handleDetail = onViewDetail ?? (() => {});
+
+  function handleSearch(next: string) {
+    setSearch(next);
+    setPage(0);
+  }
 
   return (
     <div className={cn("flex flex-col", className)}>
@@ -474,13 +809,13 @@ export function LogViewer({
             type="text"
             placeholder="Search messages or sources…"
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) => handleSearch(event.target.value)}
             className="min-w-0 flex-1 bg-transparent font-mono text-xs text-[hsl(var(--text))] placeholder:text-[hsl(var(--text-faint))] focus:outline-none"
           />
           {search ? (
             <button
               type="button"
-              onClick={() => setSearch("")}
+              onClick={() => handleSearch("")}
               className="shrink-0 text-[hsl(var(--text-faint))] transition-colors hover:text-[hsl(var(--text))]"
             >
               <X className="size-3.5" />
@@ -494,17 +829,29 @@ export function LogViewer({
       </div>
 
       {/* Entries */}
-      <div className="font-mono text-xs">
+      <div className="min-h-0 flex-1 overflow-y-auto font-mono text-xs">
         {ordered.length === 0 ? (
           <p className="py-10 text-center text-sm text-[hsl(var(--text-muted))]">
             {search ? "No entries match your search." : "No log entries."}
           </p>
         ) : (
-          ordered.map((entry) => (
+          visible.map((entry) => (
             <LogRow key={entry.id} entry={entry} onViewDetail={handleDetail} />
           ))
         )}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Pagination
+          page={currentPage}
+          totalPages={totalPages}
+          rangeStart={rangeStart + 1}
+          rangeEnd={Math.min(rangeStart + PAGE_SIZE, ordered.length)}
+          total={ordered.length}
+          onPage={setPage}
+        />
+      )}
     </div>
   );
 }

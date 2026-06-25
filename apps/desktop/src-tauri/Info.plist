@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!--
+    macOS TCC usage descriptions. These must be present for the system to show
+    the "would like to access files in your … folder" permission prompt when
+    FileSync first reads/writes a linked directory in a protected location.
+    Without them macOS silently denies access instead of prompting.
+  -->
+  <key>NSDocumentsFolderUsageDescription</key>
+  <string>FileSync needs access to your Documents folder to sync the files in the folders you link.</string>
+  <key>NSDesktopFolderUsageDescription</key>
+  <string>FileSync needs access to your Desktop folder to sync the files in the folders you link.</string>
+  <key>NSDownloadsFolderUsageDescription</key>
+  <string>FileSync needs access to your Downloads folder to sync the files in the folders you link.</string>
+  <key>NSRemovableVolumesUsageDescription</key>
+  <string>FileSync needs access to removable volumes to sync folders you link on external drives.</string>
+  <key>NSNetworkVolumesUsageDescription</key>
+  <string>FileSync needs access to network volumes to sync folders you link on network drives.</string>
+</dict>
+</plist>

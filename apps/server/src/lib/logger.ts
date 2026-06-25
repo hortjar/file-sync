@@ -86,7 +86,64 @@ export function getServerLogLevel(): ServerLogLevel {
   return pinoLogger.level as ServerLogLevel;
 }
 
-export function logRequest(method: string, path: string, status: number, ms: number): void {
+// ── HTTP request/response serialization ──────────────────────────────────────
+
+const MAX_BODY_STRING = 2000;
+// Headers whose values must never be persisted to the (API-exposed) log buffer.
+const REDACTED_HEADERS = new Set(["authorization", "cookie", "set-cookie", "proxy-authorization"]);
+
+/** Normalize a Headers object or plain record into a redacted string map. */
+export function headersToObject(
+  headers: Headers | Record<string, unknown> | undefined,
+): Record<string, string> {
+  const result: Record<string, string> = {};
+  if (!headers) return result;
+  const source: Iterable<[string, unknown]> =
+    headers instanceof Headers ? headers : Object.entries(headers);
+  for (const [key, value] of source) {
+    if (value === undefined || value === null) continue;
+    const text = typeof value === "string" ? value : JSON.stringify(value);
+    result[key] = REDACTED_HEADERS.has(key.toLowerCase()) ? "[redacted]" : text;
+  }
+  return result;
+}
+
+/** Summarize a request/response body so binary/large payloads never bloat the buffer. */
+export function summarizeBody(value: unknown, depth = 0): unknown {
+  if (value === null || value === undefined) return value;
+  if (typeof value === "string")
+    return value.length > MAX_BODY_STRING
+      ? `${value.slice(0, MAX_BODY_STRING)}… (${value.length} chars)`
+      : value;
+  if (typeof value === "number" || typeof value === "boolean") return value;
+  if (value instanceof File) return `[file ${value.name || "unnamed"}, ${value.size} bytes]`;
+  if (value instanceof Blob) return `[blob, ${value.size} bytes]`;
+  if (value instanceof ArrayBuffer) return `[binary, ${value.byteLength} bytes]`;
+  if (ArrayBuffer.isView(value)) return `[binary, ${value.byteLength} bytes]`;
+  if (depth >= 4) return "[…]";
+  if (Array.isArray(value)) return value.slice(0, 50).map((item) => summarizeBody(item, depth + 1));
+  if (typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [key, item] of Object.entries(value)) out[key] = summarizeBody(item, depth + 1);
+    return out;
+  }
+  if (typeof value === "bigint") return `${value}n`;
+  return "[unserializable]";
+}
+
+export type RequestLogPayload = {
+  method: string;
+  url: string;
+  status: number;
+  ms: number;
+  requestHeaders: Record<string, string>;
+  requestBody?: unknown;
+  responseHeaders: Record<string, string>;
+  responseBody?: unknown;
+};
+
+export function logRequest(payload: RequestLogPayload): void {
+  const { method, url, status, ms } = payload;
   const level = status >= 500 ? "error" : status >= 400 ? "warn" : "debug";
-  logger[level]({ method, path, status, ms }, `${method} ${path} ${status} (${ms}ms)`);
+  logger[level](payload, `${method} ${url} ${status} (${ms}ms)`);
 }
