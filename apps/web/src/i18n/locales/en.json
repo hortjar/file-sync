@@ -24,7 +24,11 @@
     "totalFolders": "Sync Folders",
     "totalDevices": "Devices",
     "onlineDevices": "Online Devices",
-    "serverVersion": "Version"
+    "serverVersion": "Version",
+    "metricsTitle": "Metrics (last 24h)",
+    "storageUsed": "Storage used",
+    "filesTracked": "Files tracked",
+    "requestsPerMin": "Requests / min"
   },
   "folders": {
     "title": "Sync Folders",

@@ -1,3 +1,4 @@
+import { formatSize, MetricChart } from "@file-sync/ui";
 import { useQuery } from "@tanstack/react-query";
 import { Activity, FolderSync, Monitor, Server } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -8,8 +9,10 @@ import {
   getApiSyncFoldersOptions,
   getHealthOptions,
 } from "../generated/@tanstack/react-query.gen";
+import { metricsQueryOptions, seriesFor } from "../lib/metrics";
 
 const ONLINE_MS = 2 * 60 * 1000;
+const HEALTH_POLL_MS = 15 * 1000;
 
 function isDeviceOnline(lastSeenAt: string): boolean {
   return Date.now() - new Date(lastSeenAt).getTime() < ONLINE_MS;
@@ -51,8 +54,16 @@ function StatCard({
 export function Dashboard() {
   const { t } = useTranslation();
 
-  const { data: healthRaw } = useQuery(getHealthOptions());
-  const health = healthRaw as HealthResponse | undefined;
+  // Poll health and treat the server as offline when the most recent fetch
+  // failed. Without this, a cached successful response keeps "Online" forever.
+  const healthQuery = useQuery({
+    ...getHealthOptions(),
+    refetchInterval: HEALTH_POLL_MS,
+    retry: false,
+  });
+  const health = healthQuery.data as HealthResponse | undefined;
+  const isOnline =
+    healthQuery.errorUpdatedAt <= healthQuery.dataUpdatedAt && health?.status === "ok";
 
   const { data: foldersRaw } = useQuery(getApiSyncFoldersOptions());
   const folders = (foldersRaw as unknown[]) ?? [];
@@ -61,7 +72,7 @@ export function Dashboard() {
   const devices = (devicesRaw as Device[]) ?? [];
   const onlineCount = devices.filter((d) => isDeviceOnline(d.lastSeenAt)).length;
 
-  const isOnline = health?.status === "ok";
+  const { data: metrics } = useQuery(metricsQueryOptions(24));
 
   return (
     <div>
@@ -91,6 +102,31 @@ export function Dashboard() {
               {onlineCount}
             </span>
           }
+        />
+      </div>
+
+      <h2 className="mb-4 mt-10 text-lg font-semibold text-[hsl(var(--text))]">
+        {t("dashboard.metricsTitle")}
+      </h2>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <MetricChart
+          title={t("dashboard.storageUsed")}
+          points={seriesFor(metrics, "storage_bytes")}
+          formatValue={(v) => formatSize(v)}
+        />
+        <MetricChart
+          title={t("dashboard.filesTracked")}
+          points={seriesFor(metrics, "files_total")}
+        />
+        <MetricChart
+          title={t("dashboard.requestsPerMin")}
+          points={seriesFor(metrics, "requests")}
+          color="hsl(160 70% 45%)"
+        />
+        <MetricChart
+          title={t("dashboard.onlineDevices")}
+          points={seriesFor(metrics, "devices_online")}
+          color="hsl(35 90% 55%)"
         />
       </div>
 

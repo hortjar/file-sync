@@ -445,7 +445,7 @@ export type LogDetailProperties = {
 };
 
 export function LogDetail({ entry, onClose, showBack = false }: LogDetailProperties) {
-  const [pretty, setPretty] = useState(true);
+  const [pretty, setPretty] = useState(false);
 
   const level = (entry.level ?? "info").toLowerCase();
   const levelColor = LEVEL_COLOR[level] ?? LEVEL_COLOR["info"];

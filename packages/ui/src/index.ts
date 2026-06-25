@@ -22,6 +22,10 @@ export { Input } from "./components/input";
 export { Badge, badgeVariants } from "./components/badge";
 export { Separator } from "./components/separator";
 
+// Metric chart
+export { MetricChart } from "./components/metric-chart";
+export type { MetricChartProperties, MetricPoint } from "./components/metric-chart";
+
 // Log viewer
 export { LogViewer, LogDetail } from "./components/log-viewer";
 export type {

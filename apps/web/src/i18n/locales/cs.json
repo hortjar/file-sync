@@ -24,7 +24,11 @@
     "totalFolders": "Synchronizované složky",
     "totalDevices": "Zařízení",
     "onlineDevices": "Zařízení online",
-    "serverVersion": "Verze"
+    "serverVersion": "Verze",
+    "metricsTitle": "Metriky (posledních 24 h)",
+    "storageUsed": "Využité úložiště",
+    "filesTracked": "Sledované soubory",
+    "requestsPerMin": "Požadavky / min"
   },
   "folders": {
     "title": "Synchronizované složky",

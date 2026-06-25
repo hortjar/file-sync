@@ -3,10 +3,12 @@ import { openapi } from "@elysia/openapi";
 import { Elysia } from "elysia";
 
 import { headersToObject, logger, logRequest, summarizeBody } from "./lib/logger";
+import { recordRequest } from "./lib/metrics";
 import { authRoutes } from "./routes/auth";
 import { conflictsRoutes } from "./routes/conflicts";
 import { devicesRoutes } from "./routes/devices";
 import { logsRoutes } from "./routes/logs";
+import { metricsRoutes } from "./routes/metrics";
 import { syncRoutes } from "./routes/sync";
 import { syncFoldersRoutes } from "./routes/sync-folders";
 import { wsRoutes } from "./ws/index";
@@ -33,10 +35,12 @@ export function createApp() {
       .onAfterResponse({ as: "global" }, ({ request, body, set, startTime, responseValue }) => {
         const ms = Date.now() - startTime;
         const url = new URL(request.url);
+        const status = (set.status as number) ?? 200;
+        recordRequest(status >= 400);
         logRequest({
           method: request.method,
           url: url.pathname + url.search,
-          status: (set.status as number) ?? 200,
+          status,
           ms,
           requestHeaders: headersToObject(request.headers),
           requestBody: summarizeBody(body),
@@ -73,6 +77,7 @@ export function createApp() {
       .use(syncRoutes)
       .use(conflictsRoutes)
       .use(logsRoutes)
+      .use(metricsRoutes)
       .use(wsRoutes)
   );
 }

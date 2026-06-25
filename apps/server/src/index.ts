@@ -1,6 +1,7 @@
 import { networkInterfaces } from "node:os";
 
 import { createApp } from "./app";
+import { startMetricsSampler } from "./services/metrics-sampler";
 
 function getLocalIp(): string | undefined {
   const interfaces = Object.values(networkInterfaces());
@@ -19,5 +20,6 @@ createApp().listen(
     const localIp = getLocalIp();
     console.log(`  Local:   http://localhost:${port}`);
     if (localIp) console.log(`  Network: http://${localIp}:${port}`);
+    startMetricsSampler();
   },
 );

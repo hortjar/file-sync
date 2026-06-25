@@ -1,5 +1,6 @@
 import { relations, sql } from "drizzle-orm";
 import {
+  bigint,
   boolean,
   index,
   integer,
@@ -165,6 +166,22 @@ export const refreshTokens = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [index("refresh_tokens_user_id_idx").on(table.userId)],
+);
+
+// Time-series snapshots of server-wide metrics (storage, files, devices,
+// request throughput). Written periodically by the metrics sampler and read
+// by the dashboard charts. Server-wide, so no userId column.
+export const metricSamples = pgTable(
+  "metric_samples",
+  {
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    metric: varchar("metric", { length: 64 }).notNull(),
+    value: bigint("value", { mode: "number" }).notNull(),
+    capturedAt: timestamp("captured_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("metric_samples_metric_captured_idx").on(table.metric, table.capturedAt)],
 );
 
 // Relations
