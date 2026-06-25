@@ -23,6 +23,18 @@ type CheckResult = { result: "accept" | "conflict" | "up-to-date" };
 
 const debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
+/**
+ * Build the server-facing relative path for a local file. Wire paths are always
+ * POSIX-style ("/"), so Windows backslashes are normalized here — this keeps the
+ * stored path portable across every device that syncs the folder.
+ */
+function toRelativePath(localPath: string, localBase: string): string {
+  return localPath
+    .replace(localBase, "")
+    .replace(/^[/\\]/u, "")
+    .replaceAll("\\", "/");
+}
+
 async function handleFileChange(
   localPath: string,
   syncFolderId: string,
@@ -36,7 +48,7 @@ async function handleFileChange(
   }
 
   if (isDelete) {
-    const relativePath = localPath.replace(localBase, "").replace(/^[/\\]/u, "");
+    const relativePath = toRelativePath(localPath, localBase);
     logger.info(`[sync] delete: ${relativePath}`);
     await fetchWithAuth(`${serverUrl}/api/sync/delete`, {
       method: "POST",
@@ -66,7 +78,7 @@ export async function pushLocalFile(
     return;
   }
 
-  const relativePath = localPath.replace(localBase, "").replace(/^[/\\]/u, "");
+  const relativePath = toRelativePath(localPath, localBase);
   logger.debug(`[sync] processing change: ${relativePath}`);
 
   const { readFile } = await import("@tauri-apps/plugin-fs");

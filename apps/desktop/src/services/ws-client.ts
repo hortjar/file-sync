@@ -155,7 +155,10 @@ async function handleMessage(event: MessageEvent): Promise<void> {
       return;
     }
 
-    const localPath = await join(localBase, relativePath);
+    // Split on both separators so a delete reported by a Windows peer
+    // (backslash path) still resolves to the right nested file on this OS.
+    const segments = relativePath.split(/[/\\]/u).filter((segment) => segment.length > 0);
+    const localPath = await join(localBase, ...segments);
     logger.info(`[ws] deleting local file: ${relativePath}`);
     try {
       await remove(localPath);
