@@ -1192,7 +1192,7 @@ dependencies = [
 
 [[package]]
 name = "file-sync-desktop"
-version = "0.0.11"
+version = "0.0.12"
 dependencies = [
  "chrono",
  "log",
