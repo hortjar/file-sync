@@ -31,7 +31,7 @@ export function DevicesPage() {
   const queryClient = useQueryClient();
   const [confirmRemove, setConfirmRemove] = useState<Device | undefined>(undefined);
 
-  const { data: devicesRaw, isLoading } = useQuery(getApiDevicesOptions());
+  const { data: devicesRaw, isLoading, isError } = useQuery(getApiDevicesOptions());
   const devices = (devicesRaw as Device[] | undefined) ?? [];
 
   const deviceDeletion = useMutation({
@@ -49,6 +49,23 @@ export function DevicesPage() {
       <div className="flex items-center justify-center py-24 text-sm text-[hsl(var(--text-muted))]">
         <span className="mr-2 inline-block size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
         {t("common.loading")}
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div>
+        <div className="mb-8">
+          <h1 className="text-2xl font-semibold text-[hsl(var(--text))]">{t("devices.title")}</h1>
+        </div>
+        <div className="flex flex-col items-center py-20 text-center">
+          <Monitor className="mb-4 size-10 text-[hsl(var(--danger))]" />
+          <p className="font-medium text-[hsl(var(--text))]">{t("common.error")}</p>
+          <p className="mt-1 text-sm text-[hsl(var(--text-muted))]">
+            Could not load devices. Check that your server URL is correct and you are signed in.
+          </p>
+        </div>
       </div>
     );
   }

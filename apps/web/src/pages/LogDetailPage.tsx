@@ -30,9 +30,5 @@ export function LogDetailPage() {
     );
   }
 
-  return (
-    <div className="mx-auto max-w-2xl">
-      <LogDetail entry={entry} onClose={handleClose} />
-    </div>
-  );
+  return <LogDetail entry={entry} onClose={handleClose} showBack />;
 }

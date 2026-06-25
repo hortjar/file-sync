@@ -1,7 +1,9 @@
+import { useQuery } from "@tanstack/react-query";
 import { FileText, FolderSync, Globe, LayoutDashboard, LogOut, Monitor } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 
+import { getHealthOptions } from "../generated/@tanstack/react-query.gen";
 import { clearAuthHeader } from "../lib/api-client";
 import { cn } from "../lib/cn";
 import { useAuthStore } from "../stores/auth";
@@ -13,10 +15,19 @@ const NAV = [
   { to: "/logs", icon: FileText, label: "nav.logs" },
 ] as const;
 
+type HealthResponse = { status: string };
+
 export function AppLayout() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { userEmail, logout } = useAuthStore();
+
+  const { data: healthRaw, isError: healthError } = useQuery({
+    ...getHealthOptions(),
+    refetchInterval: 30_000,
+    retry: false,
+  });
+  const isServerOnline = !healthError && (healthRaw as HealthResponse | undefined)?.status === "ok";
 
   function handleLogout() {
     clearAuthHeader();
@@ -65,6 +76,19 @@ export function AppLayout() {
 
         {/* Footer */}
         <div className="border-t border-[hsl(var(--border))] p-3 space-y-1">
+          {/* Server status */}
+          <div className="flex items-center gap-2 px-3 py-2">
+            <span
+              className={cn(
+                "size-2 shrink-0 rounded-full",
+                isServerOnline ? "bg-green-500" : "bg-[hsl(var(--text-faint))]",
+              )}
+            />
+            <span className="text-xs text-[hsl(var(--text-faint))]">
+              {t(isServerOnline ? "dashboard.online" : "dashboard.offline")}
+            </span>
+          </div>
+
           <button
             onClick={toggleLang}
             className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-[hsl(var(--text-muted))] hover:bg-[hsl(var(--surface-2))] hover:text-[hsl(var(--text))] transition-colors"

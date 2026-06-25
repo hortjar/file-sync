@@ -1,6 +1,6 @@
 # FileSync
 
-Self-hosted, cross-platform file synchronization desktop app. Keeps selected directories in sync across multiple devices with bidirectional real-time sync, conflict detection, and system tray integration.
+Self-hosted, cross-platform file synchronization. Keeps selected directories in sync across multiple devices with bidirectional real-time sync, conflict detection, and system tray integration. Includes a web dashboard for monitoring and administration.
 
 **Stack**: Tauri v2 (React + TypeScript + Rust), Elysia on Bun, PostgreSQL, Content-Addressable Storage, WebSockets.
 
@@ -8,20 +8,31 @@ Self-hosted, cross-platform file synchronization desktop app. Keeps selected dir
 
 ## Quick Start (Production)
 
-**Prerequisites**: Docker, Docker Compose v2
+**Prerequisites**: Docker, Docker Compose v2, a domain pointing to your server
 
 ```bash
-# 1. Copy and edit the environment file
+# 1. Copy and fill environment variables
 cp .env.example .env.prod
-# Set DATABASE_URL, JWT_SECRET, JWT_REFRESH_SECRET (use long random strings in prod)
+# Set POSTGRES_PASSWORD, JWT_SECRET, JWT_REFRESH_SECRET to long random strings
 
-# 2. Start everything (migrations run automatically on startup)
+# 2. Edit Caddyfile if your domain differs from filesync.hortjar.cz
+#    Replace all occurrences of filesync.hortjar.cz with your domain
+
+# 3. Start everything (migrations run automatically on server startup)
 docker compose -f docker-compose.prod.yml up -d
-
-# 3. Server is now running at http://your-server:3001
 ```
 
-Download the desktop app from the [Releases](../../releases) page, open it, enter your server URL, and sign in.
+The stack after startup:
+
+| URL                       | Service                                       |
+| ------------------------- | --------------------------------------------- |
+| `https://your-domain/`    | Web dashboard (login, folders, devices, logs) |
+| `https://your-domain/api` | REST API (used by desktop + web)              |
+| `https://your-domain/ws`  | WebSocket (real-time push to desktop clients) |
+
+HTTPS is handled automatically by Caddy (Let's Encrypt). Port 80/443 must be reachable from the internet.
+
+Download the desktop app from the [Releases](../../releases) page, open it, enter `https://your-domain` as the server URL, and sign in.
 
 ---
 
@@ -63,8 +74,9 @@ bun run dev         # concurrently: server on :3001 + Tauri desktop
 Or separately:
 
 ```bash
-bun run dev:server  # server only
-bun run dev:desktop # desktop only (in another terminal)
+bun run dev:server  # server only (:3001)
+bun run dev:desktop # desktop only (separate terminal)
+bun run dev:web     # web dashboard only (:5173, connects to :3001)
 ```
 
 ### 6. Regenerate API types (after any server route change)
@@ -80,22 +92,32 @@ bun run generate:api
 
 ```
 file-sync/
+  Caddyfile               # Reverse proxy — routes / to web, /api to server
+  docker-compose.prod.yml # Production: postgres + server + web + caddy
+  docker-compose.dev.yml  # Dev in Docker: postgres + server (hot reload)
+  docker-compose.local.yml # Local dev: postgres only
+
   packages/
     shared/       # @file-sync/shared — types, constants, sync protocol
     ui/           # @file-sync/ui — shared React components + theme system
+
   apps/
     server/       # Elysia API server (port 3001)
       src/
-        routes/   # auth, devices, sync-folders, sync, conflicts
+        routes/   # auth, devices, sync-folders, sync, conflicts, logs
         ws/       # WebSocket connections + broadcast
         services/ # CAS blob storage, path sanitizer
         db/       # Drizzle schema, migrations, seed
     desktop/      # Tauri v2 desktop app
       src/
-        pages/    # Login, SyncFolders, Conflicts, Settings
+        pages/    # Login, SyncFolders, Conflicts, Settings, Logs
         services/ # sync engine, ws client, uploader, downloader, reconciler
         stores/   # auth, links, file-versions, sync-status, theme
-        hooks/    # useConflictCount
+        generated/ # HeyApi typed client + TanStack Query hooks
+    web/          # React SPA web dashboard (Vite + React Router)
+      src/
+        pages/    # Dashboard, Folders, Devices, Logs, Login
+        components/ # AppLayout, ProtectedRoute, shared UI
         generated/ # HeyApi typed client + TanStack Query hooks
 ```
 
@@ -107,26 +129,28 @@ file-sync/
 | -------------------------- | -------------------------------------------------------------------- |
 | `docker-compose.local.yml` | Local dev — PostgreSQL only. Run server locally with `bun run dev`.  |
 | `docker-compose.dev.yml`   | Dev in Docker — PostgreSQL + server with hot reload. Source mounted. |
-| `docker-compose.prod.yml`  | Production — PostgreSQL + built server image. Reads `.env.prod`.     |
+| `docker-compose.prod.yml`  | Production — postgres + server + web + Caddy (HTTPS).                |
 
 ```bash
 bun run db                                          # local: postgres only
-docker compose -f docker-compose.dev.yml up -d      # dev: postgres + server (hot reload)
-docker compose -f docker-compose.prod.yml up -d     # prod: full stack
+docker compose -f docker-compose.dev.yml up -d      # dev: postgres + server
+docker compose -f docker-compose.prod.yml up -d     # prod: full stack with HTTPS
 ```
 
 ---
 
 ## Environment Variables
 
-| Variable             | Required | Description                                      |
-| -------------------- | -------- | ------------------------------------------------ |
-| `DATABASE_URL`       | Yes      | PostgreSQL connection string                     |
-| `JWT_SECRET`         | Yes      | Secret for access token signing (15 min TTL)     |
-| `JWT_REFRESH_SECRET` | Yes      | Secret for refresh token signing (7 day TTL)     |
-| `PORT`               | No       | Server port (default: `3001`)                    |
-| `STORAGE_PATH`       | No       | Blob storage directory (default: `./data/blobs`) |
-| `NODE_ENV`           | No       | `development` or `production`                    |
+| Variable             | Required   | Description                                                 |
+| -------------------- | ---------- | ----------------------------------------------------------- |
+| `DATABASE_URL`       | Yes        | PostgreSQL connection string                                |
+| `JWT_SECRET`         | Yes        | Secret for access token signing (15 min TTL)                |
+| `JWT_REFRESH_SECRET` | Yes        | Secret for refresh token signing (7 day TTL)                |
+| `POSTGRES_PASSWORD`  | Yes (prod) | PostgreSQL password for Docker Compose                      |
+| `PORT`               | No         | Server port (default: `3001`)                               |
+| `STORAGE_PATH`       | No         | Blob storage directory (default: `./data/blobs`)            |
+| `NODE_ENV`           | No         | `development` or `production`                               |
+| `VITE_SERVER_URL`    | No         | Pre-fills the server URL in the web login form (build-time) |
 
 ---
 
@@ -147,13 +171,39 @@ Push a `v*` tag to trigger the build workflow:
 git tag v0.1.0 && git push origin v0.1.0
 ```
 
-Builds `FileSync.app` for ARM macOS and creates a draft release.
+---
+
+## Deployment Notes
+
+### Domain & HTTPS
+
+`Caddyfile` routes traffic on `filesync.hortjar.cz`:
+
+- `/` → web dashboard (nginx serving built SPA)
+- `/api/*` → Elysia API server
+- `/ws` → WebSocket
+- `/health`, `/openapi/*`, `/swagger*` → Elysia server
+
+Caddy obtains a Let's Encrypt certificate automatically on first start. Ports 80 and 443 must be open.
+
+### Updating
+
+```bash
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+Migrations run automatically on server startup.
+
+### CORS
+
+The server uses `origin: true` (allow all). In production the web app makes same-origin requests (no CORS needed), while desktop clients connect from Tauri's webview origin. This setting is safe for a self-hosted setup.
 
 ---
 
 ## Sync Architecture
 
-**Content-Addressable Storage (CAS)**  
+**Content-Addressable Storage (CAS)**
 Files are stored on the server by SHA-256 hash at `STORAGE_PATH/blobs/<hash[0:2]>/<hash>`, gzip-compressed. Identical content across users and folders is stored only once. Ref-counting garbage-collects unreferenced blobs.
 
 **Real-time sync flow**
@@ -163,11 +213,11 @@ Files are stored on the server by SHA-256 hash at `STORAGE_PATH/blobs/<hash[0:2]
 3. The server broadcasts a `file:changed` WebSocket message to all other connected devices of the same user.
 4. Each device's WS client downloads the new file and marks it as an expected write to prevent echo-loop re-uploads.
 
-**Conflict detection**  
+**Conflict detection**
 The check endpoint uses per-file version numbers tracked on the desktop (`stores/file-versions.ts`). If the server holds a version the client hasn't synced from, a conflict record is created and the upload is rejected. The Conflicts page lets users choose: **Keep Mine**, **Keep Theirs**, or **Keep Both** (saves the other version with a conflict suffix).
 
-**WebSocket authentication**  
-Browser WebSockets cannot set custom headers, so auth uses query params: `ws://server/ws?token=<jwt>&deviceId=<id>`.
+**WebSocket authentication**
+Browser WebSockets cannot set custom headers, so auth uses query params: `wss://server/ws?token=<jwt>&deviceId=<id>`.
 
 ---
 

@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight, ExternalLink, Search, X } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, ExternalLink, Search, X } from "lucide-react";
 import { useState } from "react";
 
 import { cn } from "../lib/cn";
@@ -94,42 +94,195 @@ function JsonNode({ value, depth = 0 }: JsonNodeProperties): React.ReactNode {
   return <span className="text-[hsl(var(--text))]">{JSON.stringify(value)}</span>;
 }
 
-// ── Log detail panel ─────────────────────────────────────────────────────────
+// ── HTTP structured data helpers ─────────────────────────────────────────────
+
+type HttpRequestPayload = { requestHeaders: unknown; requestBody: unknown };
+type HttpResponsePayload = {
+  status: number;
+  ms: number;
+  responseHeaders: unknown;
+  responseBody: unknown;
+};
+
+function isHttpRequest(data: unknown): data is HttpRequestPayload {
+  return typeof data === "object" && data !== null && "requestHeaders" in data;
+}
+
+function isHttpResponse(data: unknown): data is HttpResponsePayload {
+  return typeof data === "object" && data !== null && "responseHeaders" in data;
+}
+
+function tryParseJsonString(value: unknown): unknown {
+  if (typeof value !== "string") return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+}
+
+// ── Data block (labelled code box) ───────────────────────────────────────────
+
+type DataBlockProperties = { label: string; value: unknown };
+
+function DataBlock({ label, value }: DataBlockProperties) {
+  const parsed = tryParseJsonString(value);
+  return (
+    <div>
+      <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-[hsl(var(--text-faint))]">
+        {label}
+      </p>
+      <div className="overflow-x-auto rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--bg))] p-4 font-mono text-xs leading-relaxed">
+        <pre className="whitespace-pre-wrap break-all">
+          {typeof parsed === "string" ? (
+            <span className="text-[hsl(var(--text))]">{parsed}</span>
+          ) : (
+            <JsonNode value={parsed} />
+          )}
+        </pre>
+      </div>
+    </div>
+  );
+}
+
+// ── Structured data renderer (request / response / generic) ──────────────────
+
+function DetailDataSection({ data }: { data: unknown }) {
+  if (isHttpRequest(data)) {
+    return (
+      <>
+        <DataBlock label="Request Headers" value={data.requestHeaders} />
+        <DataBlock label="Request Body" value={data.requestBody} />
+      </>
+    );
+  }
+
+  if (isHttpResponse(data)) {
+    return (
+      <>
+        <div className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--surface-2))] p-4 font-mono text-xs">
+          <span className="text-[hsl(var(--text-faint))]">Status</span>
+          <span className="text-[hsl(var(--text))]">{String(data.status)}</span>
+          <span className="text-[hsl(var(--text-faint))]">Duration</span>
+          <span className="text-[hsl(var(--text))]">{String(data.ms)}ms</span>
+        </div>
+        <DataBlock label="Response Headers" value={data.responseHeaders} />
+        <DataBlock label="Response Body" value={data.responseBody} />
+      </>
+    );
+  }
+
+  return (
+    <div>
+      <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[hsl(var(--text-faint))]">
+        Data
+      </p>
+      <div className="overflow-x-auto rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--bg))] p-4 font-mono text-xs leading-relaxed">
+        <pre className="whitespace-pre-wrap break-all">
+          <JsonNode value={data} />
+        </pre>
+      </div>
+    </div>
+  );
+}
+
+// ── Log detail ────────────────────────────────────────────────────────────────
 
 export type LogDetailProperties = {
   entry: LogEntry;
   onClose: () => void;
+  /** Page mode: renders as a full page with a ← Back button instead of an ✕ close button. */
+  showBack?: boolean;
 };
 
-export function LogDetail({ entry, onClose }: LogDetailProperties) {
+export function LogDetail({ entry, onClose, showBack = false }: LogDetailProperties) {
   const level = (entry.level ?? "info").toLowerCase();
   const levelColor = LEVEL_COLOR[level] ?? LEVEL_COLOR["info"];
   const levelBg = LEVEL_BG[level] ?? LEVEL_BG["info"];
 
   const hasData = entry.data !== undefined && entry.data !== null && entry.data !== "";
-
   let displayMessage = entry.msg;
   let expandableData = entry.data;
 
-  // Try to parse embedded JSON from message when no structured data exists
   const jsonIndex = hasData ? -1 : entry.msg.search(/\s(\{|\[)/u);
   if (jsonIndex !== -1) {
     try {
       expandableData = JSON.parse(entry.msg.slice(jsonIndex).trim());
       displayMessage = entry.msg.slice(0, jsonIndex).trim();
     } catch {
-      // not JSON
+      // not JSON — leave as-is
     }
   }
 
+  const metaGrid = (
+    <div className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--surface-2))] p-4 font-mono text-xs">
+      <span className="text-[hsl(var(--text-faint))]">Time</span>
+      <span className="text-[hsl(var(--text))]">{entry.ts}</span>
+      <span className="text-[hsl(var(--text-faint))]">Level</span>
+      <span className={levelColor}>{level.toUpperCase()}</span>
+      {entry.source && (
+        <>
+          <span className="text-[hsl(var(--text-faint))]">Source</span>
+          <span className="text-[hsl(var(--brand-from))]">{entry.source}</span>
+        </>
+      )}
+    </div>
+  );
+
+  const messageBlock = (
+    <div>
+      <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[hsl(var(--text-faint))]">
+        Message
+      </p>
+      <p className="break-all rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--surface-2))] p-4 font-mono text-xs text-[hsl(var(--text))]">
+        {displayMessage}
+      </p>
+    </div>
+  );
+
+  const dataBlock =
+    expandableData !== undefined && expandableData !== null ? (
+      <DetailDataSection data={expandableData} />
+    ) : undefined;
+
+  // ── Page mode ──────────────────────────────────────────────────────────────
+  if (showBack) {
+    return (
+      <div className="space-y-5">
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex items-center gap-1.5 text-sm text-[hsl(var(--text-muted))] transition-colors hover:text-[hsl(var(--text))]"
+        >
+          <ChevronLeft className="size-4" />
+          Back to Logs
+        </button>
+
+        <div>
+          <h1 className="text-2xl font-semibold text-[hsl(var(--text))]">Log Entry</h1>
+          <div className="mt-2 flex items-center gap-3">
+            <span className={cn("rounded px-2 py-0.5 text-xs font-bold uppercase", levelBg)}>
+              {level}
+            </span>
+            <span className="font-mono text-xs text-[hsl(var(--text-faint))]">{entry.ts}</span>
+          </div>
+        </div>
+
+        {metaGrid}
+        {messageBlock}
+        {dataBlock}
+      </div>
+    );
+  }
+
+  // ── Panel mode ─────────────────────────────────────────────────────────────
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      {/* Header */}
       <div className="flex items-center gap-3 border-b border-[hsl(var(--border))] px-5 py-4">
         <button
           type="button"
           onClick={onClose}
-          className="flex size-7 shrink-0 items-center justify-center rounded-lg text-[hsl(var(--text-muted))] hover:bg-[hsl(var(--surface-2))] hover:text-[hsl(var(--text))] transition-colors"
+          className="flex size-7 shrink-0 items-center justify-center rounded-lg text-[hsl(var(--text-muted))] transition-colors hover:bg-[hsl(var(--surface-2))] hover:text-[hsl(var(--text))]"
         >
           <X className="size-4" />
         </button>
@@ -141,46 +294,10 @@ export function LogDetail({ entry, onClose }: LogDetailProperties) {
         </span>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-5 space-y-5">
-        {/* Metadata grid */}
-        <div className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--surface-2))] p-4 font-mono text-xs">
-          <span className="text-[hsl(var(--text-faint))]">Time</span>
-          <span className="text-[hsl(var(--text))]">{entry.ts}</span>
-
-          <span className="text-[hsl(var(--text-faint))]">Level</span>
-          <span className={levelColor}>{level.toUpperCase()}</span>
-
-          {entry.source && (
-            <>
-              <span className="text-[hsl(var(--text-faint))]">Source</span>
-              <span className="text-[hsl(var(--brand-from))]">{entry.source}</span>
-            </>
-          )}
-        </div>
-
-        {/* Message */}
-        <div>
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[hsl(var(--text-faint))]">
-            Message
-          </p>
-          <p className="break-all rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--surface-2))] p-4 font-mono text-xs text-[hsl(var(--text))]">
-            {displayMessage}
-          </p>
-        </div>
-
-        {/* Data */}
-        {expandableData !== undefined && expandableData !== null && (
-          <div>
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[hsl(var(--text-faint))]">
-              Data
-            </p>
-            <div className="overflow-x-auto rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--bg))] p-4 font-mono text-xs leading-relaxed">
-              <pre className="whitespace-pre-wrap break-all">
-                <JsonNode value={expandableData} />
-              </pre>
-            </div>
-          </div>
-        )}
+      <div className="flex-1 space-y-5 overflow-y-auto p-5">
+        {metaGrid}
+        {messageBlock}
+        {dataBlock}
       </div>
     </div>
   );
@@ -231,7 +348,7 @@ function LogRow({ entry, onViewDetail }: LogRowProperties) {
         className="flex w-full cursor-pointer items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-[hsl(var(--surface-2))]"
         onClick={() => canExpand && setIsExpanded((previous) => !previous)}
       >
-        {/* Chevron — 12×12, vertically centered */}
+        {/* Chevron */}
         <span className="flex size-3.5 shrink-0 items-center justify-center text-[hsl(var(--text-faint))]">
           {canExpand &&
             (isExpanded ? (
@@ -246,7 +363,7 @@ function LogRow({ entry, onViewDetail }: LogRowProperties) {
           {time}
         </span>
 
-        {/* Level badge — fixed width */}
+        {/* Level badge */}
         <span
           className={cn(
             "w-[5ch] shrink-0 rounded px-1 py-0.5 text-center text-[9px] font-bold uppercase leading-none",
@@ -268,7 +385,7 @@ function LogRow({ entry, onViewDetail }: LogRowProperties) {
           {displayMessage}
         </span>
 
-        {/* Detail button — taller hit area, centered */}
+        {/* Detail button */}
         <span
           role="button"
           tabIndex={0}
@@ -349,7 +466,7 @@ export function LogViewer({
 
   return (
     <div className={cn("flex flex-col", className)}>
-      {/* Search bar — visually separated from the entry list */}
+      {/* Search bar */}
       <div className="border-b border-[hsl(var(--border))] bg-[hsl(var(--surface-2))] px-4 py-2.5">
         <div className="flex items-center gap-2.5 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--surface))] px-3 py-1.5">
           <Search className="size-3.5 shrink-0 text-[hsl(var(--text-faint))]" />
@@ -364,7 +481,7 @@ export function LogViewer({
             <button
               type="button"
               onClick={() => setSearch("")}
-              className="shrink-0 text-[hsl(var(--text-faint))] hover:text-[hsl(var(--text))] transition-colors"
+              className="shrink-0 text-[hsl(var(--text-faint))] transition-colors hover:text-[hsl(var(--text))]"
             >
               <X className="size-3.5" />
             </button>

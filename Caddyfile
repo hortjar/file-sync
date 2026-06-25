@@ -1,0 +1,28 @@
+filesync.hortjar.cz {
+    # WebSocket — must match before the /api/* prefix
+    handle /ws {
+        reverse_proxy server:3001
+    }
+
+    # API and auxiliary server endpoints
+    handle /api/* {
+        reverse_proxy server:3001
+    }
+
+    handle /health {
+        reverse_proxy server:3001
+    }
+
+    handle /openapi/* {
+        reverse_proxy server:3001
+    }
+
+    handle /swagger* {
+        reverse_proxy server:3001
+    }
+
+    # Web SPA — everything else
+    handle {
+        reverse_proxy web:80
+    }
+}
