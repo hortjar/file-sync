@@ -10,8 +10,8 @@ export function initApiClient(): void {
     return request;
   });
 
-  // Reactive 401 fallback: refresh once, then retry without a body re-read
-  client.interceptors.response.use(async (response, request) => {
+  // Reactive 401 fallback: refresh once, then retry preserving the original body
+  client.interceptors.response.use(async (response, request, options) => {
     if (response.status !== 401) return response;
     if (request.url.includes("/api/auth/")) return response;
 
@@ -21,7 +21,15 @@ export function initApiClient(): void {
     const { accessToken } = useAuthStore.getState();
     const retryHeaders = new Headers(request.headers);
     retryHeaders.set("Authorization", `Bearer ${accessToken ?? ""}`);
-    return fetch(new Request(request.url, { method: request.method, headers: retryHeaders }));
+    // `request.body` has already been consumed by the initial fetch; reuse the
+    // serialized body from `options` so POST/PATCH retries aren't sent empty.
+    return fetch(
+      new Request(request.url, {
+        method: request.method,
+        headers: retryHeaders,
+        body: options.body as BodyInit | undefined,
+      }),
+    );
   });
 }
 
