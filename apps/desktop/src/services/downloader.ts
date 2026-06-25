@@ -49,7 +49,12 @@ export async function downloadFile(
   const buffer = new Uint8Array(await response.arrayBuffer());
   logger.info(`[download] buffer size=${buffer.byteLength} bytes for ${relativePath}`);
 
-  const localPath = await join(localBasePath, relativePath);
+  // `relativePath` is stored with the separator of whichever OS produced it, so
+  // a Windows client sends "sub\dir\file.txt". Split on both separators and
+  // rejoin per-segment so nested folders are recreated correctly on this OS
+  // instead of collapsing into a single oddly-named file.
+  const segments = relativePath.split(/[/\\]/u).filter((segment) => segment.length > 0);
+  const localPath = await join(localBasePath, ...segments);
   const directory = await dirname(localPath);
   logger.info(`[download] localPath=${localPath} directory=${directory}`);
 

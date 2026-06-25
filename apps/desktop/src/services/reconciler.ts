@@ -1,5 +1,5 @@
 import { join } from "@tauri-apps/api/path";
-import { exists, readFile } from "@tauri-apps/plugin-fs";
+import { exists, readDir, readFile } from "@tauri-apps/plugin-fs";
 
 import { fetchWithAuth } from "../lib/fetch-with-auth";
 import { useAuthStore } from "../stores/auth";
@@ -7,6 +7,31 @@ import { useAuthStore } from "../stores/auth";
 import { downloadFile } from "./downloader";
 import { computeHash } from "./hash";
 import { logger } from "./logger";
+import { pushLocalFile } from "./sync-engine";
+
+// Mirror of the watcher's skip rules (src-tauri/src/watcher.rs) so the initial
+// scan ignores the same noise the live watcher does.
+const SKIP_NAMES = new Set([".DS_Store", "Thumbs.db", "desktop.ini", ".git", "node_modules"]);
+
+function shouldSkip(name: string): boolean {
+  return SKIP_NAMES.has(name) || name.endsWith(".tmp") || name.endsWith(".part");
+}
+
+/** Recursively collect every file path under `dir`, descending into subfolders. */
+async function walkFiles(directory: string): Promise<string[]> {
+  const entries = await readDir(directory);
+  const files: string[] = [];
+  for (const entry of entries) {
+    if (shouldSkip(entry.name)) continue;
+    const fullPath = await join(directory, entry.name);
+    if (entry.isDirectory) {
+      files.push(...(await walkFiles(fullPath)));
+    } else if (entry.isFile) {
+      files.push(fullPath);
+    }
+  }
+  return files;
+}
 
 type RemoteEntry = {
   id: string;
@@ -88,6 +113,26 @@ export async function reconcile(syncFolderId: string, localBasePath: string): Pr
   }
 
   logger.info(
-    `[reconcile] complete for ${syncFolderId}: ${downloaded} downloaded, ${skipped} up-to-date`,
+    `[reconcile] download pass for ${syncFolderId}: ${downloaded} downloaded, ${skipped} up-to-date`,
   );
+
+  // Upload pass: walk the local tree (including subfolders) and push any files
+  // that aren't current on the server. `pushLocalFile` runs `/api/sync/check`
+  // first, so files already up-to-date (e.g. just downloaded) are skipped.
+  let scanned = 0;
+  try {
+    const localFiles = await walkFiles(localBasePath);
+    scanned = localFiles.length;
+    for (const filePath of localFiles) {
+      try {
+        await pushLocalFile(filePath, syncFolderId, localBasePath);
+      } catch (error: unknown) {
+        logger.error(`[reconcile] upload failed for ${filePath}`, error);
+      }
+    }
+  } catch (error: unknown) {
+    logger.error(`[reconcile] local scan failed for ${syncFolderId}`, error);
+  }
+
+  logger.info(`[reconcile] upload pass for ${syncFolderId}: scanned ${scanned} local file(s)`);
 }

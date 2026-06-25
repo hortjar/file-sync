@@ -35,10 +35,8 @@ async function handleFileChange(
     return;
   }
 
-  const relativePath = localPath.replace(localBase, "").replace(/^[/\\]/u, "");
-  logger.debug(`[sync] processing ${isDelete ? "delete" : "change"}: ${relativePath}`);
-
   if (isDelete) {
+    const relativePath = localPath.replace(localBase, "").replace(/^[/\\]/u, "");
     logger.info(`[sync] delete: ${relativePath}`);
     await fetchWithAuth(`${serverUrl}/api/sync/delete`, {
       method: "POST",
@@ -48,6 +46,28 @@ async function handleFileChange(
     logger.debug(`[sync] delete reported: ${relativePath}`);
     return;
   }
+
+  await pushLocalFile(localPath, syncFolderId, localBase);
+}
+
+/**
+ * Upload a single local file to the server if it isn't already current there.
+ * Shared by the live watcher (`handleFileChange`) and the initial reconcile
+ * scan so newly-linked folders push their pre-existing files too.
+ */
+export async function pushLocalFile(
+  localPath: string,
+  syncFolderId: string,
+  localBase: string,
+): Promise<void> {
+  const { serverUrl, deviceId } = useAuthStore.getState();
+  if (!deviceId) {
+    logger.warn("[sync] pushLocalFile: no deviceId, skipping");
+    return;
+  }
+
+  const relativePath = localPath.replace(localBase, "").replace(/^[/\\]/u, "");
+  logger.debug(`[sync] processing change: ${relativePath}`);
 
   const { readFile } = await import("@tauri-apps/plugin-fs");
   const rawData = await readFile(localPath);
