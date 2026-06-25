@@ -155,34 +155,40 @@ function MethodBadge({ method, className }: { method: string; className?: string
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="mb-1 break-all font-mono text-[10px] font-medium text-[hsl(var(--text-faint))]">
+    <p className="mb-1 break-all font-mono text-[11px] font-semibold text-[hsl(var(--text-muted))]">
       {children}
     </p>
   );
 }
 
+/** A read-only field box showing an italic placeholder for empty/absent values. */
+function EmptyValue({ label }: { label: string }) {
+  return (
+    <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--bg))] px-3 py-1.5 font-mono text-xs italic text-[hsl(var(--text-faint))]">
+      {label}
+    </div>
+  );
+}
+
 function ScalarValue({ value }: { value: string | number | boolean | null | undefined }) {
+  if (value === undefined) return <EmptyValue label="—" />;
+  if (value === "") return <EmptyValue label="(empty string)" />;
+
   let display: string;
   let tone: string;
 
   if (value === null) {
     display = "null";
     tone = "text-purple-400 italic";
-  } else if (value === undefined) {
-    display = "—";
-    tone = "text-[hsl(var(--text-faint))] italic";
   } else if (typeof value === "boolean") {
     display = String(value);
     tone = "text-purple-400";
   } else if (typeof value === "number") {
     display = String(value);
     tone = "text-orange-400";
-  } else if (value === "") {
-    display = "(empty string)";
-    tone = "text-[hsl(var(--text-faint))] italic";
   } else {
     display = value;
-    tone = "text-[hsl(var(--text))]";
+    tone = "text-green-400";
   }
 
   return (
@@ -206,13 +212,7 @@ function PrettyValue({ value }: { value: unknown }): React.ReactNode {
   }
 
   if (Array.isArray(parsed)) {
-    if (parsed.length === 0) {
-      return (
-        <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--bg))] px-3 py-1.5 font-mono text-xs italic text-[hsl(var(--text-faint))]">
-          (empty array)
-        </div>
-      );
-    }
+    if (parsed.length === 0) return <EmptyValue label="(empty array)" />;
     return (
       <div className="space-y-2 border-l-2 border-[hsl(var(--border))] pl-3">
         {(parsed as unknown[]).map((item, itemIndex) => (
@@ -226,13 +226,7 @@ function PrettyValue({ value }: { value: unknown }): React.ReactNode {
   }
 
   const entries = Object.entries(parsed as Record<string, unknown>);
-  if (entries.length === 0) {
-    return (
-      <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--bg))] px-3 py-1.5 font-mono text-xs italic text-[hsl(var(--text-faint))]">
-        (empty object)
-      </div>
-    );
-  }
+  if (entries.length === 0) return <EmptyValue label="(empty object)" />;
   return (
     <div className="space-y-2 border-l-2 border-[hsl(var(--border))] pl-3">
       {entries.map(([entryKey, entryValue]) => (
@@ -251,7 +245,7 @@ function PrettyForm({ value }: { value: unknown }) {
 
   if (isPlainObject(parsed)) {
     const entries = Object.entries(parsed);
-    if (entries.length === 0) return <ScalarValue value="" />;
+    if (entries.length === 0) return <EmptyValue label="(empty object)" />;
     return (
       <div className="space-y-3">
         {entries.map(([entryKey, entryValue]) => (
@@ -265,6 +259,7 @@ function PrettyForm({ value }: { value: unknown }) {
   }
 
   if (Array.isArray(parsed)) {
+    if (parsed.length === 0) return <EmptyValue label="(empty array)" />;
     return (
       <div className="space-y-3">
         {(parsed as unknown[]).map((item, itemIndex) => (
@@ -282,6 +277,15 @@ function PrettyForm({ value }: { value: unknown }) {
 
 // ── Data block (labelled, switches between pretty form and raw JSON) ───────────
 
+/** A sub-section header (e.g. "Request Headers", "Message", "Payload"). */
+function BlockLabel({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <p className={cn("py-1 text-xs font-semibold text-[hsl(var(--text-muted))]", className)}>
+      {children}
+    </p>
+  );
+}
+
 type DataBlockProperties = { label: string; value: unknown; pretty: boolean };
 
 function DataBlock({ label, value, pretty }: DataBlockProperties) {
@@ -289,9 +293,7 @@ function DataBlock({ label, value, pretty }: DataBlockProperties) {
 
   return (
     <div>
-      <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-[hsl(var(--text-faint))]">
-        {label}
-      </p>
+      <BlockLabel className="mb-1.5">{label}</BlockLabel>
       {pretty ? (
         <PrettyForm value={parsed} />
       ) : (
@@ -328,7 +330,7 @@ function StatusGrid({ data }: { data: Record<string, unknown> }) {
     <div className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--surface-2))] p-4 font-mono text-xs">
       {rows.map(([key, value]) => (
         <span key={key} className="contents">
-          <span className="text-[hsl(var(--text-faint))]">{key}</span>
+          <span className="font-semibold text-[hsl(var(--text-muted))]">{key}</span>
           <span className="text-[hsl(var(--text))]">{value}</span>
         </span>
       ))}
@@ -339,7 +341,9 @@ function StatusGrid({ data }: { data: Record<string, unknown> }) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="space-y-3">
-      <p className="text-xs font-semibold text-[hsl(var(--text-muted))]">{title}</p>
+      <h3 className="border-b border-[hsl(var(--border))] pb-1.5 text-base font-semibold text-[hsl(var(--text))]">
+        {title}
+      </h3>
       {children}
     </div>
   );
@@ -359,9 +363,7 @@ function DetailDataSection({ data, pretty }: { data: unknown; pretty: boolean })
           <Section title="Request">
             {"method" in data && typeof data["method"] === "string" && (
               <div>
-                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-[hsl(var(--text-faint))]">
-                  Method
-                </p>
+                <BlockLabel className="mb-1.5">Method</BlockLabel>
                 <MethodBadge
                   method={data["method"].toUpperCase()}
                   className="px-2 py-0.5 text-xs"
@@ -466,13 +468,13 @@ export function LogDetail({ entry, onClose, showBack = false }: LogDetailPropert
 
   const metaGrid = (
     <div className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--surface-2))] p-4 font-mono text-xs">
-      <span className="text-[hsl(var(--text-faint))]">Time</span>
+      <span className="font-semibold text-[hsl(var(--text-muted))]">Time</span>
       <span className="text-[hsl(var(--text))]">{entry.ts}</span>
-      <span className="text-[hsl(var(--text-faint))]">Level</span>
+      <span className="font-semibold text-[hsl(var(--text-muted))]">Level</span>
       <span className={levelColor}>{level.toUpperCase()}</span>
       {method && (
         <>
-          <span className="text-[hsl(var(--text-faint))]">Method</span>
+          <span className="font-semibold text-[hsl(var(--text-muted))]">Method</span>
           <span>
             <MethodBadge method={method} className="text-[10px]" />
           </span>
@@ -480,7 +482,7 @@ export function LogDetail({ entry, onClose, showBack = false }: LogDetailPropert
       )}
       {entry.source && (
         <>
-          <span className="text-[hsl(var(--text-faint))]">Source</span>
+          <span className="font-semibold text-[hsl(var(--text-muted))]">Source</span>
           <span className="text-[hsl(var(--brand-from))]">{entry.source}</span>
         </>
       )}
@@ -489,9 +491,7 @@ export function LogDetail({ entry, onClose, showBack = false }: LogDetailPropert
 
   const messageBlock = (
     <div>
-      <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[hsl(var(--text-faint))]">
-        Message
-      </p>
+      <BlockLabel className="mb-2">Message</BlockLabel>
       <p className="break-all rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--surface-2))] p-4 font-mono text-xs text-[hsl(var(--text))]">
         {displayMessage}
       </p>
@@ -502,9 +502,7 @@ export function LogDetail({ entry, onClose, showBack = false }: LogDetailPropert
     expandableData !== undefined && expandableData !== null ? (
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-[hsl(var(--text-faint))]">
-            Payload
-          </p>
+          <BlockLabel>Payload</BlockLabel>
           <PrettyToggle pretty={pretty} onChange={setPretty} />
         </div>
         <DetailDataSection data={expandableData} pretty={pretty} />
