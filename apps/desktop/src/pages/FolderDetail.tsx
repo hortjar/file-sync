@@ -12,7 +12,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "../components/ui/button";
 import {
@@ -22,6 +22,7 @@ import {
   getApiSyncStateBySyncFolderIdOptions,
   getApiSyncStateBySyncFolderIdQueryKey,
 } from "../generated/@tanstack/react-query.gen";
+import { toast } from "../lib/toast";
 import { reconcile } from "../services/reconciler";
 import { useAuthStore } from "../stores/auth";
 import { useLinksStore } from "../stores/links";
@@ -57,6 +58,7 @@ type ServerFolder = {
 };
 
 export function FolderDetailPage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const parameters = useParams({ strict: false });
@@ -102,10 +104,10 @@ export function FolderDetailPage() {
     try {
       await reconcile(folderId, localPathInStore);
       handleRefresh();
-      toast.success("Force sync complete");
+      toast.success(t("folderDetail.forceSyncComplete"));
     } catch (error: unknown) {
-      toast.error("Sync failed", {
-        description: error instanceof Error ? error.message : "Unknown error",
+      toast.error(t("folderDetail.syncFailed"), {
+        description: error instanceof Error ? error.message : t("common.unknownError"),
       });
     } finally {
       setIsSyncing(false);
@@ -145,20 +147,20 @@ export function FolderDetailPage() {
 
         <div className="ml-auto flex shrink-0 items-center gap-2">
           <span className="text-xs text-[hsl(var(--text-faint))]">
-            {entries.length} {entries.length === 1 ? "file" : "files"}
+            {t("folderDetail.files", { count: entries.length })}
           </span>
           {localPathInStore && (
             <Button
               variant="ghost"
               size="icon"
               onClick={() => void handleForceSync()}
-              title="Force sync"
+              title={t("folderDetail.forceSync")}
               loading={isSyncing}
             >
               <RotateCcw className="size-4" />
             </Button>
           )}
-          <Button variant="ghost" size="icon" onClick={handleRefresh} title="Refresh">
+          <Button variant="ghost" size="icon" onClick={handleRefresh} title={t("folderDetail.refresh")}>
             <RefreshCw className="size-4" />
           </Button>
         </div>
@@ -171,7 +173,7 @@ export function FolderDetailPage() {
           onClick={() => setIsDevicesExpanded((v) => !v)}
         >
           <span className="text-xs font-semibold uppercase tracking-wider text-[hsl(var(--text-faint))]">
-            Linked Devices
+            {t("folderDetail.linkedDevices")}
           </span>
           <div className="flex items-center gap-2">
             {isServerFolderLoading && (
@@ -187,7 +189,7 @@ export function FolderDetailPage() {
           <>
             {serverFolder && serverFolder.links.length === 0 && (
               <p className="px-4 py-3 text-xs text-[hsl(var(--text-faint))]">
-                No devices linked yet.
+                {t("folderDetail.noDevicesLinked")}
               </p>
             )}
 
@@ -206,7 +208,7 @@ export function FolderDetailPage() {
                       </span>
                       {isThis && (
                         <span className="rounded-full bg-[hsl(var(--brand-from)/.15)] px-1.5 py-0.5 text-[10px] font-medium text-[hsl(var(--brand-from))]">
-                          this device
+                          {t("folderDetail.thisDevice")}
                         </span>
                       )}
                       <span className="capitalize text-xs text-[hsl(var(--text-faint))]">
@@ -228,10 +230,10 @@ export function FolderDetailPage() {
                 <XCircle className="size-4 shrink-0 text-[hsl(var(--text-faint))]" />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm text-[hsl(var(--text-muted))]">
-                    This device is not linked on the server.
+                    {t("folderDetail.notLinkedTitle")}
                   </p>
                   <p className="mt-0.5 text-xs text-[hsl(var(--text-faint))]">
-                    Go back and use "Link folder" to connect a local directory.
+                    {t("folderDetail.notLinkedHint")}
                   </p>
                 </div>
               </div>
@@ -245,17 +247,17 @@ export function FolderDetailPage() {
         {localPathInStore ? (
           <>
             <HardDrive className="size-3.5 shrink-0 text-[hsl(var(--brand-from))]" />
-            <span className="text-[hsl(var(--text-faint))]">Active local path:</span>
+            <span className="text-[hsl(var(--text-faint))]">{t("folderDetail.activeLocalPath")}</span>
             <span className="truncate font-mono text-[hsl(var(--text))]">{localPathInStore}</span>
             <span className="ml-auto shrink-0 rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] font-medium text-green-400">
-              watching
+              {t("folderDetail.watching")}
             </span>
           </>
         ) : (
           <>
             <HardDrive className="size-3.5 shrink-0 text-[hsl(var(--text-faint))]" />
             <span className="text-[hsl(var(--text-faint))]">
-              No active local path — sync watcher not running on this device
+              {t("folderDetail.noActiveLocalPath")}
             </span>
           </>
         )}
@@ -265,15 +267,15 @@ export function FolderDetailPage() {
         {isFilesLoading ? (
           <div className="flex items-center justify-center py-16 text-sm text-[hsl(var(--text-muted))]">
             <div className="mr-2 size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-            Loading files…
+            {t("folderDetail.loadingFiles")}
           </div>
         ) : isError ? (
           <p className="py-16 text-center text-sm text-[hsl(var(--text-muted))]">
-            Could not load files — check server connection.
+            {t("folderDetail.filesLoadError")}
           </p>
         ) : tree.length === 0 ? (
           <p className="py-16 text-center text-sm text-[hsl(var(--text-muted))]">
-            No files synced yet.
+            {t("folderDetail.noFiles")}
           </p>
         ) : (
           <div className="p-2">

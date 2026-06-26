@@ -6,7 +6,9 @@ import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { AlertTriangle, LinkIcon, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { type MouseEvent, useState } from "react";
-import { toast } from "sonner";
+import { Trans, useTranslation } from "react-i18next";
+import i18n from "../i18n/index";
+import { toast } from "../lib/toast";
 
 import { FolderIconPicker } from "../components/FolderIconPicker";
 import { Button } from "../components/ui/button";
@@ -46,33 +48,31 @@ type SyncFolder = {
 };
 
 function toMessage(thrown: unknown): string {
-  return thrown instanceof Error ? thrown.message : "Unknown error";
+  return thrown instanceof Error ? thrown.message : i18n.t("common.unknownError");
 }
 
-const SETTINGS_HINT =
-  "Choose a different location or grant access in System Settings → Privacy & Security → Files and Folders.";
-
 function permissionMessage(canRead: boolean, canWrite: boolean): string | undefined {
-  if (!canRead && !canWrite)
-    return `FileSync can't access the files in this folder. ${SETTINGS_HINT}`;
-  if (!canRead) return `FileSync can't read the files in this folder. ${SETTINGS_HINT}`;
-  if (!canWrite) return `FileSync can't write to this folder. ${SETTINGS_HINT}`;
+  const hint = i18n.t("permissions.settingsHint");
+  if (!canRead && !canWrite) return i18n.t("permissions.cantAccess", { hint });
+  if (!canRead) return i18n.t("permissions.cantRead", { hint });
+  if (!canWrite) return i18n.t("permissions.cantWrite", { hint });
   return undefined;
 }
 
 function EmptyState({ onOpen }: { onOpen: () => void }) {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
       <div className="mb-4 flex size-16 items-center justify-center rounded-2xl border border-[hsl(var(--brand-from)/.2)] bg-[hsl(var(--brand-from)/.1)]">
         <FolderIcon iconKey="folder" className="size-8 text-[hsl(var(--brand-from)/.6)]" />
       </div>
-      <h3 className="mb-1 text-base font-semibold text-[hsl(var(--text))]">No sync folders yet</h3>
-      <p className="mb-6 max-w-xs text-sm text-[hsl(var(--text-muted))]">
-        Create a sync folder, then link a local directory on each device you want to keep in sync.
-      </p>
+      <h3 className="mb-1 text-base font-semibold text-[hsl(var(--text))]">
+        {t("folders.emptyTitle")}
+      </h3>
+      <p className="mb-6 max-w-xs text-sm text-[hsl(var(--text-muted))]">{t("folders.emptyHint")}</p>
       <Button onClick={onOpen}>
         <Plus className="size-4" />
-        Create first folder
+        {t("folders.createFirst")}
       </Button>
     </div>
   );
@@ -99,6 +99,7 @@ function FolderCard({
   onViewDetail,
   isDeleting,
 }: FolderCardProperties) {
+  const { t } = useTranslation();
   const otherDevices = folder.devices;
   const uniqueDeviceNames = [...new Set(otherDevices.map((d) => d.name))];
 
@@ -118,7 +119,7 @@ function FolderCard({
             event.stopPropagation();
             onPickAppearance(folder);
           }}
-          title="Change icon and color"
+          title={t("folders.changeIconColor")}
           className="flex size-10 shrink-0 items-center justify-center rounded-xl border transition-all"
           style={{
             backgroundColor: iconBg(folder.iconColor),
@@ -139,12 +140,12 @@ function FolderCard({
               <span className="truncate text-xs text-[hsl(var(--text-faint))]">{linkedPath}</span>
             ) : (
               <span className="text-xs text-[hsl(var(--text-faint))]">
-                Created {new Date(folder.createdAt).toLocaleDateString()}
+                {t("folders.createdOn", { date: new Date(folder.createdAt).toLocaleDateString() })}
               </span>
             )}
             {uniqueDeviceNames.length > 0 && (
               <span className="text-xs text-[hsl(var(--text-faint))] opacity-60">
-                · also on {uniqueDeviceNames.join(", ")}
+                {t("folders.alsoOn", { devices: uniqueDeviceNames.join(", ") })}
               </span>
             )}
           </div>
@@ -161,10 +162,10 @@ function FolderCard({
               }}
             >
               <LinkIcon className="size-3.5" />
-              {linkedPath ? "Change path" : "Link folder"}
+              {linkedPath ? t("folders.changePath") : t("folders.linkFolder")}
             </Button>
           ) : (
-            <span className="text-xs text-[hsl(var(--text-faint))]">Registering…</span>
+            <span className="text-xs text-[hsl(var(--text-faint))]">{t("folders.registering")}</span>
           )}
           <Button
             variant="ghost"
@@ -193,6 +194,7 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
 }
 
 export function SyncFoldersPage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const deviceId = useAuthStore((s) => s.deviceId);
@@ -217,10 +219,10 @@ export function SyncFoldersPage() {
       void queryClient.invalidateQueries({ queryKey: getApiSyncFoldersQueryKey() });
       setIsCreateOpen(false);
       createForm.reset();
-      toast.success("Sync folder created");
+      toast.success(t("folders.created"));
     },
     onError: (thrown) => {
-      toast.error("Failed to create folder", { description: toMessage(thrown) });
+      toast.error(t("folders.createFailed"), { description: toMessage(thrown) });
     },
   });
 
@@ -230,7 +232,7 @@ export function SyncFoldersPage() {
       void queryClient.invalidateQueries({ queryKey: getApiSyncFoldersQueryKey() });
     },
     onError: (thrown) => {
-      toast.error("Failed to update appearance", { description: toMessage(thrown) });
+      toast.error(t("folders.appearanceUpdateFailed"), { description: toMessage(thrown) });
     },
   });
 
@@ -245,10 +247,10 @@ export function SyncFoldersPage() {
       void reconcile(syncFolderId, localPath);
       setLinkingFolder(undefined);
       setSelectedPath(undefined);
-      toast.success("Folder linked — sync starting");
+      toast.success(t("folders.linked"));
     },
     onError: (thrown) => {
-      toast.error("Failed to link folder", { description: toMessage(thrown) });
+      toast.error(t("folders.linkFailed"), { description: toMessage(thrown) });
     },
   });
 
@@ -256,10 +258,10 @@ export function SyncFoldersPage() {
     ...deleteApiSyncFoldersByIdMutation(),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: getApiSyncFoldersQueryKey() });
-      toast.success("Sync folder deleted");
+      toast.success(t("folders.deleted"));
     },
     onError: (thrown) => {
-      toast.error("Failed to delete folder", { description: toMessage(thrown) });
+      toast.error(t("folders.deleteFailed"), { description: toMessage(thrown) });
     },
   });
 
@@ -326,7 +328,7 @@ export function SyncFoldersPage() {
     return (
       <div className="flex items-center justify-center py-24 text-sm text-[hsl(var(--text-muted))]">
         <div className="mr-2 size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-        Loading folders…
+        {t("folders.loadingFolders")}
       </div>
     );
   }
@@ -335,11 +337,9 @@ export function SyncFoldersPage() {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
         <p className="mb-1 text-sm font-medium text-[hsl(var(--text))]">
-          Could not load sync folders
+          {t("folders.loadError")}
         </p>
-        <p className="text-xs text-[hsl(var(--text-muted))]">
-          Check the server connection and try again.
-        </p>
+        <p className="text-xs text-[hsl(var(--text-muted))]">{t("folders.loadErrorHint")}</p>
       </div>
     );
   }
@@ -348,18 +348,18 @@ export function SyncFoldersPage() {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-[hsl(var(--text))]">Sync Folders</h1>
+          <h1 className="text-xl font-semibold text-[hsl(var(--text))]">{t("folders.title")}</h1>
           <p className="mt-0.5 text-sm text-[hsl(var(--text-muted))]">
             {folders.length === 0
-              ? "No folders yet"
-              : `${syncedFolders.length} of ${folders.length} syncing on this device`}
+              ? t("folders.noFoldersYet")
+              : t("folders.summary", { synced: syncedFolders.length, total: folders.length })}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
             size="icon"
-            title="Refresh"
+            title={t("folders.refresh")}
             onClick={() =>
               void queryClient.invalidateQueries({ queryKey: getApiSyncFoldersQueryKey() })
             }
@@ -370,15 +370,13 @@ export function SyncFoldersPage() {
             <DialogTrigger asChild>
               <Button size="sm">
                 <Plus className="size-3.5" />
-                New Folder
+                {t("folders.newFolder")}
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>New Sync Folder</DialogTitle>
-                <DialogDescription>
-                  Give it a name. Each device picks its own local directory to sync with it.
-                </DialogDescription>
+                <DialogTitle>{t("folders.newFolderTitle")}</DialogTitle>
+                <DialogDescription>{t("folders.newFolderHint")}</DialogDescription>
               </DialogHeader>
               <form
                 id="create-form"
@@ -391,11 +389,11 @@ export function SyncFoldersPage() {
                   {(field) => (
                     <Input
                       name={field.name}
-                      label="Name"
+                      label={t("folders.name")}
                       value={field.state.value}
                       onBlur={field.handleBlur}
                       onChange={(event) => field.handleChange(event.target.value)}
-                      placeholder="e.g. Documents"
+                      placeholder={t("folders.namePlaceholder")}
                       required
                       autoFocus
                     />
@@ -404,10 +402,10 @@ export function SyncFoldersPage() {
               </form>
               <DialogFooter>
                 <Button variant="ghost" onClick={() => setIsCreateOpen(false)}>
-                  Cancel
+                  {t("folders.cancel")}
                 </Button>
                 <Button form="create-form" type="submit" loading={newFolderMutation.isPending}>
-                  Create
+                  {t("folders.create")}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -419,7 +417,7 @@ export function SyncFoldersPage() {
 
       {syncedFolders.length > 0 && (
         <section className="mb-6">
-          <SectionHeader>Syncing on this device</SectionHeader>
+          <SectionHeader>{t("folders.syncingSection")}</SectionHeader>
           <div className="flex flex-col gap-2">
             {syncedFolders.map((folder) => (
               <FolderCard
@@ -445,9 +443,10 @@ export function SyncFoldersPage() {
       {unsyncedFolders.length > 0 && (
         <section>
           {syncedFolders.length > 0 && <Separator className="mb-5 bg-white/[0.06]" />}
-          <SectionHeader>Not synced on this device</SectionHeader>
+          <SectionHeader>{t("folders.notSyncedSection")}</SectionHeader>
           <p className="mb-3 text-xs text-[hsl(var(--text-muted))]">
-            Click <strong>Link folder</strong> to choose a local directory to sync.
+            {t("folders.linkHintPrefix")} <strong>{t("folders.linkHintAction")}</strong>{" "}
+            {t("folders.linkHintSuffix")}
           </p>
           <div className="flex flex-col gap-2">
             {unsyncedFolders.map((folder) => (
@@ -486,21 +485,27 @@ export function SyncFoldersPage() {
       <Dialog open={linkingFolder !== undefined} onOpenChange={closeLinkDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Choose Local Folder</DialogTitle>
+            <DialogTitle>{t("folders.chooseLocalFolder")}</DialogTitle>
             <DialogDescription>
-              Select the folder on this device to sync with <strong>{linkingFolder?.name}</strong>.
+              <Trans
+                i18nKey="folders.chooseLocalFolderHint"
+                values={{ name: linkingFolder?.name ?? "" }}
+                components={[<strong key="name" />]}
+              />
             </DialogDescription>
           </DialogHeader>
           <div className="flex gap-2">
             <div className="min-w-0 flex-1">
               <span className="mb-1.5 block text-sm font-medium text-[hsl(var(--text))]">
-                Local path
+                {t("folders.localPath")}
               </span>
               <div className="flex h-9 items-center truncate rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--surface))] px-3.5 text-sm text-[hsl(var(--text))]">
                 {selectedPath ? (
                   <span className="truncate">{selectedPath}</span>
                 ) : (
-                  <span className="text-[hsl(var(--text-faint))]">No folder selected</span>
+                  <span className="text-[hsl(var(--text-faint))]">
+                    {t("folders.noFolderSelected")}
+                  </span>
                 )}
               </div>
             </div>
@@ -510,7 +515,7 @@ export function SyncFoldersPage() {
               onClick={() => void pickFolder()}
               loading={isCheckingPermission}
             >
-              Browse
+              {t("folders.browse")}
             </Button>
           </div>
 
@@ -523,7 +528,7 @@ export function SyncFoldersPage() {
 
           <DialogFooter>
             <Button variant="ghost" onClick={() => setLinkingFolder(undefined)}>
-              Cancel
+              {t("folders.cancel")}
             </Button>
             <Button
               onClick={() => void handleLink()}
@@ -531,7 +536,7 @@ export function SyncFoldersPage() {
               disabled={!selectedPath || !!permissionError || isCheckingPermission}
             >
               <LinkIcon className="size-4" />
-              Sync this folder
+              {t("folders.syncThisFolder")}
             </Button>
           </DialogFooter>
         </DialogContent>

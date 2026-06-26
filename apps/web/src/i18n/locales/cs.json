@@ -2,15 +2,12 @@
   "nav": {
     "dashboard": "Přehled",
     "folders": "Složky",
-    "devices": "Zařízení",
-    "logs": "Záznamy"
+    "devices": "Zařízení"
   },
   "auth": {
     "signIn": "Přihlásit se",
     "signOut": "Odhlásit se",
     "email": "E-mail",
-    "password": "Heslo",
-    "serverUrl": "URL serveru",
     "signingIn": "Přihlašování…",
     "invalidCredentials": "Neplatný e-mail nebo heslo",
     "connectionError": "Nelze se připojit k serveru"
@@ -31,15 +28,11 @@
     "requestsPerMin": "Požadavky / min"
   },
   "folders": {
-    "title": "Synchronizované složky",
     "subtitle_one": "{{count}} složka",
     "subtitle_other": "{{count}} složek",
     "noFolders": "Žádné synchronizované složky",
     "noFoldersHint": "Vytvořte synchronizovanou složku v připojené desktopové aplikaci.",
-    "newFolder": "Nová složka",
     "newFolderHint": "Zadejte název nové synchronizované složky.",
-    "namePlaceholder": "např. Dokumenty",
-    "create": "Vytvořit",
     "created": "Složka vytvořena",
     "linkedDevices": "Připojená zařízení",
     "noDevices": "K této složce není připojeno žádné zařízení.",
@@ -71,15 +64,14 @@
     "title": "Záznamy serveru",
     "subtitle": "Nedávné záznamy ze serveru",
     "level": "Úroveň",
-    "levelDebug": "Ladění",
     "levelInfo": "Informace",
-    "levelWarn": "Varování",
-    "levelError": "Chyba",
     "setLevel": "Nastavit úroveň logování",
     "noLogs": "Žádné záznamy neodpovídají aktuálnímu filtru.",
-    "refresh": "Obnovit",
     "serverLevel": "Úroveň logování serveru",
     "viewLevel": "Úroveň zobrazení"
+  },
+  "notifications": {
+    "markAllRead": "Označit vše jako přečtené"
   },
   "common": {
     "loading": "Načítání…",
@@ -88,13 +80,11 @@
     "refresh": "Obnovit",
     "delete": "Smazat",
     "remove": "Odebrat",
-    "cancel": "Zrušit",
     "confirm": "Potvrdit",
     "save": "Uložit",
     "close": "Zavřít",
     "search": "Hledat",
-    "language": "Jazyk",
     "version": "Verze",
-    "unknownError": "Neznámá chyba"
+    "unknown": "Neznámý"
   }
 }

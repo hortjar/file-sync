@@ -5,6 +5,7 @@ import { appLogDir, join } from "@tauri-apps/api/path";
 import { readDir, readTextFile } from "@tauri-apps/plugin-fs";
 import { RefreshCw } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
@@ -117,16 +118,17 @@ async function loadLatestLogFile(): Promise<{ name: string; entries: LogEntry[];
   return { name: latest.name, entries };
 }
 
-const LOG_LEVEL_OPTIONS: { value: LogLevel; label: string }[] = [
-  { value: "debug", label: "Debug" },
-  { value: "info", label: "Info" },
-  { value: "warn", label: "Warn" },
-  { value: "error", label: "Error" },
+const LOG_LEVEL_OPTIONS: { value: LogLevel; labelKey: string }[] = [
+  { value: "debug", labelKey: "logs.levelDebug" },
+  { value: "info", labelKey: "logs.levelInfo" },
+  { value: "warn", labelKey: "logs.levelWarn" },
+  { value: "error", labelKey: "logs.levelError" },
 ];
 
 const LEVEL_RANK: Record<LogLevel, number> = { debug: 0, info: 1, warn: 2, error: 3 };
 
 export function LogsPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const logLevel = useLogLevelStore((s) => s.logLevel);
   const [viewLevel, setViewLevel] = useState<LogLevel>("debug");
@@ -165,7 +167,7 @@ export function LogsPage() {
     <div className="flex h-full flex-col">
       <div className="mb-4 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold text-[hsl(var(--text))]">Logs</h1>
+          <h1 className="text-xl font-semibold text-[hsl(var(--text))]">{t("logs.title")}</h1>
           {fileName && (
             <p className="mt-0.5 truncate font-mono text-xs text-[hsl(var(--text-faint))]">
               {fileName}
@@ -177,7 +179,7 @@ export function LogsPage() {
           size="icon"
           onClick={() => void refetch()}
           loading={isLoading || isFetching}
-          title="Refresh"
+          title={t("logs.refresh")}
         >
           <RefreshCw className="size-4" />
         </Button>
@@ -185,9 +187,9 @@ export function LogsPage() {
 
       <div className="mb-4 flex flex-wrap gap-4">
         <div className="flex flex-col gap-1.5">
-          <p className="text-xs font-medium text-[hsl(var(--text-muted))]">Show level</p>
+          <p className="text-xs font-medium text-[hsl(var(--text-muted))]">{t("logs.showLevel")}</p>
           <div className="flex gap-1">
-            {LOG_LEVEL_OPTIONS.map(({ value, label }) => (
+            {LOG_LEVEL_OPTIONS.map(({ value, labelKey }) => (
               <button
                 key={value}
                 type="button"
@@ -198,16 +200,16 @@ export function LogsPage() {
                     : "border-[hsl(var(--border))] text-[hsl(var(--text-muted))] hover:text-[hsl(var(--text))]"
                 }`}
               >
-                {label}
+                {t(labelKey)}
               </button>
             ))}
           </div>
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <p className="text-xs font-medium text-[hsl(var(--text-muted))]">Write level</p>
+          <p className="text-xs font-medium text-[hsl(var(--text-muted))]">{t("logs.writeLevel")}</p>
           <div className="flex gap-1">
-            {LOG_LEVEL_OPTIONS.map(({ value, label }) => (
+            {LOG_LEVEL_OPTIONS.map(({ value, labelKey }) => (
               <button
                 key={value}
                 type="button"
@@ -218,7 +220,7 @@ export function LogsPage() {
                     : "border-[hsl(var(--border))] text-[hsl(var(--text-muted))] hover:text-[hsl(var(--text))]"
                 }`}
               >
-                {label}
+                {t(labelKey)}
               </button>
             ))}
           </div>
@@ -229,18 +231,18 @@ export function LogsPage() {
         {isLoading ? (
           <div className="flex items-center justify-center py-16 text-sm text-[hsl(var(--text-muted))]">
             <div className="mr-2 size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-            Loading logs…
+            {t("logs.loading")}
           </div>
         ) : isError ? (
           <div className="p-5">
-            <p className="text-sm font-medium text-[hsl(var(--danger))]">Failed to load logs</p>
+            <p className="text-sm font-medium text-[hsl(var(--danger))]">{t("logs.loadFailed")}</p>
             <p className="mt-1 font-mono text-xs text-[hsl(var(--text-faint))]">
               {fetchError instanceof Error ? fetchError.message : String(fetchError)}
             </p>
           </div>
         ) : loadError ? (
           <div className="p-5">
-            <p className="text-sm font-medium text-[hsl(var(--danger))]">Failed to load logs</p>
+            <p className="text-sm font-medium text-[hsl(var(--danger))]">{t("logs.loadFailed")}</p>
             <p className="mt-1 font-mono text-xs text-[hsl(var(--text-faint))]">{loadError}</p>
           </div>
         ) : (

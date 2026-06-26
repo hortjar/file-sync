@@ -6,6 +6,7 @@ import { FolderDetailPage } from "../pages/FolderDetail";
 import { LogDetailPage } from "../pages/LogDetailPage";
 import { LoginPage } from "../pages/Login";
 import { LogsPage } from "../pages/LogsPage";
+import { NotificationsPage } from "../pages/NotificationsPage";
 import { SettingsPage } from "../pages/Settings";
 import { SyncFoldersPage } from "../pages/SyncFolders";
 
@@ -53,6 +54,12 @@ const logDetailRoute = createRoute({
   component: LogDetailPage,
 });
 
+const notificationsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/notifications",
+  component: NotificationsPage,
+});
+
 export const routeTree = rootRoute.addChildren([
   loginRoute,
   syncFoldersRoute,
@@ -61,4 +68,5 @@ export const routeTree = rootRoute.addChildren([
   settingsRoute,
   logsRoute,
   logDetailRoute,
+  notificationsRoute,
 ]);

@@ -1,0 +1,38 @@
+{
+  "nav": {
+    "logs": "Logs"
+  },
+  "auth": {
+    "password": "Password",
+    "serverUrl": "Server URL"
+  },
+  "folders": {
+    "title": "Sync Folders",
+    "newFolder": "New Folder",
+    "namePlaceholder": "e.g. Documents",
+    "create": "Create"
+  },
+  "logs": {
+    "levelDebug": "Debug",
+    "levelWarn": "Warn",
+    "levelError": "Error",
+    "refresh": "Refresh",
+    "notFound": "Log entry not found",
+    "notFoundHint": "The entry may have been cleared. Return to the Logs page and try again.",
+    "backToLogs": "Back to Logs"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "bell": "Notifications",
+    "empty": "No notifications yet",
+    "viewAll": "View all",
+    "clear": "Clear",
+    "subtitle_one": "{{count}} notification since launch",
+    "subtitle_other": "{{count}} notifications since launch"
+  },
+  "common": {
+    "cancel": "Cancel",
+    "language": "Language",
+    "unknownError": "Unknown error"
+  }
+}

@@ -1,11 +1,12 @@
 import { useForm } from "@tanstack/react-form";
 import { useMutation } from "@tanstack/react-query";
 import { FolderSync, Lock, Mail, Server } from "lucide-react";
-import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "../components/ui/button";
 import { postApiAuthLoginMutation } from "../generated/@tanstack/react-query.gen";
 import { configureApiClient, setAuthHeader } from "../lib/api-client";
+import { toast } from "../lib/toast";
 import {
   setServerUrl,
   setTokens,
@@ -21,6 +22,7 @@ type LoginResponse = {
 };
 
 export function LoginPage() {
+  const { t } = useTranslation();
   const serverUrl = useAuthStore((s) => s.serverUrl);
 
   const loginMutation = useMutation({
@@ -33,8 +35,8 @@ export function LoginPage() {
       setUserEmail(response.user.email);
     },
     onError: (loginError) => {
-      const message = loginError instanceof Error ? loginError.message : "Login failed";
-      toast.error("Sign in failed", { description: message });
+      const message = loginError instanceof Error ? loginError.message : t("auth.loginFailed");
+      toast.error(t("auth.signInFailed"), { description: message });
     },
   });
 
@@ -67,7 +69,7 @@ export function LoginPage() {
           </div>
           <div className="text-center">
             <h1 className="text-2xl font-bold text-white">FileSync</h1>
-            <p className="mt-1 text-sm text-white/50">Sign in to your account</p>
+            <p className="mt-1 text-sm text-white/50">{t("auth.signInSubtitle")}</p>
           </div>
         </div>
 
@@ -89,7 +91,7 @@ export function LoginPage() {
                   onBlur={field.handleBlur}
                   onChange={(event) => field.handleChange(event.target.value)}
                   required
-                  placeholder="Server URL"
+                  placeholder={t("auth.serverUrl")}
                   className="h-9 w-full rounded-2xl border border-white/10 bg-white/5 pl-9 pr-3 text-sm text-white placeholder:text-white/30 outline-none transition focus:border-[hsl(var(--brand-from)/.6)] focus:ring-2 focus:ring-[hsl(var(--brand-from)/.2)]"
                 />
               </div>
@@ -108,7 +110,7 @@ export function LoginPage() {
                   onChange={(event) => field.handleChange(event.target.value)}
                   required
                   autoComplete="email"
-                  placeholder="Email address"
+                  placeholder={t("auth.email")}
                   className="h-9 w-full rounded-2xl border border-white/10 bg-white/5 pl-9 pr-3 text-sm text-white placeholder:text-white/30 outline-none transition focus:border-[hsl(var(--brand-from)/.6)] focus:ring-2 focus:ring-[hsl(var(--brand-from)/.2)]"
                 />
               </div>
@@ -127,7 +129,7 @@ export function LoginPage() {
                   onChange={(event) => field.handleChange(event.target.value)}
                   required
                   autoComplete="current-password"
-                  placeholder="Password"
+                  placeholder={t("auth.password")}
                   className="h-9 w-full rounded-2xl border border-white/10 bg-white/5 pl-9 pr-3 text-sm text-white placeholder:text-white/30 outline-none transition focus:border-[hsl(var(--brand-from)/.6)] focus:ring-2 focus:ring-[hsl(var(--brand-from)/.2)]"
                 />
               </div>
@@ -139,7 +141,7 @@ export function LoginPage() {
             loading={loginMutation.isPending}
             className="mt-1 h-10 text-sm font-semibold shadow-lg shadow-[hsl(var(--brand-from)/.3)]"
           >
-            Sign In
+            {t("auth.signIn")}
           </Button>
         </form>
       </div>

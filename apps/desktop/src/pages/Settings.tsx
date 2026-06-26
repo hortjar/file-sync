@@ -16,7 +16,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useRef } from "react";
-import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
@@ -27,26 +27,20 @@ import {
   getApiDevicesOptions,
   getApiDevicesQueryKey,
 } from "../generated/@tanstack/react-query.gen";
+import { HealthCheck } from "../components/HealthCheck";
 import { configureApiClient } from "../lib/api-client";
 import { cn } from "../lib/cn";
+import { toast } from "../lib/toast";
 import { setServerUrl, useAuthStore } from "../stores/auth";
 import type { LogLevel } from "../stores/log-level";
 import { setLogLevel, useLogLevelStore } from "../stores/log-level";
 import { setCustomColor, setTheme, useThemeStore } from "../stores/theme";
 
-const LOG_LEVEL_OPTIONS: { value: LogLevel; label: string; description: string }[] = [
-  {
-    value: "debug",
-    label: "Debug",
-    description: "Everything — all requests, data flow, decisions",
-  },
-  { value: "info", label: "Info", description: "General events — connections, syncs, downloads" },
-  {
-    value: "warn",
-    label: "Warn",
-    description: "Problems only — failures, retries, unexpected states",
-  },
-  { value: "error", label: "Error", description: "Failures only — exceptions and hard errors" },
+const LOG_LEVEL_OPTIONS: { value: LogLevel; labelKey: string; descriptionKey: string }[] = [
+  { value: "debug", labelKey: "settings.logDebug", descriptionKey: "settings.logDebugDescription" },
+  { value: "info", labelKey: "settings.logInfo", descriptionKey: "settings.logInfoDescription" },
+  { value: "warn", labelKey: "settings.logWarn", descriptionKey: "settings.logWarnDescription" },
+  { value: "error", labelKey: "settings.logError", descriptionKey: "settings.logErrorDescription" },
 ];
 
 const COLOR_OPTIONS: ThemeColor[] = ["purple", "blue", "green", "rose", "orange", "teal", "slate"];
@@ -62,9 +56,9 @@ const COLOR_DOT: Record<ThemeColor, string> = {
 };
 
 const MODE_OPTIONS = [
-  { value: "light" as const, icon: Sun, label: "Light" },
-  { value: "dark" as const, icon: Moon, label: "Dark" },
-  { value: "system" as const, icon: SunMoon, label: "System" },
+  { value: "light" as const, icon: Sun, labelKey: "settings.modeLight" },
+  { value: "dark" as const, icon: Moon, labelKey: "settings.modeDark" },
+  { value: "system" as const, icon: SunMoon, labelKey: "settings.modeSystem" },
 ];
 
 type DeviceRow = {
@@ -82,6 +76,7 @@ function isDeviceOnline(lastSeenAt: string): boolean {
 }
 
 export function SettingsPage() {
+  const { t } = useTranslation();
   const theme = useThemeStore((s) => s.theme);
   const customColor = useThemeStore((s) => s.customColor);
   const serverUrl = useAuthStore((s) => s.serverUrl);
@@ -103,10 +98,10 @@ export function SettingsPage() {
     ...deleteApiDevicesByIdMutation(),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: getApiDevicesQueryKey() });
-      toast.success("Device removed");
+      toast.success(t("settings.deviceRemoved"));
     },
     onError: () => {
-      toast.error("Failed to remove device");
+      toast.error(t("settings.deviceRemoveFailed"));
     },
   });
 
@@ -117,7 +112,7 @@ export function SettingsPage() {
       if (!url) return;
       setServerUrl(url);
       configureApiClient(url);
-      toast.success("Server URL saved");
+      toast.success(t("settings.serverSaved"));
     },
   });
 
@@ -125,14 +120,12 @@ export function SettingsPage() {
     <div>
       <div className="mb-6">
         <div className="flex items-baseline gap-3">
-          <h1 className="text-xl font-semibold text-[hsl(var(--text))]">Settings</h1>
+          <h1 className="text-xl font-semibold text-[hsl(var(--text))]">{t("settings.title")}</h1>
           {appVersion && (
             <span className="text-xs text-[hsl(var(--text-faint))]">v{appVersion}</span>
           )}
         </div>
-        <p className="mt-0.5 text-sm text-[hsl(var(--text-muted))]">
-          Manage your connection, appearance, and device.
-        </p>
+        <p className="mt-0.5 text-sm text-[hsl(var(--text-muted))]">{t("settings.subtitle")}</p>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -141,9 +134,9 @@ export function SettingsPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Server className="size-4 text-[hsl(var(--text-muted))]" />
-              <CardTitle>Server</CardTitle>
+              <CardTitle>{t("settings.server")}</CardTitle>
             </div>
-            <CardDescription>The FileSync server this app connects to.</CardDescription>
+            <CardDescription>{t("settings.serverHint")}</CardDescription>
           </CardHeader>
           <CardContent>
             <form
@@ -167,20 +160,23 @@ export function SettingsPage() {
                 )}
               </serverForm.Field>
               <Button type="submit" variant="secondary" className="shrink-0">
-                Save
+                {t("settings.save")}
               </Button>
             </form>
           </CardContent>
         </Card>
+
+        {/* Health check */}
+        <HealthCheck />
 
         {/* Accent color */}
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
               <Palette className="size-4 text-[hsl(var(--text-muted))]" />
-              <CardTitle>Accent Color</CardTitle>
+              <CardTitle>{t("settings.accentColor")}</CardTitle>
             </div>
-            <CardDescription>Brand color used for buttons, gradients, and icons.</CardDescription>
+            <CardDescription>{t("settings.accentColorHint")}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             {/* Preset swatches */}
@@ -221,11 +217,13 @@ export function SettingsPage() {
                 />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-medium text-[hsl(var(--text))]">Custom color</p>
+                <p className="text-sm font-medium text-[hsl(var(--text))]">
+                  {t("settings.customColor")}
+                </p>
                 <p className="text-xs text-[hsl(var(--text-faint))]">
                   {customColor
-                    ? `${customColor} — overrides preset`
-                    : "Click the swatch to pick any color"}
+                    ? t("settings.customColorOverride", { color: customColor })
+                    : t("settings.customColorHint")}
                 </p>
               </div>
               {customColor && (
@@ -235,7 +233,7 @@ export function SettingsPage() {
                   onClick={() => setTheme({ color: theme.color })}
                   className="shrink-0 text-xs text-[hsl(var(--text-faint))]"
                 >
-                  Reset
+                  {t("settings.reset")}
                 </Button>
               )}
             </div>
@@ -247,13 +245,13 @@ export function SettingsPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <SunMoon className="size-4 text-[hsl(var(--text-muted))]" />
-              <CardTitle>Appearance</CardTitle>
+              <CardTitle>{t("settings.appearance")}</CardTitle>
             </div>
-            <CardDescription>Light, dark, or follow the system setting.</CardDescription>
+            <CardDescription>{t("settings.appearanceHint")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-3 gap-2">
-              {MODE_OPTIONS.map(({ value, icon: Icon, label }) => (
+              {MODE_OPTIONS.map(({ value, icon: Icon, labelKey }) => (
                 <button
                   key={value}
                   onClick={() => setTheme({ mode: value })}
@@ -265,7 +263,7 @@ export function SettingsPage() {
                   )}
                 >
                   <Icon className="size-5" />
-                  {label}
+                  {t(labelKey)}
                 </button>
               ))}
             </div>
@@ -277,18 +275,18 @@ export function SettingsPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <FileText className="size-4 text-[hsl(var(--text-muted))]" />
-              <CardTitle>Logging</CardTitle>
+              <CardTitle>{t("settings.logging")}</CardTitle>
             </div>
             <CardDescription>
-              Controls what gets written to{" "}
-              <span className="font-mono text-[hsl(var(--text))]">filesync.log</span> in the app
-              data directory. Default is Warn.
+              {t("settings.loggingHintPrefix")}{" "}
+              <span className="font-mono text-[hsl(var(--text))]">filesync.log</span>{" "}
+              {t("settings.loggingHintSuffix")}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col gap-3">
               <div className="grid grid-cols-4 gap-2">
-                {LOG_LEVEL_OPTIONS.map(({ value, label }) => (
+                {LOG_LEVEL_OPTIONS.map(({ value, labelKey }) => (
                   <button
                     key={value}
                     onClick={() => setLogLevel(value)}
@@ -299,13 +297,16 @@ export function SettingsPage() {
                         : "border-[hsl(var(--border))] text-[hsl(var(--text-muted))] hover:border-[hsl(var(--text-muted)/.3)] hover:text-[hsl(var(--text))]",
                     )}
                   >
-                    {label}
+                    {t(labelKey)}
                   </button>
                 ))}
               </div>
               <div className="flex items-center justify-between gap-3">
                 <p className="text-xs text-[hsl(var(--text-faint))]">
-                  {LOG_LEVEL_OPTIONS.find((o) => o.value === logLevel)?.description}
+                  {t(
+                    LOG_LEVEL_OPTIONS.find((o) => o.value === logLevel)?.descriptionKey ??
+                      "settings.logWarnDescription",
+                  )}
                 </p>
                 <Button
                   variant="ghost"
@@ -313,11 +314,11 @@ export function SettingsPage() {
                   className="shrink-0 gap-1.5 text-xs"
                   onClick={() => {
                     void invoke("open_log_file");
-                    toast.info("Opening log file…");
+                    toast.info(t("settings.openingLog"));
                   }}
                 >
                   <ExternalLink className="size-3.5" />
-                  Open log
+                  {t("settings.openLog")}
                 </Button>
               </div>
             </div>
@@ -330,9 +331,9 @@ export function SettingsPage() {
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Laptop className="size-4 text-[hsl(var(--text-muted))]" />
-                <CardTitle>Devices</CardTitle>
+                <CardTitle>{t("settings.devices")}</CardTitle>
               </div>
-              <CardDescription>All devices registered to your account.</CardDescription>
+              <CardDescription>{t("settings.devicesHint")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex flex-col divide-y divide-white/[0.05]">
@@ -353,7 +354,7 @@ export function SettingsPage() {
                           </span>
                           {isThis && (
                             <span className="rounded-full bg-[hsl(var(--brand-from)/.15)] px-2 py-0.5 text-[10px] font-medium text-[hsl(var(--brand-from))]">
-                              this device
+                              {t("settings.thisDevice")}
                             </span>
                           )}
                           {device.appVersion && (
@@ -373,7 +374,7 @@ export function SettingsPage() {
                               className={`size-1.5 rounded-full ${isOnline ? "bg-green-500" : "bg-[hsl(var(--text-faint))]"}`}
                             />
                             <span className="text-xs text-[hsl(var(--text-faint))]">
-                              {isOnline ? "Online" : "Offline"}
+                              {isOnline ? t("settings.online") : t("settings.offline")}
                             </span>
                           </div>
                           {!isOnline && (

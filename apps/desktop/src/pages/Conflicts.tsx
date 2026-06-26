@@ -2,7 +2,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { join } from "@tauri-apps/api/path";
 import { writeFile } from "@tauri-apps/plugin-fs";
 import { CheckCircle2, FolderSync, GitMerge, Laptop, Server } from "lucide-react";
-import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
+import i18n from "../i18n/index";
+import { toast } from "../lib/toast";
 
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
@@ -44,7 +46,7 @@ type ResolveResult = {
 };
 
 function toMessage(thrown: unknown): string {
-  return thrown instanceof Error ? thrown.message : "Unknown error";
+  return thrown instanceof Error ? thrown.message : i18n.t("common.unknownError");
 }
 
 function addConflictSuffix(relativePath: string, deviceName: string): string {
@@ -82,6 +84,7 @@ type ConflictCardProperties = {
 };
 
 function ConflictCard({ conflict, onResolve, isPending }: ConflictCardProperties) {
+  const { t } = useTranslation();
   const filename = conflict.relativePath.split("/").at(-1) ?? conflict.relativePath;
   const localDate = new Date(conflict.localMtime).toLocaleString();
   const remoteDate = new Date(conflict.remoteMtime).toLocaleString();
@@ -96,14 +99,14 @@ function ConflictCard({ conflict, onResolve, isPending }: ConflictCardProperties
               {conflict.relativePath !== filename && (
                 <span className="mr-1 opacity-60">{conflict.relativePath}</span>
               )}
-              in{" "}
+              {t("conflicts.inFolder")}{" "}
               <span className="font-medium text-[hsl(var(--text-muted))]">
                 {conflict.syncFolderName}
               </span>
             </p>
           </div>
           <Badge variant="danger" className="shrink-0 text-[10px]">
-            Conflict
+            {t("conflicts.conflictBadge")}
           </Badge>
         </div>
 
@@ -112,7 +115,7 @@ function ConflictCard({ conflict, onResolve, isPending }: ConflictCardProperties
             <div className="mb-1.5 flex items-center gap-1.5">
               <Laptop className="size-3 text-[hsl(var(--text-faint))]" />
               <span className="text-[10px] font-medium uppercase tracking-wider text-[hsl(var(--text-faint))]">
-                Your version
+                {t("conflicts.yourVersion")}
               </span>
             </div>
             <p className="text-xs font-medium text-[hsl(var(--text))]">
@@ -128,7 +131,7 @@ function ConflictCard({ conflict, onResolve, isPending }: ConflictCardProperties
             <div className="mb-1.5 flex items-center gap-1.5">
               <Server className="size-3 text-[hsl(var(--text-faint))]" />
               <span className="text-[10px] font-medium uppercase tracking-wider text-[hsl(var(--text-faint))]">
-                Their version
+                {t("conflicts.theirVersion")}
               </span>
             </div>
             <p className="text-xs font-medium text-[hsl(var(--text))]">
@@ -151,7 +154,7 @@ function ConflictCard({ conflict, onResolve, isPending }: ConflictCardProperties
             onClick={() => onResolve(conflict.id, "keep_local")}
             className="flex-1 text-xs"
           >
-            Keep Mine
+            {t("conflicts.keepMine")}
           </Button>
           <Button
             size="sm"
@@ -160,7 +163,7 @@ function ConflictCard({ conflict, onResolve, isPending }: ConflictCardProperties
             onClick={() => onResolve(conflict.id, "keep_remote")}
             className="flex-1 text-xs"
           >
-            Keep Theirs
+            {t("conflicts.keepTheirs")}
           </Button>
           <Button
             size="sm"
@@ -170,7 +173,7 @@ function ConflictCard({ conflict, onResolve, isPending }: ConflictCardProperties
             className="flex-1 text-xs"
           >
             <GitMerge className="size-3.5" />
-            Keep Both
+            {t("conflicts.keepBoth")}
           </Button>
         </div>
       </CardContent>
@@ -179,6 +182,7 @@ function ConflictCard({ conflict, onResolve, isPending }: ConflictCardProperties
 }
 
 export function ConflictsPage() {
+  const { t } = useTranslation();
   const queryClientHook = useQueryClient();
 
   const { data: rawConflicts, isLoading, isError } = useQuery(getApiConflictsOptions());
@@ -245,10 +249,10 @@ export function ConflictsPage() {
     },
     onSuccess: () => {
       void queryClientHook.invalidateQueries({ queryKey: getApiConflictsQueryKey() });
-      toast.success("Conflict resolved");
+      toast.success(t("conflicts.resolved"));
     },
     onError: (thrown) => {
-      toast.error("Failed to resolve conflict", { description: toMessage(thrown) });
+      toast.error(t("conflicts.resolveFailed"), { description: toMessage(thrown) });
     },
   });
 
@@ -264,7 +268,7 @@ export function ConflictsPage() {
     return (
       <div className="flex items-center justify-center py-24 text-sm text-[hsl(var(--text-muted))]">
         <div className="mr-2 size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-        Loading conflicts…
+        {t("conflicts.loading")}
       </div>
     );
   }
@@ -272,10 +276,10 @@ export function ConflictsPage() {
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
-        <p className="mb-1 text-sm font-medium text-[hsl(var(--text))]">Could not load conflicts</p>
-        <p className="text-xs text-[hsl(var(--text-muted))]">
-          Check the server connection and try again.
+        <p className="mb-1 text-sm font-medium text-[hsl(var(--text))]">
+          {t("conflicts.loadError")}
         </p>
+        <p className="text-xs text-[hsl(var(--text-muted))]">{t("conflicts.loadErrorHint")}</p>
       </div>
     );
   }
@@ -283,11 +287,11 @@ export function ConflictsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-xl font-semibold text-[hsl(var(--text))]">Conflicts</h1>
+        <h1 className="text-xl font-semibold text-[hsl(var(--text))]">{t("conflicts.title")}</h1>
         <p className="mt-0.5 text-sm text-[hsl(var(--text-muted))]">
           {conflictList.length === 0
-            ? "All files are in sync"
-            : `${conflictList.length} file${conflictList.length === 1 ? "" : "s"} need${conflictList.length === 1 ? "s" : ""} your attention`}
+            ? t("conflicts.allInSync")
+            : t("conflicts.needAttention", { count: conflictList.length })}
         </p>
       </div>
 
@@ -296,10 +300,11 @@ export function ConflictsPage() {
           <div className="mb-4 flex size-14 items-center justify-center rounded-2xl border border-[hsl(var(--success)/.2)] bg-[hsl(var(--success)/.1)]">
             <CheckCircle2 className="size-7 text-[hsl(var(--success))]" />
           </div>
-          <h3 className="mb-1 text-base font-semibold text-[hsl(var(--text))]">No conflicts</h3>
+          <h3 className="mb-1 text-base font-semibold text-[hsl(var(--text))]">
+            {t("conflicts.noConflicts")}
+          </h3>
           <p className="max-w-xs text-sm text-[hsl(var(--text-muted))]">
-            Everything is in sync. Conflicts appear here when two devices edit the same file before
-            syncing.
+            {t("conflicts.noConflictsHint")}
           </p>
         </div>
       )}
@@ -308,9 +313,7 @@ export function ConflictsPage() {
         <div className="flex flex-col gap-3">
           <div className="mb-1 flex items-center gap-2">
             <FolderSync className="size-3.5 text-[hsl(var(--text-faint))]" />
-            <p className="text-xs text-[hsl(var(--text-faint))]">
-              "Keep Both" saves the other version with a conflict suffix, so nothing is lost.
-            </p>
+            <p className="text-xs text-[hsl(var(--text-faint))]">{t("conflicts.keepBothHint")}</p>
           </div>
           {conflictList.map((conflict) => (
             <ConflictCard

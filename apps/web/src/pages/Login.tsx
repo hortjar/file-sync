@@ -6,9 +6,8 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { postApiAuthLogin } from "../generated/sdk.gen";
-import { toast } from "sonner";
-
 import { initApiClient, setAuthHeader } from "../lib/api-client";
+import { toast } from "../lib/toast";
 import {
   setServerUrl,
   setTokens,

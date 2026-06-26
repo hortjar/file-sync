@@ -6,7 +6,6 @@ import { initReactI18next } from "react-i18next";
 import cs from "./locales/cs.json";
 import en from "./locales/en.json";
 
-// Side-effect module: no exports. Import with `import "./i18n/index"` for initialization.
 // App-specific translations are merged over the shared base (app values win).
 void i18n
   .use(LanguageDetector)
@@ -20,3 +19,5 @@ void i18n
     interpolation: { escapeValue: false },
     detection: { order: ["localStorage", "navigator"], caches: ["localStorage"] },
   });
+
+export default i18n;

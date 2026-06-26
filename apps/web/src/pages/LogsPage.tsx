@@ -4,12 +4,12 @@ import { RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { client } from "../generated/client.gen";
 import { cacheLogEntries } from "../lib/log-entry-cache";
+import { toast } from "../lib/toast";
 
 type LogLevel = "debug" | "info" | "warn" | "error";
 type LevelResponse = { level: LogLevel };

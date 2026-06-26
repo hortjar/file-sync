@@ -2,15 +2,12 @@
   "nav": {
     "dashboard": "Dashboard",
     "folders": "Folders",
-    "devices": "Devices",
-    "logs": "Logs"
+    "devices": "Devices"
   },
   "auth": {
     "signIn": "Sign in",
     "signOut": "Sign out",
     "email": "Email",
-    "password": "Password",
-    "serverUrl": "Server URL",
     "signingIn": "Signing in…",
     "invalidCredentials": "Invalid email or password",
     "connectionError": "Could not connect to server"
@@ -31,15 +28,11 @@
     "requestsPerMin": "Requests / min"
   },
   "folders": {
-    "title": "Sync Folders",
     "subtitle_one": "{{count}} folder",
     "subtitle_other": "{{count}} folders",
     "noFolders": "No sync folders yet",
     "noFoldersHint": "Create a sync folder from a connected desktop app.",
-    "newFolder": "New Folder",
     "newFolderHint": "Enter a name for the new sync folder.",
-    "namePlaceholder": "e.g. Documents",
-    "create": "Create",
     "created": "Folder created",
     "linkedDevices": "Linked Devices",
     "noDevices": "No devices linked to this folder.",
@@ -71,15 +64,14 @@
     "title": "Server Logs",
     "subtitle": "Recent log entries from the server",
     "level": "Level",
-    "levelDebug": "Debug",
     "levelInfo": "Info",
-    "levelWarn": "Warn",
-    "levelError": "Error",
     "setLevel": "Set log level",
     "noLogs": "No log entries match the current filter.",
-    "refresh": "Refresh",
     "serverLevel": "Server log level",
     "viewLevel": "View level"
+  },
+  "notifications": {
+    "markAllRead": "Mark all read"
   },
   "common": {
     "loading": "Loading…",
@@ -88,13 +80,11 @@
     "refresh": "Refresh",
     "delete": "Delete",
     "remove": "Remove",
-    "cancel": "Cancel",
     "confirm": "Confirm",
     "save": "Save",
     "close": "Close",
     "search": "Search",
-    "language": "Language",
     "version": "Version",
-    "unknownError": "Unknown error"
+    "unknown": "Unknown"
   }
 }

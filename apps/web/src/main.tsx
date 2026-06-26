@@ -18,6 +18,7 @@ import { FoldersPage } from "./pages/FoldersPage";
 import { LogDetailPage } from "./pages/LogDetailPage";
 import { Login } from "./pages/Login";
 import { LogsPage } from "./pages/LogsPage";
+import { NotificationsPage } from "./pages/NotificationsPage";
 import { authStore } from "./stores/auth";
 
 // Bootstrap the API client with persisted auth state.
@@ -42,6 +43,7 @@ const router = createBrowserRouter([
       { path: "devices", element: <DevicesPage /> },
       { path: "logs", element: <LogsPage /> },
       { path: "logs/:id", element: <LogDetailPage /> },
+      { path: "notifications", element: <NotificationsPage /> },
     ],
   },
   { path: "*", element: <Navigate to="/" replace /> },

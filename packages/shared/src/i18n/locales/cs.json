@@ -1,0 +1,38 @@
+{
+  "nav": {
+    "logs": "Záznamy"
+  },
+  "auth": {
+    "password": "Heslo",
+    "serverUrl": "URL serveru"
+  },
+  "folders": {
+    "title": "Synchronizované složky",
+    "newFolder": "Nová složka",
+    "namePlaceholder": "např. Dokumenty",
+    "create": "Vytvořit"
+  },
+  "logs": {
+    "levelDebug": "Ladění",
+    "levelWarn": "Varování",
+    "levelError": "Chyba",
+    "refresh": "Obnovit",
+    "notFound": "Záznam nenalezen",
+    "notFoundHint": "Záznam mohl být vymazán. Vraťte se na stránku Záznamy a zkuste to znovu.",
+    "backToLogs": "Zpět na záznamy"
+  },
+  "notifications": {
+    "title": "Oznámení",
+    "bell": "Oznámení",
+    "empty": "Zatím žádná oznámení",
+    "viewAll": "Zobrazit vše",
+    "clear": "Vymazat",
+    "subtitle_one": "{{count}} oznámení od spuštění",
+    "subtitle_other": "{{count}} oznámení od spuštění"
+  },
+  "common": {
+    "cancel": "Zrušit",
+    "language": "Jazyk",
+    "unknownError": "Neznámá chyba"
+  }
+}

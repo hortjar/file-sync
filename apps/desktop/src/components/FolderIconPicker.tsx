@@ -1,6 +1,7 @@
 import { FolderIcon, FOLDER_ICONS } from "@file-sync/ui";
 import { useForm } from "@tanstack/react-form";
 import { useStore } from "@tanstack/react-store";
+import { useTranslation } from "react-i18next";
 
 import { cn } from "../lib/cn";
 
@@ -8,19 +9,19 @@ import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Separator } from "./ui/separator";
 
-type ColorOption = { label: string; value: string | undefined };
+type ColorOption = { labelKey: string; value: string | undefined };
 
 const COLOR_OPTIONS: ColorOption[] = [
-  { label: "Theme", value: undefined },
-  { label: "Red", value: "#ef4444" },
-  { label: "Orange", value: "#f97316" },
-  { label: "Amber", value: "#f59e0b" },
-  { label: "Green", value: "#22c55e" },
-  { label: "Teal", value: "#14b8a6" },
-  { label: "Blue", value: "#3b82f6" },
-  { label: "Indigo", value: "#6366f1" },
-  { label: "Purple", value: "#a855f7" },
-  { label: "Pink", value: "#ec4899" },
+  { labelKey: "appearance.colorTheme", value: undefined },
+  { labelKey: "appearance.colorRed", value: "#ef4444" },
+  { labelKey: "appearance.colorOrange", value: "#f97316" },
+  { labelKey: "appearance.colorAmber", value: "#f59e0b" },
+  { labelKey: "appearance.colorGreen", value: "#22c55e" },
+  { labelKey: "appearance.colorTeal", value: "#14b8a6" },
+  { labelKey: "appearance.colorBlue", value: "#3b82f6" },
+  { labelKey: "appearance.colorIndigo", value: "#6366f1" },
+  { labelKey: "appearance.colorPurple", value: "#a855f7" },
+  { labelKey: "appearance.colorPink", value: "#ec4899" },
 ];
 
 function iconFg(color: string | undefined): string {
@@ -50,6 +51,7 @@ export function FolderIconPicker({
   onPick,
   onClose,
 }: FolderIconPickerProperties) {
+  const { t } = useTranslation();
   const form = useForm({
     defaultValues: { icon: currentIcon, color: currentColor },
     onSubmit: ({ value }) => {
@@ -68,7 +70,7 @@ export function FolderIconPicker({
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Folder Appearance</DialogTitle>
+          <DialogTitle>{t("appearance.title")}</DialogTitle>
         </DialogHeader>
 
         {/* Preview */}
@@ -85,7 +87,9 @@ export function FolderIconPicker({
 
         {/* Icon grid */}
         <div>
-          <p className="mb-2 text-xs font-medium text-[hsl(var(--text-faint))]">Icon</p>
+          <p className="mb-2 text-xs font-medium text-[hsl(var(--text-faint))]">
+            {t("appearance.icon")}
+          </p>
           <div className="grid grid-cols-7 gap-1.5">
             {Object.entries(FOLDER_ICONS).map(([key, Icon]) => (
               <button
@@ -113,12 +117,14 @@ export function FolderIconPicker({
 
         {/* Color swatches */}
         <div>
-          <p className="mb-2 text-xs font-medium text-[hsl(var(--text-faint))]">Color</p>
+          <p className="mb-2 text-xs font-medium text-[hsl(var(--text-faint))]">
+            {t("appearance.color")}
+          </p>
           <div className="flex flex-wrap gap-1.5">
-            {COLOR_OPTIONS.map(({ label, value }) => (
+            {COLOR_OPTIONS.map(({ labelKey, value }) => (
               <button
-                key={label}
-                title={label}
+                key={labelKey}
+                title={t(labelKey)}
                 onClick={() => form.setFieldValue("color", value)}
                 className={cn(
                   "size-7 rounded-full border-2 transition-all",
@@ -147,7 +153,7 @@ export function FolderIconPicker({
                       ? selectedColor
                       : "transparent",
                 }}
-                title="Custom color"
+                title={t("appearance.customColor")}
               >
                 <form.Field name="color">
                   {(field) => (
@@ -166,9 +172,9 @@ export function FolderIconPicker({
 
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>
-            Cancel
+            {t("appearance.cancel")}
           </Button>
-          <Button onClick={() => void form.handleSubmit()}>Apply</Button>
+          <Button onClick={() => void form.handleSubmit()}>{t("appearance.apply")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

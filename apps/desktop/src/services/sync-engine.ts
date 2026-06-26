@@ -1,6 +1,7 @@
 import { listen } from "@tauri-apps/api/event";
 
 import { getApiConflictsQueryKey } from "../hooks/use-conflict-count";
+import i18n from "../i18n/index";
 import { fetchWithAuth } from "../lib/fetch-with-auth";
 import { queryClient } from "../lib/query";
 import { authStore } from "../stores/auth";
@@ -160,7 +161,7 @@ export async function startSyncEngine(): Promise<() => void> {
           void handleFileChange(filePath, syncFolderId, localBase, isDelete).catch(
             (syncError: unknown) => {
               logger.error(`[sync] unhandled error for ${filePath}`, syncError);
-              setSyncStatus("error", "Sync error — check logs");
+              setSyncStatus("error", i18n.t("sync.errorCheckLogs"));
             },
           );
         }, 300),

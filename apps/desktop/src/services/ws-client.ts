@@ -5,6 +5,7 @@ import { join } from "@tauri-apps/api/path";
 import { remove } from "@tauri-apps/plugin-fs";
 
 import { getApiSyncFoldersQueryKey } from "../generated/@tanstack/react-query.gen";
+import i18n from "../i18n/index";
 import { fetchWithAuth } from "../lib/fetch-with-auth";
 import { queryClient } from "../lib/query";
 import { authStore, logout } from "../stores/auth";
@@ -222,13 +223,13 @@ function connect(): void {
   ws.socket.addEventListener("close", (event: CloseEvent) => {
     if (ws.isStopped) return;
     logger.warn(`[ws] disconnected (code=${event.code}) — scheduling reconnect`);
-    setSyncStatus("error", "Disconnected — reconnecting…");
+    setSyncStatus("error", i18n.t("sync.disconnectedReconnecting"));
     scheduleReconnect();
   });
 
   ws.socket.addEventListener("error", () => {
     logger.error("[ws] WebSocket error");
-    setSyncStatus("error", "WebSocket error");
+    setSyncStatus("error", i18n.t("sync.websocketError"));
   });
 }
 
