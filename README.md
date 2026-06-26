@@ -13,14 +13,19 @@ Self-hosted, cross-platform file synchronization. Keeps selected directories in 
 ```bash
 # 1. Copy and fill environment variables
 cp .env.example .env.prod
-# Set POSTGRES_PASSWORD, JWT_SECRET, JWT_REFRESH_SECRET to long random strings
+# Set POSTGRES_PASSWORD, JWT_SECRET, JWT_REFRESH_SECRET to long random strings,
+# and set FILESYNC_DOMAIN + VITE_SERVER_URL to your domain.
 
-# 2. Edit Caddyfile if your domain differs from filesync.hortjar.cz
-#    Replace all occurrences of filesync.hortjar.cz with your domain
-
-# 3. Start everything (migrations run automatically on server startup)
-docker compose -f docker-compose.prod.yml up -d
+# 2. Start everything (builds images; migrations run automatically on startup)
+docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
 ```
+
+The domain is configured via the `FILESYNC_DOMAIN` variable (Caddy substitutes it
+at load time) — you no longer need to edit the `Caddyfile`. The `--env-file`
+flag feeds the `${VAR}` placeholders in `docker-compose.prod.yml`.
+
+> **Deploying with Portainer on Ubuntu?** Follow the step-by-step guide:
+> [docs/deploy-portainer-ubuntu.md](docs/deploy-portainer-ubuntu.md).
 
 The stack after startup:
 
@@ -134,23 +139,25 @@ file-sync/
 ```bash
 bun run db                                          # local: postgres only
 docker compose -f docker-compose.dev.yml up -d      # dev: postgres + server
-docker compose -f docker-compose.prod.yml up -d     # prod: full stack with HTTPS
+docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build  # prod: full stack with HTTPS
 ```
 
 ---
 
 ## Environment Variables
 
-| Variable             | Required   | Description                                                 |
-| -------------------- | ---------- | ----------------------------------------------------------- |
-| `DATABASE_URL`       | Yes        | PostgreSQL connection string                                |
-| `JWT_SECRET`         | Yes        | Secret for access token signing (15 min TTL)                |
-| `JWT_REFRESH_SECRET` | Yes        | Secret for refresh token signing (7 day TTL)                |
-| `POSTGRES_PASSWORD`  | Yes (prod) | PostgreSQL password for Docker Compose                      |
-| `PORT`               | No         | Server port (default: `3001`)                               |
-| `STORAGE_PATH`       | No         | Blob storage directory (default: `./data/blobs`)            |
-| `NODE_ENV`           | No         | `development` or `production`                               |
-| `VITE_SERVER_URL`    | No         | Pre-fills the server URL in the web login form (build-time) |
+| Variable             | Required   | Description                                                      |
+| -------------------- | ---------- | ---------------------------------------------------------------- |
+| `DATABASE_URL`       | Yes        | PostgreSQL connection string                                     |
+| `JWT_SECRET`         | Yes        | Secret for access token signing (15 min TTL)                     |
+| `JWT_REFRESH_SECRET` | Yes        | Secret for refresh token signing (7 day TTL)                     |
+| `POSTGRES_PASSWORD`  | Yes (prod) | PostgreSQL password for Docker Compose                           |
+| `FILESYNC_DOMAIN`    | Yes (prod) | Domain Caddy serves + requests the TLS cert for                  |
+| `VITE_SERVER_URL`    | Yes (prod) | Server URL baked into the web build (e.g. `https://your-domain`) |
+| `CORS_ORIGIN`        | No         | Allowed origins (default: `*`)                                   |
+| `PORT`               | No         | Server port (default: `3001`)                                    |
+| `STORAGE_PATH`       | No         | Blob storage directory (default: `./data/blobs`)                 |
+| `NODE_ENV`           | No         | `development` or `production`                                    |
 
 ---
 
@@ -177,20 +184,31 @@ git tag v0.1.0 && git push origin v0.1.0
 
 ### Domain & HTTPS
 
-`Caddyfile` routes traffic on `filesync.hortjar.cz`:
+`Caddyfile` routes traffic on the domain set via `FILESYNC_DOMAIN` (default
+`filesync.hortjar.cz`). Caddy substitutes `{$FILESYNC_DOMAIN}` at load time, so
+you configure the domain through the environment, not by editing the file:
 
 - `/` → web dashboard (nginx serving built SPA)
 - `/api/*` → Elysia API server
 - `/ws` → WebSocket
 - `/health`, `/openapi/*`, `/swagger*` → Elysia server
 
-Caddy obtains a Let's Encrypt certificate automatically on first start. Ports 80 and 443 must be open.
+Caddy obtains a Let's Encrypt certificate automatically on first start. Ports 80 and 443 (TCP + UDP) must be open.
+
+### First login
+
+There is no sign-up screen — create the default admin account by seeding:
+
+```bash
+docker compose -f docker-compose.prod.yml exec server bun run apps/server/src/db/seed.ts
+```
+
+This creates `admin@email.com` / `password` (idempotent). Change the password after first login.
 
 ### Updating
 
 ```bash
-docker compose -f docker-compose.prod.yml pull
-docker compose -f docker-compose.prod.yml up -d --build
+docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
 ```
 
 Migrations run automatically on server startup.

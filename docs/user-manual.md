@@ -39,14 +39,16 @@ Files are stored on the server as SHA-256 content-addressed blobs with gzip comp
 
 **Server (one time)**
 
-1. Copy `.env.example` to `.env.prod` and fill in `DATABASE_URL`, `JWT_SECRET`, and `JWT_REFRESH_SECRET`.
-2. Run `docker compose -f docker-compose.prod.yml up -d`. The server starts on port 3001 and runs migrations automatically.
-3. Note the server's IP address or hostname — you'll enter it in the desktop app.
+1. Copy `.env.example` to `.env.prod` and fill in `POSTGRES_PASSWORD`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, plus `FILESYNC_DOMAIN` and `VITE_SERVER_URL` (your domain).
+2. Run `docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build`. The server runs migrations automatically and Caddy serves your domain over HTTPS.
+3. Note the server's domain — you'll enter it in the desktop app.
+
+> Deploying with Portainer on Ubuntu? See [deploy-portainer-ubuntu.md](deploy-portainer-ubuntu.md).
 
 There is no account creation step from the UI. The default account is created by running:
 
 ```bash
-docker compose -f docker-compose.prod.yml exec server bun run seed
+docker compose -f docker-compose.prod.yml exec server bun run apps/server/src/db/seed.ts
 ```
 
 This creates `admin@email.com` / `password`. Change the password after first login (or update the seed script before running it).

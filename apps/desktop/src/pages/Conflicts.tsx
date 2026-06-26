@@ -1,10 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { join } from "@tauri-apps/api/path";
 import { writeFile } from "@tauri-apps/plugin-fs";
+import i18n from "i18next";
 import { CheckCircle2, FolderSync, GitMerge, Laptop, Server } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import i18n from "../i18n/index";
-import { toast } from "../lib/toast";
 
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
@@ -15,6 +14,7 @@ import {
   getApiConflictsQueryKey,
 } from "../generated/@tanstack/react-query.gen";
 import { postApiConflictsByIdResolve } from "../generated/sdk.gen";
+import { toast } from "../lib/toast";
 import { downloadFile } from "../services/downloader";
 import { uploadLocalFile } from "../services/uploader";
 import { authStore } from "../stores/auth";
@@ -205,8 +205,7 @@ export function ConflictsPage() {
 
       if (resolution === "keep_local" && localBase && accessToken && deviceId) {
         const localPath = await join(localBase, conflict.relativePath);
-        const nextVersion =
-          getFileVersion(conflict.syncFolderId, conflict.relativePath) + 1;
+        const nextVersion = getFileVersion(conflict.syncFolderId, conflict.relativePath) + 1;
         await uploadLocalFile(
           localPath,
           conflict.syncFolderId,
@@ -220,8 +219,7 @@ export function ConflictsPage() {
       }
 
       if (resolution === "keep_remote" && localBase) {
-        const nextVersion =
-          getFileVersion(conflict.syncFolderId, conflict.relativePath) + 1;
+        const nextVersion = getFileVersion(conflict.syncFolderId, conflict.relativePath) + 1;
         await downloadFile(
           result.fileEntryId,
           conflict.syncFolderId,

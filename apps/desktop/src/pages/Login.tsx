@@ -7,13 +7,7 @@ import { Button } from "../components/ui/button";
 import { postApiAuthLoginMutation } from "../generated/@tanstack/react-query.gen";
 import { configureApiClient, setAuthHeader } from "../lib/api-client";
 import { toast } from "../lib/toast";
-import {
-  setServerUrl,
-  setTokens,
-  setUserEmail,
-  setUserId,
-  useAuthStore,
-} from "../stores/auth";
+import { setServerUrl, setTokens, setUserEmail, setUserId, useAuthStore } from "../stores/auth";
 
 type LoginResponse = {
   user: { id: string; email: string; createdAt: string };

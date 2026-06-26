@@ -4,11 +4,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
+import i18n from "i18next";
 import { AlertTriangle, LinkIcon, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { type MouseEvent, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
-import i18n from "../i18n/index";
-import { toast } from "../lib/toast";
 
 import { FolderIconPicker } from "../components/FolderIconPicker";
 import { Button } from "../components/ui/button";
@@ -32,6 +31,7 @@ import {
   postApiSyncFoldersByIdLinksMutation,
   postApiSyncFoldersMutation,
 } from "../generated/@tanstack/react-query.gen";
+import { toast } from "../lib/toast";
 import { requestFolderPermissions } from "../services/permission-check";
 import { reconcile } from "../services/reconciler";
 import { useAuthStore } from "../stores/auth";
@@ -69,7 +69,9 @@ function EmptyState({ onOpen }: { onOpen: () => void }) {
       <h3 className="mb-1 text-base font-semibold text-[hsl(var(--text))]">
         {t("folders.emptyTitle")}
       </h3>
-      <p className="mb-6 max-w-xs text-sm text-[hsl(var(--text-muted))]">{t("folders.emptyHint")}</p>
+      <p className="mb-6 max-w-xs text-sm text-[hsl(var(--text-muted))]">
+        {t("folders.emptyHint")}
+      </p>
       <Button onClick={onOpen}>
         <Plus className="size-4" />
         {t("folders.createFirst")}
@@ -162,10 +164,12 @@ function FolderCard({
               }}
             >
               <LinkIcon className="size-3.5" />
-              {linkedPath ? t("folders.changePath") : t("folders.linkFolder")}
+              {t(linkedPath ? "folders.changePath" : "folders.linkFolder")}
             </Button>
           ) : (
-            <span className="text-xs text-[hsl(var(--text-faint))]">{t("folders.registering")}</span>
+            <span className="text-xs text-[hsl(var(--text-faint))]">
+              {t("folders.registering")}
+            </span>
           )}
           <Button
             variant="ghost"
@@ -218,7 +222,7 @@ export function SyncFoldersPage() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: getApiSyncFoldersQueryKey() });
       setIsCreateOpen(false);
-      createForm.reset();
+      folderForm.reset();
       toast.success(t("folders.created"));
     },
     onError: (thrown) => {
@@ -265,7 +269,7 @@ export function SyncFoldersPage() {
     },
   });
 
-  const createForm = useForm({
+  const folderForm = useForm({
     defaultValues: { name: "" },
     onSubmit: ({ value }) => {
       const name = value.name.trim();
@@ -336,9 +340,7 @@ export function SyncFoldersPage() {
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
-        <p className="mb-1 text-sm font-medium text-[hsl(var(--text))]">
-          {t("folders.loadError")}
-        </p>
+        <p className="mb-1 text-sm font-medium text-[hsl(var(--text))]">{t("folders.loadError")}</p>
         <p className="text-xs text-[hsl(var(--text-muted))]">{t("folders.loadErrorHint")}</p>
       </div>
     );
@@ -382,10 +384,10 @@ export function SyncFoldersPage() {
                 id="create-form"
                 onSubmit={(event) => {
                   event.preventDefault();
-                  void createForm.handleSubmit();
+                  void folderForm.handleSubmit();
                 }}
               >
-                <createForm.Field name="name">
+                <folderForm.Field name="name">
                   {(field) => (
                     <Input
                       name={field.name}
@@ -398,7 +400,7 @@ export function SyncFoldersPage() {
                       autoFocus
                     />
                   )}
-                </createForm.Field>
+                </folderForm.Field>
               </form>
               <DialogFooter>
                 <Button variant="ghost" onClick={() => setIsCreateOpen(false)}>

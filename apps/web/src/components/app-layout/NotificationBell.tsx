@@ -30,7 +30,7 @@ export function NotificationBell() {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const entries = useNotifications((s) => s.entries);
-  const unread = entries.filter((e) => !e.read).length;
+  const unread = entries.filter((entry) => !entry.read).length;
 
   function open() {
     setIsOpen(true);

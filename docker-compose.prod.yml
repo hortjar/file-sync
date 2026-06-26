@@ -4,7 +4,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: filesync
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in the stack/.env.prod}
       POSTGRES_DB: filesync
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -19,9 +19,17 @@ services:
       context: .
       dockerfile: apps/server/Dockerfile
     restart: unless-stopped
-    env_file: .env.prod
+    # All config is supplied via interpolation so the same file works whether you
+    # deploy with `docker compose --env-file .env.prod ...` or via a Portainer
+    # stack (set these in the stack's "Environment variables" section).
     environment:
-      DATABASE_URL: postgresql://filesync:${POSTGRES_PASSWORD:-changeme}@postgres:5432/filesync
+      DATABASE_URL: postgresql://filesync:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in the stack/.env.prod}@postgres:5432/filesync
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in the stack/.env.prod}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?set JWT_REFRESH_SECRET in the stack/.env.prod}
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: ${PORT:-3001}
+      STORAGE_PATH: ${STORAGE_PATH:-./data/blobs}
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
     depends_on:
       postgres:
         condition: service_healthy
@@ -44,6 +52,10 @@ services:
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
+    # Caddy substitutes {$FILESYNC_DOMAIN} in the Caddyfile at load time, so the
+    # domain is configurable without editing the repo (set it in the stack env).
+    environment:
+      FILESYNC_DOMAIN: ${FILESYNC_DOMAIN:-filesync.hortjar.cz}
     ports:
       - "80:80"
       - "443:443"

@@ -207,7 +207,9 @@ export function LogsPage() {
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <p className="text-xs font-medium text-[hsl(var(--text-muted))]">{t("logs.writeLevel")}</p>
+          <p className="text-xs font-medium text-[hsl(var(--text-muted))]">
+            {t("logs.writeLevel")}
+          </p>
           <div className="flex gap-1">
             {LOG_LEVEL_OPTIONS.map(({ value, labelKey }) => (
               <button

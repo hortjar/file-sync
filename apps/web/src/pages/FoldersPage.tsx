@@ -5,7 +5,6 @@ import { Plus, Trash2 } from "lucide-react";
 import { type MouseEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { toast } from "../lib/toast";
 
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
@@ -15,6 +14,7 @@ import {
   getApiSyncFoldersQueryKey,
   postApiSyncFoldersMutation,
 } from "../generated/@tanstack/react-query.gen";
+import { toast } from "../lib/toast";
 
 type SyncFolder = {
   id: string;
@@ -50,13 +50,13 @@ export function FoldersPage() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: getApiSyncFoldersQueryKey() });
       setIsCreateOpen(false);
-      createForm.reset();
+      folderForm.reset();
       toast.success(t("folders.created"));
     },
     onError: () => toast.error(t("common.error")),
   });
 
-  const createForm = useForm({
+  const folderForm = useForm({
     defaultValues: { name: "" },
     onSubmit: ({ value }) => {
       const name = value.name.trim();
@@ -67,7 +67,7 @@ export function FoldersPage() {
 
   function closeCreate() {
     setIsCreateOpen(false);
-    createForm.reset();
+    folderForm.reset();
   }
 
   if (isLoading) {
@@ -159,7 +159,7 @@ export function FoldersPage() {
           <form
             onSubmit={(event) => {
               event.preventDefault();
-              void createForm.handleSubmit();
+              void folderForm.handleSubmit();
             }}
             className="w-full max-w-sm rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--surface))] p-6 shadow-[var(--shadow-lg)]"
           >
@@ -169,7 +169,7 @@ export function FoldersPage() {
             <p className="mt-1 text-sm text-[hsl(var(--text-muted))]">
               {t("folders.newFolderHint")}
             </p>
-            <createForm.Field name="name">
+            <folderForm.Field name="name">
               {(field) => (
                 <input
                   type="text"
@@ -181,12 +181,12 @@ export function FoldersPage() {
                   autoFocus
                 />
               )}
-            </createForm.Field>
+            </folderForm.Field>
             <div className="mt-5 flex gap-2">
               <Button type="button" variant="secondary" className="flex-1" onClick={closeCreate}>
                 {t("common.cancel")}
               </Button>
-              <createForm.Subscribe
+              <folderForm.Subscribe
                 selector={(state) => [state.values.name, state.isSubmitting] as const}
               >
                 {([name, isSubmitting]) => (
@@ -199,7 +199,7 @@ export function FoldersPage() {
                     {t("folders.create")}
                   </Button>
                 )}
-              </createForm.Subscribe>
+              </folderForm.Subscribe>
             </div>
           </form>
         </div>

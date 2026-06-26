@@ -3,9 +3,9 @@ import { WS_RECONNECT_MAX_MS, WS_RECONNECT_MIN_MS } from "@file-sync/shared";
 import { invoke } from "@tauri-apps/api/core";
 import { join } from "@tauri-apps/api/path";
 import { remove } from "@tauri-apps/plugin-fs";
+import i18n from "i18next";
 
 import { getApiSyncFoldersQueryKey } from "../generated/@tanstack/react-query.gen";
-import i18n from "../i18n/index";
 import { fetchWithAuth } from "../lib/fetch-with-auth";
 import { queryClient } from "../lib/query";
 import { authStore, logout } from "../stores/auth";

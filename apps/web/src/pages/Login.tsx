@@ -8,13 +8,7 @@ import { Input } from "../components/ui/input";
 import { postApiAuthLogin } from "../generated/sdk.gen";
 import { initApiClient, setAuthHeader } from "../lib/api-client";
 import { toast } from "../lib/toast";
-import {
-  setServerUrl,
-  setTokens,
-  setUserEmail,
-  setUserId,
-  useAuthStore,
-} from "../stores/auth";
+import { setServerUrl, setTokens, setUserEmail, setUserId, useAuthStore } from "../stores/auth";
 
 type LoginResponse = { accessToken: string; refreshToken: string; userId: string; email: string };
 

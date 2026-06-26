@@ -43,7 +43,7 @@ export function HealthCheck() {
         id: "server",
         label: t("health.serverLabel"),
         status: error ? "error" : "ok",
-        detail: error ? t("health.serverError") : t("health.serverOk"),
+        detail: t(error ? "health.serverError" : "health.serverOk"),
       });
     } catch {
       results.push({
@@ -56,24 +56,24 @@ export function HealthCheck() {
 
     // Authentication
     const { isAuthenticated, accessToken } = authStore.state;
-    const authOk = isAuthenticated && Boolean(accessToken);
+    const isAuthOk = isAuthenticated && Boolean(accessToken);
     results.push({
       id: "auth",
       label: t("health.authLabel"),
-      status: authOk ? "ok" : "error",
-      detail: authOk ? t("health.authOk") : t("health.authError"),
+      status: isAuthOk ? "ok" : "error",
+      detail: t(isAuthOk ? "health.authOk" : "health.authError"),
     });
 
     // Notification permission
-    let notifGranted = await isPermissionGranted();
-    if (!notifGranted) {
-      notifGranted = (await requestPermission()) === "granted";
+    let isNotifGranted = await isPermissionGranted();
+    if (!isNotifGranted) {
+      isNotifGranted = (await requestPermission()) === "granted";
     }
     results.push({
       id: "notifications",
       label: t("health.notificationsLabel"),
-      status: notifGranted ? "ok" : "warning",
-      detail: notifGranted ? t("health.notificationsOk") : t("health.notificationsDenied"),
+      status: isNotifGranted ? "ok" : "warning",
+      detail: t(isNotifGranted ? "health.notificationsOk" : "health.notificationsDenied"),
     });
 
     // Folder read/write access (the macOS protected-folder permission)
@@ -90,12 +90,13 @@ export function HealthCheck() {
       for (const path of paths) {
         const { canRead, canWrite } = await requestFolderPermissions(path);
         if (!canRead || !canWrite) {
-          const reason =
+          const reason = t(
             !canRead && !canWrite
-              ? t("health.folderCantAccess")
+              ? "health.folderCantAccess"
               : canRead
-                ? t("health.folderCantWrite")
-                : t("health.folderCantRead");
+                ? "health.folderCantWrite"
+                : "health.folderCantRead",
+          );
           denied.push(t("health.folderDenied", { path, reason }));
         }
       }
@@ -112,6 +113,7 @@ export function HealthCheck() {
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void runChecks();
     // Run once on mount; subsequent runs are triggered by the Re-check button.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -148,7 +150,7 @@ export function HealthCheck() {
           <div className="flex items-center gap-2">
             <SummaryIcon className={cn("size-4 shrink-0", STATUS_COLOR[summaryStatus])} />
             <span className="text-sm font-medium text-[hsl(var(--text))]">
-              {summaryStatus === "ok" ? t("health.allGood") : t("health.hasIssues")}
+              {t(summaryStatus === "ok" ? "health.allGood" : "health.hasIssues")}
             </span>
           </div>
         )}

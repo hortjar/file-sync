@@ -1,5 +1,5 @@
-import { Store } from "@tanstack/store";
 import { useStore } from "@tanstack/react-store";
+import { Store } from "@tanstack/store";
 
 export type NotificationType = "success" | "error" | "info" | "warning" | "message";
 
@@ -19,15 +19,13 @@ const MAX_ENTRIES = 200;
 /** In-memory history of toasts since launch (not persisted). */
 export const notificationsStore = new Store<NotificationsState>({ entries: [] });
 
-let counter = 0;
-
 export function recordNotification(entry: {
   type: NotificationType;
   title: string;
   description: string | undefined;
 }): void {
   const next: NotificationEntry = {
-    id: `${Date.now().toString()}-${(counter++).toString()}`,
+    id: crypto.randomUUID(),
     type: entry.type,
     title: entry.title,
     description: entry.description,
@@ -38,7 +36,9 @@ export function recordNotification(entry: {
 }
 
 export function markAllNotificationsRead(): void {
-  notificationsStore.setState((s) => ({ entries: s.entries.map((e) => ({ ...e, read: true })) }));
+  notificationsStore.setState((s) => ({
+    entries: s.entries.map((entry) => ({ ...entry, read: true })),
+  }));
 }
 
 export function clearNotifications(): void {

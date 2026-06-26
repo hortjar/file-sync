@@ -18,6 +18,7 @@ import {
 import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 
+import { HealthCheck } from "../components/HealthCheck";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
@@ -27,7 +28,6 @@ import {
   getApiDevicesOptions,
   getApiDevicesQueryKey,
 } from "../generated/@tanstack/react-query.gen";
-import { HealthCheck } from "../components/HealthCheck";
 import { configureApiClient } from "../lib/api-client";
 import { cn } from "../lib/cn";
 import { toast } from "../lib/toast";
@@ -374,7 +374,7 @@ export function SettingsPage() {
                               className={`size-1.5 rounded-full ${isOnline ? "bg-green-500" : "bg-[hsl(var(--text-faint))]"}`}
                             />
                             <span className="text-xs text-[hsl(var(--text-faint))]">
-                              {isOnline ? t("settings.online") : t("settings.offline")}
+                              {t(isOnline ? "settings.online" : "settings.offline")}
                             </span>
                           </div>
                           {!isOnline && (

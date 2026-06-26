@@ -21,9 +21,7 @@ export function mergeTranslations(base: Dict, overrides: Dict): Dict {
   for (const [key, value] of Object.entries(overrides)) {
     const existing = result[key];
     result[key] =
-      isPlainObject(existing) && isPlainObject(value)
-        ? mergeTranslations(existing, value)
-        : value;
+      isPlainObject(existing) && isPlainObject(value) ? mergeTranslations(existing, value) : value;
   }
   return result;
 }

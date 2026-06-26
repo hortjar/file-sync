@@ -6,11 +6,7 @@ type FileVersionsState = {
 
 export const fileVersionsStore = new Store<FileVersionsState>({ versions: {} });
 
-export function setFileVersion(
-  syncFolderId: string,
-  relativePath: string,
-  version: number,
-): void {
+export function setFileVersion(syncFolderId: string, relativePath: string, version: number): void {
   fileVersionsStore.setState((s) => ({
     versions: { ...s.versions, [`${syncFolderId}:${relativePath}`]: version },
   }));

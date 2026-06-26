@@ -100,11 +100,13 @@ export function Sidebar() {
             )}
           />
           <span className="flex-1 text-xs text-[hsl(var(--text-faint))]">
-            {status === "syncing"
-              ? t("sidebar.syncing")
-              : isOnline
-                ? t("sidebar.connected")
-                : t("sidebar.disconnected")}
+            {t(
+              status === "syncing"
+                ? "sidebar.syncing"
+                : isOnline
+                  ? "sidebar.connected"
+                  : "sidebar.disconnected",
+            )}
           </span>
           {!isOnline && <WifiOff className="size-3 text-[hsl(var(--danger))]" />}
           {isOnline && status !== "syncing" && (

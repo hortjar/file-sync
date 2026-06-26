@@ -160,7 +160,12 @@ export function FolderDetailPage() {
               <RotateCcw className="size-4" />
             </Button>
           )}
-          <Button variant="ghost" size="icon" onClick={handleRefresh} title={t("folderDetail.refresh")}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleRefresh}
+            title={t("folderDetail.refresh")}
+          >
             <RefreshCw className="size-4" />
           </Button>
         </div>
@@ -247,7 +252,9 @@ export function FolderDetailPage() {
         {localPathInStore ? (
           <>
             <HardDrive className="size-3.5 shrink-0 text-[hsl(var(--brand-from))]" />
-            <span className="text-[hsl(var(--text-faint))]">{t("folderDetail.activeLocalPath")}</span>
+            <span className="text-[hsl(var(--text-faint))]">
+              {t("folderDetail.activeLocalPath")}
+            </span>
             <span className="truncate font-mono text-[hsl(var(--text))]">{localPathInStore}</span>
             <span className="ml-auto shrink-0 rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] font-medium text-green-400">
               {t("folderDetail.watching")}

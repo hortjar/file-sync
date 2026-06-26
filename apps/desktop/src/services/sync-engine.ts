@@ -1,7 +1,7 @@
 import { listen } from "@tauri-apps/api/event";
+import i18n from "i18next";
 
 import { getApiConflictsQueryKey } from "../hooks/use-conflict-count";
-import i18n from "../i18n/index";
 import { fetchWithAuth } from "../lib/fetch-with-auth";
 import { queryClient } from "../lib/query";
 import { authStore } from "../stores/auth";
