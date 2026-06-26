@@ -1,24 +1,31 @@
-import { create } from "zustand";
+import { Store } from "@tanstack/store";
+import { useStore } from "@tanstack/react-store";
 
 type LinksState = {
   folderPaths: Record<string, string>; // syncFolderId -> localPath
-  setFolderPath: (syncFolderId: string, localPath: string) => void;
-  removeFolderPath: (syncFolderId: string) => void;
-  setFolderPaths: (paths: Record<string, string>) => void;
 };
 
-export const useLinksStore = create<LinksState>()((set) => ({
-  folderPaths: {},
+export const linksStore = new Store<LinksState>({ folderPaths: {} });
 
-  setFolderPath: (syncFolderId, localPath) =>
-    set((state) => ({ folderPaths: { ...state.folderPaths, [syncFolderId]: localPath } })),
+export function setFolderPath(syncFolderId: string, localPath: string): void {
+  linksStore.setState((s) => ({
+    folderPaths: { ...s.folderPaths, [syncFolderId]: localPath },
+  }));
+}
 
-  removeFolderPath: (syncFolderId) =>
-    set((state) => ({
-      folderPaths: Object.fromEntries(
-        Object.entries(state.folderPaths).filter(([key]) => key !== syncFolderId),
-      ),
-    })),
+export function removeFolderPath(syncFolderId: string): void {
+  linksStore.setState((s) => ({
+    folderPaths: Object.fromEntries(
+      Object.entries(s.folderPaths).filter(([key]) => key !== syncFolderId),
+    ),
+  }));
+}
 
-  setFolderPaths: (paths) => set({ folderPaths: paths }),
-}));
+export function setFolderPaths(paths: Record<string, string>): void {
+  linksStore.setState(() => ({ folderPaths: paths }));
+}
+
+/** React hook: subscribe to a slice of links state. */
+export function useLinksStore<T>(selector: (state: LinksState) => T): T {
+  return useStore(linksStore, selector);
+}

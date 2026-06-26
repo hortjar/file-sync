@@ -15,9 +15,9 @@ import {
 import { postApiConflictsByIdResolve } from "../generated/sdk.gen";
 import { downloadFile } from "../services/downloader";
 import { uploadLocalFile } from "../services/uploader";
-import { useAuthStore } from "../stores/auth";
-import { useFileVersionsStore } from "../stores/file-versions";
-import { useLinksStore } from "../stores/links";
+import { authStore } from "../stores/auth";
+import { getFileVersion, setFileVersion } from "../stores/file-versions";
+import { linksStore } from "../stores/links";
 
 type ConflictItem = {
   id: string;
@@ -195,15 +195,14 @@ export function ConflictsPage() {
       conflict: ConflictItem;
     }): Promise<void> => {
       const result = await callResolveConflict(conflictId, resolution);
-      const { accessToken, serverUrl, deviceId } = useAuthStore.getState();
-      const { folderPaths } = useLinksStore.getState();
-      const versionStore = useFileVersionsStore.getState();
+      const { accessToken, serverUrl, deviceId } = authStore.state;
+      const { folderPaths } = linksStore.state;
       const localBase = folderPaths[conflict.syncFolderId];
 
       if (resolution === "keep_local" && localBase && accessToken && deviceId) {
         const localPath = await join(localBase, conflict.relativePath);
         const nextVersion =
-          versionStore.getVersion(conflict.syncFolderId, conflict.relativePath) + 1;
+          getFileVersion(conflict.syncFolderId, conflict.relativePath) + 1;
         await uploadLocalFile(
           localPath,
           conflict.syncFolderId,
@@ -213,12 +212,12 @@ export function ConflictsPage() {
           serverUrl,
           accessToken,
         );
-        versionStore.setVersion(conflict.syncFolderId, conflict.relativePath, nextVersion);
+        setFileVersion(conflict.syncFolderId, conflict.relativePath, nextVersion);
       }
 
       if (resolution === "keep_remote" && localBase) {
         const nextVersion =
-          versionStore.getVersion(conflict.syncFolderId, conflict.relativePath) + 1;
+          getFileVersion(conflict.syncFolderId, conflict.relativePath) + 1;
         await downloadFile(
           result.fileEntryId,
           conflict.syncFolderId,

@@ -13,19 +13,19 @@ import { initLogger } from "./services/logger";
 import { startSyncEngine } from "./services/sync-engine";
 import { scheduleTokenRefresh, stopTokenRefresh } from "./services/token-refresh";
 import { loadAndRestoreLinks, startWsClient } from "./services/ws-client";
-import { useAuthStore } from "./stores/auth";
-import { useLinksStore } from "./stores/links";
-import { useThemeStore } from "./stores/theme";
+import { authStore } from "./stores/auth";
+import { setFolderPaths } from "./stores/links";
+import { initTheme } from "./stores/theme";
 
 initApiClient();
 // Apply the persisted server URL immediately so the generated API client has a base URL
 // before any requests fire. Without this the client has no baseUrl until the user
 // manually saves the URL in Settings.
-configureApiClient(useAuthStore.getState().serverUrl);
-useThemeStore.getState().initTheme();
+configureApiClient(authStore.state.serverUrl);
+initTheme();
 void initLogger();
 
-type AuthState = ReturnType<typeof useAuthStore.getState>;
+type AuthState = typeof authStore.state;
 
 const services = {
   stopSyncEngine: undefined as (() => void) | undefined,
@@ -72,10 +72,11 @@ function stopServices(): void {
   services.stopHeartbeat = undefined;
   services.stopSyncEngine = undefined;
   services.stopWsClient = undefined;
-  useLinksStore.getState().setFolderPaths({});
+  setFolderPaths({});
 }
 
-useAuthStore.subscribe((state) => {
+authStore.subscribe(() => {
+  const state = authStore.state;
   if (state.isAuthenticated) {
     startServices(state);
   } else {
@@ -84,7 +85,7 @@ useAuthStore.subscribe((state) => {
 });
 
 // Handle the case where persist already hydrated synchronously before subscribe was set up
-startServices(useAuthStore.getState());
+startServices(authStore.state);
 
 const rootElement = document.querySelector("#root");
 if (!rootElement) throw new Error("Root element not found");

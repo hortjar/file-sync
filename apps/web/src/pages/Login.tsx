@@ -1,12 +1,13 @@
+import { useForm } from "@tanstack/react-form";
 import { FolderSync } from "lucide-react";
-import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Navigate, useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { postApiAuthLogin } from "../generated/sdk.gen";
+import { toast } from "sonner";
+
 import { initApiClient, setAuthHeader } from "../lib/api-client";
 import {
   setServerUrl,
@@ -23,40 +24,37 @@ export function Login() {
   const navigate = useNavigate();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const storedUrl = useAuthStore((s) => s.serverUrl);
-  const [isPending, setIsPending] = useState(false);
+
+  const form = useForm({
+    defaultValues: { serverUrl: storedUrl, email: "", password: "" },
+    onSubmit: async ({ value }) => {
+      const serverUrl = value.serverUrl.trim();
+      const email = value.email.trim();
+      try {
+        initApiClient(serverUrl);
+        const { data, error } = await postApiAuthLogin({
+          body: { email, password: value.password },
+        });
+
+        if (error || !data) {
+          toast.error(t("auth.invalidCredentials"));
+          return;
+        }
+
+        const response = data as LoginResponse;
+        setServerUrl(serverUrl);
+        setTokens(response.accessToken, response.refreshToken);
+        setUserId(response.userId);
+        setUserEmail(response.email);
+        setAuthHeader(response.accessToken);
+        void navigate("/dashboard");
+      } catch {
+        toast.error(t("auth.connectionError"));
+      }
+    },
+  });
 
   if (isAuthenticated) return <Navigate to="/dashboard" replace />;
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    const email = (formData.get("email") as string).trim();
-    const password = formData.get("password") as string;
-    const serverUrl = (formData.get("serverUrl") as string).trim();
-
-    setIsPending(true);
-    try {
-      initApiClient(serverUrl);
-      const { data, error } = await postApiAuthLogin({ body: { email, password } });
-
-      if (error || !data) {
-        toast.error(t("auth.invalidCredentials"));
-        return;
-      }
-
-      const response = data as LoginResponse;
-      setServerUrl(serverUrl);
-      setTokens(response.accessToken, response.refreshToken);
-      setUserId(response.userId);
-      setUserEmail(response.email);
-      setAuthHeader(response.accessToken);
-      void navigate("/dashboard");
-    } catch {
-      toast.error(t("auth.connectionError"));
-    } finally {
-      setIsPending(false);
-    }
-  }
 
   return (
     <div className="flex min-h-full items-center justify-center p-4">
@@ -71,34 +69,64 @@ export function Login() {
           </div>
         </div>
 
-        <form onSubmit={(event) => void handleSubmit(event)} className="flex flex-col gap-4">
-          <Input
-            name="serverUrl"
-            type="url"
-            label={t("auth.serverUrl")}
-            defaultValue={storedUrl}
-            placeholder="http://localhost:3001"
-            required
-          />
-          <Input
-            name="email"
-            type="email"
-            label={t("auth.email")}
-            placeholder="you@example.com"
-            required
-            autoComplete="email"
-          />
-          <Input
-            name="password"
-            type="password"
-            label={t("auth.password")}
-            placeholder="••••••••"
-            required
-            autoComplete="current-password"
-          />
-          <Button type="submit" loading={isPending} className="mt-2 w-full">
-            {t(isPending ? "auth.signingIn" : "auth.signIn")}
-          </Button>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            void form.handleSubmit();
+          }}
+          className="flex flex-col gap-4"
+        >
+          <form.Field name="serverUrl">
+            {(field) => (
+              <Input
+                name={field.name}
+                type="url"
+                label={t("auth.serverUrl")}
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.target.value)}
+                placeholder="http://localhost:3001"
+                required
+              />
+            )}
+          </form.Field>
+          <form.Field name="email">
+            {(field) => (
+              <Input
+                name={field.name}
+                type="email"
+                label={t("auth.email")}
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.target.value)}
+                placeholder="you@example.com"
+                required
+                autoComplete="email"
+              />
+            )}
+          </form.Field>
+          <form.Field name="password">
+            {(field) => (
+              <Input
+                name={field.name}
+                type="password"
+                label={t("auth.password")}
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.target.value)}
+                placeholder="••••••••"
+                required
+                autoComplete="current-password"
+              />
+            )}
+          </form.Field>
+          <form.Subscribe selector={(state) => state.isSubmitting}>
+            {(isSubmitting) => (
+              <Button type="submit" loading={isSubmitting} className="mt-2 w-full">
+                {t(isSubmitting ? "auth.signingIn" : "auth.signIn")}
+              </Button>
+            )}
+          </form.Subscribe>
         </form>
       </div>
     </div>

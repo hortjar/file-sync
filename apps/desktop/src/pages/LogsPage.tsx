@@ -9,7 +9,7 @@ import { useState } from "react";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { cacheLogEntries } from "../lib/log-entry-cache";
-import { useLogLevelStore } from "../stores/log-level";
+import { setLogLevel, useLogLevelStore } from "../stores/log-level";
 
 type LogLevel = "debug" | "info" | "warn" | "error";
 
@@ -128,7 +128,7 @@ const LEVEL_RANK: Record<LogLevel, number> = { debug: 0, info: 1, warn: 2, error
 
 export function LogsPage() {
   const navigate = useNavigate();
-  const { logLevel, setLogLevel } = useLogLevelStore();
+  const logLevel = useLogLevelStore((s) => s.logLevel);
   const [viewLevel, setViewLevel] = useState<LogLevel>("debug");
 
   const {

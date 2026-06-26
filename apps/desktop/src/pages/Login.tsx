@@ -1,12 +1,18 @@
+import { useForm } from "@tanstack/react-form";
 import { useMutation } from "@tanstack/react-query";
 import { FolderSync, Lock, Mail, Server } from "lucide-react";
-import { type FormEvent } from "react";
 import { toast } from "sonner";
 
 import { Button } from "../components/ui/button";
 import { postApiAuthLoginMutation } from "../generated/@tanstack/react-query.gen";
 import { configureApiClient, setAuthHeader } from "../lib/api-client";
-import { useAuthStore } from "../stores/auth";
+import {
+  setServerUrl,
+  setTokens,
+  setUserEmail,
+  setUserId,
+  useAuthStore,
+} from "../stores/auth";
 
 type LoginResponse = {
   user: { id: string; email: string; createdAt: string };
@@ -15,10 +21,6 @@ type LoginResponse = {
 };
 
 export function LoginPage() {
-  const setTokens = useAuthStore((s) => s.setTokens);
-  const setUserId = useAuthStore((s) => s.setUserId);
-  const setUserEmail = useAuthStore((s) => s.setUserEmail);
-  const setServerUrl = useAuthStore((s) => s.setServerUrl);
   const serverUrl = useAuthStore((s) => s.serverUrl);
 
   const loginMutation = useMutation({
@@ -36,17 +38,15 @@ export function LoginPage() {
     },
   });
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const url = (form.get("serverUrl") as string | null) ?? serverUrl;
-    const email = (form.get("email") as string | null) ?? "";
-    const password = (form.get("password") as string | null) ?? "";
-
-    configureApiClient(url);
-    setServerUrl(url);
-    loginMutation.mutate({ body: { email, password } });
-  }
+  const form = useForm({
+    defaultValues: { serverUrl, email: "", password: "" },
+    onSubmit: ({ value }) => {
+      const url = value.serverUrl || serverUrl;
+      configureApiClient(url);
+      setServerUrl(url);
+      loginMutation.mutate({ body: { email: value.email, password: value.password } });
+    },
+  });
 
   return (
     <div
@@ -72,44 +72,67 @@ export function LoginPage() {
         </div>
 
         <form
-          onSubmit={handleSubmit}
+          onSubmit={(event) => {
+            event.preventDefault();
+            void form.handleSubmit();
+          }}
           className="flex flex-col gap-4 rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-md shadow-[0_8px_40px_hsl(0,0%,0%/.4)]"
         >
-          <div className="relative">
-            <Server className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-white/30" />
-            <input
-              name="serverUrl"
-              type="url"
-              defaultValue={serverUrl}
-              required
-              placeholder="Server URL"
-              className="h-9 w-full rounded-2xl border border-white/10 bg-white/5 pl-9 pr-3 text-sm text-white placeholder:text-white/30 outline-none transition focus:border-[hsl(var(--brand-from)/.6)] focus:ring-2 focus:ring-[hsl(var(--brand-from)/.2)]"
-            />
-          </div>
+          <form.Field name="serverUrl">
+            {(field) => (
+              <div className="relative">
+                <Server className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-white/30" />
+                <input
+                  name={field.name}
+                  type="url"
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(event) => field.handleChange(event.target.value)}
+                  required
+                  placeholder="Server URL"
+                  className="h-9 w-full rounded-2xl border border-white/10 bg-white/5 pl-9 pr-3 text-sm text-white placeholder:text-white/30 outline-none transition focus:border-[hsl(var(--brand-from)/.6)] focus:ring-2 focus:ring-[hsl(var(--brand-from)/.2)]"
+                />
+              </div>
+            )}
+          </form.Field>
 
-          <div className="relative">
-            <Mail className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-white/30" />
-            <input
-              name="email"
-              type="email"
-              required
-              autoComplete="email"
-              placeholder="Email address"
-              className="h-9 w-full rounded-2xl border border-white/10 bg-white/5 pl-9 pr-3 text-sm text-white placeholder:text-white/30 outline-none transition focus:border-[hsl(var(--brand-from)/.6)] focus:ring-2 focus:ring-[hsl(var(--brand-from)/.2)]"
-            />
-          </div>
+          <form.Field name="email">
+            {(field) => (
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-white/30" />
+                <input
+                  name={field.name}
+                  type="email"
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(event) => field.handleChange(event.target.value)}
+                  required
+                  autoComplete="email"
+                  placeholder="Email address"
+                  className="h-9 w-full rounded-2xl border border-white/10 bg-white/5 pl-9 pr-3 text-sm text-white placeholder:text-white/30 outline-none transition focus:border-[hsl(var(--brand-from)/.6)] focus:ring-2 focus:ring-[hsl(var(--brand-from)/.2)]"
+                />
+              </div>
+            )}
+          </form.Field>
 
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-white/30" />
-            <input
-              name="password"
-              type="password"
-              required
-              autoComplete="current-password"
-              placeholder="Password"
-              className="h-9 w-full rounded-2xl border border-white/10 bg-white/5 pl-9 pr-3 text-sm text-white placeholder:text-white/30 outline-none transition focus:border-[hsl(var(--brand-from)/.6)] focus:ring-2 focus:ring-[hsl(var(--brand-from)/.2)]"
-            />
-          </div>
+          <form.Field name="password">
+            {(field) => (
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-white/30" />
+                <input
+                  name={field.name}
+                  type="password"
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(event) => field.handleChange(event.target.value)}
+                  required
+                  autoComplete="current-password"
+                  placeholder="Password"
+                  className="h-9 w-full rounded-2xl border border-white/10 bg-white/5 pl-9 pr-3 text-sm text-white placeholder:text-white/30 outline-none transition focus:border-[hsl(var(--brand-from)/.6)] focus:ring-2 focus:ring-[hsl(var(--brand-from)/.2)]"
+                />
+              </div>
+            )}
+          </form.Field>
 
           <Button
             type="submit"

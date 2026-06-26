@@ -6,7 +6,7 @@ import {
 } from "@tauri-apps/plugin-log";
 
 import type { LogLevel } from "../stores/log-level";
-import { useLogLevelStore } from "../stores/log-level";
+import { logLevelStore } from "../stores/log-level";
 
 const LEVEL_RANK: Record<LogLevel, number> = {
   debug: 0,
@@ -16,7 +16,7 @@ const LEVEL_RANK: Record<LogLevel, number> = {
 };
 
 function shouldLog(level: LogLevel): boolean {
-  return LEVEL_RANK[level] >= LEVEL_RANK[useLogLevelStore.getState().logLevel];
+  return LEVEL_RANK[level] >= LEVEL_RANK[logLevelStore.state.logLevel];
 }
 
 function serialize(data: unknown): string {

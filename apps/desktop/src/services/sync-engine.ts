@@ -3,9 +3,9 @@ import { listen } from "@tauri-apps/api/event";
 import { getApiConflictsQueryKey } from "../hooks/use-conflict-count";
 import { fetchWithAuth } from "../lib/fetch-with-auth";
 import { queryClient } from "../lib/query";
-import { useAuthStore } from "../stores/auth";
-import { useFileVersionsStore } from "../stores/file-versions";
-import { useSyncStatusStore } from "../stores/sync-status";
+import { authStore } from "../stores/auth";
+import { getFileVersion, setFileVersion } from "../stores/file-versions";
+import { markSynced, setSyncStatus } from "../stores/sync-status";
 
 import { isExpectedWrite } from "./downloader";
 import { computeHash } from "./hash";
@@ -41,7 +41,7 @@ async function handleFileChange(
   localBase: string,
   isDelete: boolean,
 ): Promise<void> {
-  const { serverUrl, deviceId } = useAuthStore.getState();
+  const { serverUrl, deviceId } = authStore.state;
   if (!deviceId) {
     logger.warn("[sync] handleFileChange: no deviceId, skipping");
     return;
@@ -72,7 +72,7 @@ export async function pushLocalFile(
   syncFolderId: string,
   localBase: string,
 ): Promise<void> {
-  const { serverUrl, deviceId } = useAuthStore.getState();
+  const { serverUrl, deviceId } = authStore.state;
   if (!deviceId) {
     logger.warn("[sync] pushLocalFile: no deviceId, skipping");
     return;
@@ -92,8 +92,7 @@ export async function pushLocalFile(
     return;
   }
 
-  const versionStore = useFileVersionsStore.getState();
-  const nextVersion = versionStore.getVersion(syncFolderId, relativePath) + 1;
+  const nextVersion = getFileVersion(syncFolderId, relativePath) + 1;
   logger.debug(`[sync] checking ${relativePath} v${nextVersion} hash=${contentHash}`);
 
   const checkResponse = await fetchWithAuth(`${serverUrl}/api/sync/check`, {
@@ -125,9 +124,9 @@ export async function pushLocalFile(
   }
 
   logger.info(`[sync] uploading: ${relativePath} v${nextVersion} (${data.byteLength} bytes)`);
-  useSyncStatusStore.getState().setStatus("syncing");
+  setSyncStatus("syncing");
 
-  const { accessToken } = useAuthStore.getState();
+  const { accessToken } = authStore.state;
   await uploadLocalFile(
     localPath,
     syncFolderId,
@@ -137,8 +136,8 @@ export async function pushLocalFile(
     serverUrl,
     accessToken ?? "",
   );
-  versionStore.setVersion(syncFolderId, relativePath, nextVersion);
-  useSyncStatusStore.getState().markSynced();
+  setFileVersion(syncFolderId, relativePath, nextVersion);
+  markSynced();
   logger.info(`[sync] upload complete: ${relativePath} v${nextVersion}`);
 }
 
@@ -161,7 +160,7 @@ export async function startSyncEngine(): Promise<() => void> {
           void handleFileChange(filePath, syncFolderId, localBase, isDelete).catch(
             (syncError: unknown) => {
               logger.error(`[sync] unhandled error for ${filePath}`, syncError);
-              useSyncStatusStore.getState().setStatus("error", "Sync error — check logs");
+              setSyncStatus("error", "Sync error — check logs");
             },
           );
         }, 300),

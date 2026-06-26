@@ -7,9 +7,9 @@ import { remove } from "@tauri-apps/plugin-fs";
 import { getApiSyncFoldersQueryKey } from "../generated/@tanstack/react-query.gen";
 import { fetchWithAuth } from "../lib/fetch-with-auth";
 import { queryClient } from "../lib/query";
-import { useAuthStore } from "../stores/auth";
-import { useLinksStore } from "../stores/links";
-import { useSyncStatusStore } from "../stores/sync-status";
+import { authStore, logout } from "../stores/auth";
+import { linksStore, setFolderPaths } from "../stores/links";
+import { setSyncStatus } from "../stores/sync-status";
 
 import { downloadFile } from "./downloader";
 import { logger } from "./logger";
@@ -32,14 +32,14 @@ const ws: WsState = {
 };
 
 function buildWsUrl(): string | undefined {
-  const { serverUrl, accessToken, deviceId } = useAuthStore.getState();
+  const { serverUrl, accessToken, deviceId } = authStore.state;
   if (!accessToken || !deviceId) return undefined;
   const wsBase = serverUrl.replace(/^http/, "ws");
   return `${wsBase}/ws?token=${encodeURIComponent(accessToken)}&deviceId=${encodeURIComponent(deviceId)}`;
 }
 
 async function fetchFolderLinks(): Promise<DeviceLink[] | undefined> {
-  const { serverUrl, deviceId } = useAuthStore.getState();
+  const { serverUrl, deviceId } = authStore.state;
   if (!serverUrl || !deviceId) {
     logger.warn("[ws] fetchFolderLinks: missing serverUrl or deviceId");
     return undefined;
@@ -72,7 +72,7 @@ export async function loadAndRestoreLinks(): Promise<void> {
     logger.debug(`[ws] starting watcher for ${link.syncFolderId} → ${link.localPath}`);
     await invoke("start_watching", { syncFolderId: link.syncFolderId, localPath: link.localPath });
   }
-  useLinksStore.getState().setFolderPaths(paths);
+  setFolderPaths(paths);
   logger.info(`[ws] watchers started for ${links.length} folder(s)`);
 
   for (const link of links) {
@@ -86,7 +86,7 @@ export async function loadAndRestoreLinks(): Promise<void> {
 
 async function onConnect(): Promise<void> {
   ws.reconnectDelay = WS_RECONNECT_MIN_MS;
-  useSyncStatusStore.getState().setStatus("idle");
+  setSyncStatus("idle");
   logger.info("[ws] connected — loading and restoring links");
   await loadAndRestoreLinks();
 }
@@ -103,12 +103,12 @@ async function handleMessage(event: MessageEvent): Promise<void> {
 
   logger.debug(`[ws] message received: ${message.type}`);
 
-  const { serverUrl, accessToken, deviceId } = useAuthStore.getState();
-  const { folderPaths } = useLinksStore.getState();
+  const { serverUrl, accessToken, deviceId } = authStore.state;
+  const { folderPaths } = linksStore.state;
 
   if (message.type === "device:logout") {
     logger.warn(`[ws] device:logout signal received — reason: ${message.payload.reason}`);
-    useAuthStore.getState().logout();
+    logout();
     return;
   }
 
@@ -222,13 +222,13 @@ function connect(): void {
   ws.socket.addEventListener("close", (event: CloseEvent) => {
     if (ws.isStopped) return;
     logger.warn(`[ws] disconnected (code=${event.code}) — scheduling reconnect`);
-    useSyncStatusStore.getState().setStatus("error", "Disconnected — reconnecting…");
+    setSyncStatus("error", "Disconnected — reconnecting…");
     scheduleReconnect();
   });
 
   ws.socket.addEventListener("error", () => {
     logger.error("[ws] WebSocket error");
-    useSyncStatusStore.getState().setStatus("error", "WebSocket error");
+    setSyncStatus("error", "WebSocket error");
   });
 }
 

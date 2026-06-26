@@ -1,10 +1,11 @@
 import { FolderIcon, iconBg, iconBorder } from "@file-sync/ui";
+import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { AlertTriangle, LinkIcon, Plus, RefreshCw, Trash2 } from "lucide-react";
-import { type FormEvent, type MouseEvent, useState } from "react";
+import { type MouseEvent, useState } from "react";
 import { toast } from "sonner";
 
 import { FolderIconPicker } from "../components/FolderIconPicker";
@@ -32,7 +33,7 @@ import {
 import { requestFolderPermissions } from "../services/permission-check";
 import { reconcile } from "../services/reconciler";
 import { useAuthStore } from "../stores/auth";
-import { useLinksStore } from "../stores/links";
+import { setFolderPath, useLinksStore } from "../stores/links";
 
 type LinkedDevice = { name: string; platform: string };
 type SyncFolder = {
@@ -195,7 +196,6 @@ export function SyncFoldersPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const deviceId = useAuthStore((s) => s.deviceId);
-  const setFolderPath = useLinksStore((s) => s.setFolderPath);
   const folderPaths = useLinksStore((s) => s.folderPaths);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -216,6 +216,7 @@ export function SyncFoldersPage() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: getApiSyncFoldersQueryKey() });
       setIsCreateOpen(false);
+      createForm.reset();
       toast.success("Sync folder created");
     },
     onError: (thrown) => {
@@ -262,12 +263,14 @@ export function SyncFoldersPage() {
     },
   });
 
-  function handleCreate(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const name = (new FormData(event.currentTarget).get("name") as string | null) ?? "";
-    if (!name) return;
-    newFolderMutation.mutate({ body: { name } });
-  }
+  const createForm = useForm({
+    defaultValues: { name: "" },
+    onSubmit: ({ value }) => {
+      const name = value.name.trim();
+      if (!name) return;
+      newFolderMutation.mutate({ body: { name } });
+    },
+  });
 
   async function pickFolder() {
     const path = await open({ directory: true, multiple: false });
@@ -377,8 +380,27 @@ export function SyncFoldersPage() {
                   Give it a name. Each device picks its own local directory to sync with it.
                 </DialogDescription>
               </DialogHeader>
-              <form id="create-form" onSubmit={handleCreate}>
-                <Input name="name" label="Name" placeholder="e.g. Documents" required autoFocus />
+              <form
+                id="create-form"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void createForm.handleSubmit();
+                }}
+              >
+                <createForm.Field name="name">
+                  {(field) => (
+                    <Input
+                      name={field.name}
+                      label="Name"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(event) => field.handleChange(event.target.value)}
+                      placeholder="e.g. Documents"
+                      required
+                      autoFocus
+                    />
+                  )}
+                </createForm.Field>
               </form>
               <DialogFooter>
                 <Button variant="ghost" onClick={() => setIsCreateOpen(false)}>
@@ -471,12 +493,16 @@ export function SyncFoldersPage() {
           </DialogHeader>
           <div className="flex gap-2">
             <div className="min-w-0 flex-1">
-              <Input
-                label="Local path"
-                value={selectedPath ?? ""}
-                readOnly
-                placeholder="No folder selected"
-              />
+              <span className="mb-1.5 block text-sm font-medium text-[hsl(var(--text))]">
+                Local path
+              </span>
+              <div className="flex h-9 items-center truncate rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--surface))] px-3.5 text-sm text-[hsl(var(--text))]">
+                {selectedPath ? (
+                  <span className="truncate">{selectedPath}</span>
+                ) : (
+                  <span className="text-[hsl(var(--text-faint))]">No folder selected</span>
+                )}
+              </div>
             </div>
             <Button
               variant="secondary"

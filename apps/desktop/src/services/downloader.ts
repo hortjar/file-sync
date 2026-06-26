@@ -7,7 +7,7 @@ import {
 } from "../generated/@tanstack/react-query.gen";
 import { fetchWithAuth } from "../lib/fetch-with-auth";
 import { queryClient } from "../lib/query";
-import { useFileVersionsStore } from "../stores/file-versions";
+import { setFileVersion } from "../stores/file-versions";
 
 import { logger } from "./logger";
 
@@ -76,7 +76,7 @@ export async function downloadFile(
     throw writeError;
   }
 
-  useFileVersionsStore.getState().setVersion(syncFolderId, relativePath, version);
+  setFileVersion(syncFolderId, relativePath, version);
 
   void queryClient.invalidateQueries({
     queryKey: getApiSyncFoldersByIdQueryKey({ path: { id: syncFolderId } }),

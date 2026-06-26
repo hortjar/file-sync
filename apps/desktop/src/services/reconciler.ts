@@ -2,7 +2,7 @@ import { join } from "@tauri-apps/api/path";
 import { exists, readDir, readFile } from "@tauri-apps/plugin-fs";
 
 import { fetchWithAuth } from "../lib/fetch-with-auth";
-import { useAuthStore } from "../stores/auth";
+import { authStore } from "../stores/auth";
 
 import { downloadFile } from "./downloader";
 import { computeHash } from "./hash";
@@ -43,7 +43,7 @@ type RemoteEntry = {
 };
 
 export async function reconcile(syncFolderId: string, localBasePath: string): Promise<void> {
-  const { serverUrl, deviceId } = useAuthStore.getState();
+  const { serverUrl, deviceId } = authStore.state;
   if (!deviceId || !serverUrl) {
     logger.warn(`[reconcile] skipping ${syncFolderId} — no deviceId or serverUrl`);
     return;

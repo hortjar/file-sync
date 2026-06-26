@@ -1,4 +1,5 @@
 import { FolderIcon, iconBg, iconBorder } from "@file-sync/ui";
+import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2 } from "lucide-react";
 import { type MouseEvent, useState } from "react";
@@ -30,7 +31,6 @@ export function FoldersPage() {
   const queryClient = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState<SyncFolder | undefined>(undefined);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [newName, setNewName] = useState("");
 
   const { data: foldersRaw, isLoading } = useQuery(getApiSyncFoldersOptions());
   const folders = (foldersRaw as SyncFolder[] | undefined) ?? [];
@@ -50,16 +50,24 @@ export function FoldersPage() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: getApiSyncFoldersQueryKey() });
       setIsCreateOpen(false);
-      setNewName("");
+      createForm.reset();
       toast.success(t("folders.created"));
     },
     onError: () => toast.error(t("common.error")),
   });
 
-  function handleCreate() {
-    const name = newName.trim();
-    if (!name) return;
-    folderCreation.mutate({ body: { name } });
+  const createForm = useForm({
+    defaultValues: { name: "" },
+    onSubmit: ({ value }) => {
+      const name = value.name.trim();
+      if (!name) return;
+      folderCreation.mutate({ body: { name } });
+    },
+  });
+
+  function closeCreate() {
+    setIsCreateOpen(false);
+    createForm.reset();
   }
 
   if (isLoading) {
@@ -148,45 +156,52 @@ export function FoldersPage() {
       {/* Create dialog */}
       {isCreateOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-sm rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--surface))] p-6 shadow-[var(--shadow-lg)]">
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              void createForm.handleSubmit();
+            }}
+            className="w-full max-w-sm rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--surface))] p-6 shadow-[var(--shadow-lg)]"
+          >
             <h2 className="text-base font-semibold text-[hsl(var(--text))]">
               {t("folders.newFolder")}
             </h2>
             <p className="mt-1 text-sm text-[hsl(var(--text-muted))]">
               {t("folders.newFolderHint")}
             </p>
-            <input
-              type="text"
-              value={newName}
-              onChange={(event) => setNewName(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") handleCreate();
-              }}
-              placeholder={t("folders.namePlaceholder")}
-              className="mt-4 w-full rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--surface-2))] px-3 py-2 text-sm text-[hsl(var(--text))] placeholder:text-[hsl(var(--text-faint))] focus:outline-none focus:ring-1 focus:ring-[hsl(var(--brand-from))]"
-              autoFocus
-            />
+            <createForm.Field name="name">
+              {(field) => (
+                <input
+                  type="text"
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(event) => field.handleChange(event.target.value)}
+                  placeholder={t("folders.namePlaceholder")}
+                  className="mt-4 w-full rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--surface-2))] px-3 py-2 text-sm text-[hsl(var(--text))] placeholder:text-[hsl(var(--text-faint))] focus:outline-none focus:ring-1 focus:ring-[hsl(var(--brand-from))]"
+                  autoFocus
+                />
+              )}
+            </createForm.Field>
             <div className="mt-5 flex gap-2">
-              <Button
-                variant="secondary"
-                className="flex-1"
-                onClick={() => {
-                  setIsCreateOpen(false);
-                  setNewName("");
-                }}
-              >
+              <Button type="button" variant="secondary" className="flex-1" onClick={closeCreate}>
                 {t("common.cancel")}
               </Button>
-              <Button
-                className="flex-1"
-                loading={folderCreation.isPending}
-                disabled={!newName.trim()}
-                onClick={handleCreate}
+              <createForm.Subscribe
+                selector={(state) => [state.values.name, state.isSubmitting] as const}
               >
-                {t("folders.create")}
-              </Button>
+                {([name, isSubmitting]) => (
+                  <Button
+                    type="submit"
+                    className="flex-1"
+                    loading={folderCreation.isPending || isSubmitting}
+                    disabled={!name.trim()}
+                  >
+                    {t("folders.create")}
+                  </Button>
+                )}
+              </createForm.Subscribe>
             </div>
-          </div>
+          </form>
         </div>
       )}
 

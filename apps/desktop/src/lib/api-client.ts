@@ -1,11 +1,11 @@
 import { client } from "../generated/client.gen";
 import { tryRefreshToken } from "../services/token-refresh";
-import { useAuthStore } from "../stores/auth";
+import { authStore } from "../stores/auth";
 
 export function initApiClient(): void {
   // Always inject the current token before each request (picks up refreshed tokens automatically)
   client.interceptors.request.use((request) => {
-    const { accessToken } = useAuthStore.getState();
+    const { accessToken } = authStore.state;
     if (accessToken) request.headers.set("Authorization", `Bearer ${accessToken}`);
     return request;
   });
@@ -18,7 +18,7 @@ export function initApiClient(): void {
     const isRefreshed = await tryRefreshToken();
     if (!isRefreshed) return response;
 
-    const { accessToken } = useAuthStore.getState();
+    const { accessToken } = authStore.state;
     const retryHeaders = new Headers(request.headers);
     retryHeaders.set("Authorization", `Bearer ${accessToken ?? ""}`);
     // `request.body` has already been consumed by the initial fetch; reuse the

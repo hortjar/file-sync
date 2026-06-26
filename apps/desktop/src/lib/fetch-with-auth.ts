@@ -1,10 +1,10 @@
 import { logger } from "../services/logger";
 import { tryRefreshToken } from "../services/token-refresh";
-import { useAuthStore } from "../stores/auth";
-import { useLogLevelStore } from "../stores/log-level";
+import { authStore } from "../stores/auth";
+import { logLevelStore } from "../stores/log-level";
 
 function authHeaders(): Record<string, string> {
-  const { accessToken } = useAuthStore.getState();
+  const { accessToken } = authStore.state;
   return accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
 }
 
@@ -19,7 +19,7 @@ function redactedUrl(url: string): string {
 }
 
 function isDebugMode(): boolean {
-  return useLogLevelStore.getState().logLevel === "debug";
+  return logLevelStore.state.logLevel === "debug";
 }
 
 function serializeHeaders(headers: Headers | Record<string, string> | undefined): string {

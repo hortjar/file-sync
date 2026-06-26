@@ -1,5 +1,6 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { useStore } from "@tanstack/react-store";
+
+import { persistStore } from "../lib/persist-store";
 
 type AuthState = {
   accessToken: string | undefined;
@@ -9,43 +10,53 @@ type AuthState = {
   userEmail: string | undefined;
   deviceId: string | undefined;
   isAuthenticated: boolean;
-  setTokens: (accessToken: string, refreshToken: string) => void;
-  setServerUrl: (url: string) => void;
-  setDeviceId: (deviceId: string) => void;
-  setUserId: (userId: string) => void;
-  setUserEmail: (email: string) => void;
-  logout: () => void;
 };
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set) => ({
-      accessToken: undefined,
-      refreshToken: undefined,
-      serverUrl: "http://localhost:3001",
-      userId: undefined,
-      userEmail: undefined,
-      deviceId: undefined,
-      isAuthenticated: false,
+const initialState: AuthState = {
+  accessToken: undefined,
+  refreshToken: undefined,
+  serverUrl: "http://localhost:3001",
+  userId: undefined,
+  userEmail: undefined,
+  deviceId: undefined,
+  isAuthenticated: false,
+};
 
-      setTokens: (accessToken, refreshToken) =>
-        set({ accessToken, refreshToken, isAuthenticated: true }),
+export const authStore = persistStore("filesync-auth", initialState);
 
-      setServerUrl: (serverUrl) => set({ serverUrl }),
-      setDeviceId: (deviceId) => set({ deviceId }),
-      setUserId: (userId) => set({ userId }),
-      setUserEmail: (userEmail) => set({ userEmail }),
+export function setTokens(accessToken: string, refreshToken: string): void {
+  authStore.setState((s) => ({ ...s, accessToken, refreshToken, isAuthenticated: true }));
+}
 
-      logout: () =>
-        set({
-          accessToken: undefined,
-          refreshToken: undefined,
-          userId: undefined,
-          userEmail: undefined,
-          deviceId: undefined,
-          isAuthenticated: false,
-        }),
-    }),
-    { name: "filesync-auth" },
-  ),
-);
+export function setServerUrl(serverUrl: string): void {
+  authStore.setState((s) => ({ ...s, serverUrl }));
+}
+
+export function setDeviceId(deviceId: string): void {
+  authStore.setState((s) => ({ ...s, deviceId }));
+}
+
+export function setUserId(userId: string): void {
+  authStore.setState((s) => ({ ...s, userId }));
+}
+
+export function setUserEmail(userEmail: string): void {
+  authStore.setState((s) => ({ ...s, userEmail }));
+}
+
+export function logout(): void {
+  authStore.setState((s) => ({
+    ...s,
+    accessToken: undefined,
+    refreshToken: undefined,
+    userId: undefined,
+    userEmail: undefined,
+    deviceId: undefined,
+    isAuthenticated: false,
+  }));
+}
+
+/** React hook: subscribe to a slice of auth state. */
+export function useAuthStore<T>(selector: (state: AuthState) => T): T {
+  return useStore(authStore, selector);
+}

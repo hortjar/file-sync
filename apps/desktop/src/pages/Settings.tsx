@@ -1,4 +1,5 @@
 import { type ThemeColor, THEME_LABELS } from "@file-sync/ui";
+import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getVersion } from "@tauri-apps/api/app";
 import { invoke } from "@tauri-apps/api/core";
@@ -14,7 +15,7 @@ import {
   SunMoon,
   Trash2,
 } from "lucide-react";
-import { type FormEvent, useRef } from "react";
+import { useRef } from "react";
 import { toast } from "sonner";
 
 import { Button } from "../components/ui/button";
@@ -28,10 +29,10 @@ import {
 } from "../generated/@tanstack/react-query.gen";
 import { configureApiClient } from "../lib/api-client";
 import { cn } from "../lib/cn";
-import { useAuthStore } from "../stores/auth";
+import { setServerUrl, useAuthStore } from "../stores/auth";
 import type { LogLevel } from "../stores/log-level";
-import { useLogLevelStore } from "../stores/log-level";
-import { useThemeStore } from "../stores/theme";
+import { setLogLevel, useLogLevelStore } from "../stores/log-level";
+import { setCustomColor, setTheme, useThemeStore } from "../stores/theme";
 
 const LOG_LEVEL_OPTIONS: { value: LogLevel; label: string; description: string }[] = [
   {
@@ -81,12 +82,12 @@ function isDeviceOnline(lastSeenAt: string): boolean {
 }
 
 export function SettingsPage() {
-  const { theme, customColor, setTheme, setCustomColor } = useThemeStore();
+  const theme = useThemeStore((s) => s.theme);
+  const customColor = useThemeStore((s) => s.customColor);
   const serverUrl = useAuthStore((s) => s.serverUrl);
-  const setServerUrl = useAuthStore((s) => s.setServerUrl);
   const deviceId = useAuthStore((s) => s.deviceId);
   const colorInputReference = useRef<HTMLInputElement>(null);
-  const { logLevel, setLogLevel } = useLogLevelStore();
+  const logLevel = useLogLevelStore((s) => s.logLevel);
   const queryClient = useQueryClient();
 
   const { data: appVersion } = useQuery({
@@ -109,14 +110,16 @@ export function SettingsPage() {
     },
   });
 
-  function handleSaveServer(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const url = (new FormData(event.currentTarget).get("serverUrl") as string | null) ?? "";
-    if (!url) return;
-    setServerUrl(url);
-    configureApiClient(url);
-    toast.success("Server URL saved");
-  }
+  const serverForm = useForm({
+    defaultValues: { serverUrl },
+    onSubmit: ({ value }) => {
+      const url = value.serverUrl;
+      if (!url) return;
+      setServerUrl(url);
+      configureApiClient(url);
+      toast.success("Server URL saved");
+    },
+  });
 
   return (
     <div>
@@ -143,14 +146,26 @@ export function SettingsPage() {
             <CardDescription>The FileSync server this app connects to.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSaveServer} className="flex gap-2">
-              <Input
-                name="serverUrl"
-                type="url"
-                defaultValue={serverUrl}
-                placeholder="http://localhost:3001"
-                className="flex-1"
-              />
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                void serverForm.handleSubmit();
+              }}
+              className="flex gap-2"
+            >
+              <serverForm.Field name="serverUrl">
+                {(field) => (
+                  <Input
+                    name={field.name}
+                    type="url"
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(event) => field.handleChange(event.target.value)}
+                    placeholder="http://localhost:3001"
+                    className="flex-1"
+                  />
+                )}
+              </serverForm.Field>
               <Button type="submit" variant="secondary" className="shrink-0">
                 Save
               </Button>

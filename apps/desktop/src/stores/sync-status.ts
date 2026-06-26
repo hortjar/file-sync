@@ -1,26 +1,39 @@
-import { create } from "zustand";
+import { Store } from "@tanstack/store";
+import { useStore } from "@tanstack/react-store";
 
 type SyncStatusKind = "idle" | "syncing" | "error" | "paused";
 
-type SyncStatus = {
+type SyncStatusState = {
   status: SyncStatusKind;
   pendingCount: number;
   lastSyncedAt: string | undefined;
   errorMessage: string | undefined;
-  setStatus: (status: SyncStatusKind, errorMessage?: string) => void;
-  setPendingCount: (count: number) => void;
-  markSynced: () => void;
 };
 
-export const useSyncStatusStore = create<SyncStatus>()((set) => ({
+export const syncStatusStore = new Store<SyncStatusState>({
   status: "idle",
   pendingCount: 0,
   lastSyncedAt: undefined,
   errorMessage: undefined,
+});
 
-  setStatus: (status, errorMessage) => set({ status, errorMessage }),
+export function setSyncStatus(status: SyncStatusKind, errorMessage?: string): void {
+  syncStatusStore.setState((s) => ({ ...s, status, errorMessage }));
+}
 
-  setPendingCount: (pendingCount) => set({ pendingCount }),
+export function setPendingCount(pendingCount: number): void {
+  syncStatusStore.setState((s) => ({ ...s, pendingCount }));
+}
 
-  markSynced: () => set({ status: "idle", lastSyncedAt: new Date().toISOString() }),
-}));
+export function markSynced(): void {
+  syncStatusStore.setState((s) => ({
+    ...s,
+    status: "idle",
+    lastSyncedAt: new Date().toISOString(),
+  }));
+}
+
+/** React hook: subscribe to a slice of sync-status state. */
+export function useSyncStatusStore<T>(selector: (state: SyncStatusState) => T): T {
+  return useStore(syncStatusStore, selector);
+}

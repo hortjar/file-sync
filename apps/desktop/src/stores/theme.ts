@@ -1,6 +1,7 @@
 import { type Theme, type ThemeColor, DEFAULT_THEME, applyTheme } from "@file-sync/ui";
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { useStore } from "@tanstack/react-store";
+
+import { persistStore } from "../lib/persist-store";
 
 const BRAND_GRADIENTS: Record<ThemeColor, [string, string]> = {
   purple: ["262 83% 58%", "291 91% 52%"],
@@ -48,41 +49,40 @@ export function applyBrandGradient(color: ThemeColor, customHex?: string): void 
 type ThemeState = {
   theme: Theme;
   customColor: string | undefined;
-  setTheme: (theme: Partial<Theme>) => void;
-  setCustomColor: (hex: string) => void;
-  initTheme: () => void;
 };
 
-export const useThemeStore = create<ThemeState>()(
-  persist(
-    (set, get) => ({
-      theme: { ...DEFAULT_THEME, mode: "dark" as const },
-      customColor: undefined,
+const initialState: ThemeState = {
+  theme: { ...DEFAULT_THEME, mode: "dark" as const },
+  customColor: undefined,
+};
 
-      setTheme: (partial) => {
-        const theme = { ...get().theme, ...partial };
-        set({ theme, customColor: undefined });
-        applyTheme(theme);
-        applyBrandGradient(theme.color);
-      },
+export const themeStore = persistStore("filesync-theme", initialState);
 
-      setCustomColor: (hex) => {
-        set({ customColor: hex });
-        applyBrandGradient(get().theme.color, hex);
-      },
+export function setTheme(partial: Partial<Theme>): void {
+  const theme = { ...themeStore.state.theme, ...partial };
+  themeStore.setState((s) => ({ ...s, theme, customColor: undefined }));
+  applyTheme(theme);
+  applyBrandGradient(theme.color);
+}
 
-      initTheme: () => {
-        const { theme, customColor } = get();
-        applyTheme(theme);
-        applyBrandGradient(theme.color, customColor);
+export function setCustomColor(hex: string): void {
+  themeStore.setState((s) => ({ ...s, customColor: hex }));
+  applyBrandGradient(themeStore.state.theme.color, hex);
+}
 
-        if (theme.mode === "system") {
-          globalThis.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
-            applyTheme(get().theme);
-          });
-        }
-      },
-    }),
-    { name: "filesync-theme" },
-  ),
-);
+export function initTheme(): void {
+  const { theme, customColor } = themeStore.state;
+  applyTheme(theme);
+  applyBrandGradient(theme.color, customColor);
+
+  if (theme.mode === "system") {
+    globalThis.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+      applyTheme(themeStore.state.theme);
+    });
+  }
+}
+
+/** React hook: subscribe to a slice of theme state. */
+export function useThemeStore<T>(selector: (state: ThemeState) => T): T {
+  return useStore(themeStore, selector);
+}

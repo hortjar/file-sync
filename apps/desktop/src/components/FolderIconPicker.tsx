@@ -1,5 +1,6 @@
 import { FolderIcon, FOLDER_ICONS } from "@file-sync/ui";
-import { useState } from "react";
+import { useForm } from "@tanstack/react-form";
+import { useStore } from "@tanstack/react-store";
 
 import { cn } from "../lib/cn";
 
@@ -49,13 +50,14 @@ export function FolderIconPicker({
   onPick,
   onClose,
 }: FolderIconPickerProperties) {
-  const [selectedIcon, setSelectedIcon] = useState(currentIcon);
-  const [selectedColor, setSelectedColor] = useState<string | undefined>(currentColor);
-
-  function handleApply() {
-    onPick(selectedIcon, selectedColor);
-    onClose();
-  }
+  const form = useForm({
+    defaultValues: { icon: currentIcon, color: currentColor },
+    onSubmit: ({ value }) => {
+      onPick(value.icon, value.color);
+      onClose();
+    },
+  });
+  const { icon: selectedIcon, color: selectedColor } = useStore(form.store, (s) => s.values);
 
   return (
     <Dialog
@@ -88,7 +90,7 @@ export function FolderIconPicker({
             {Object.entries(FOLDER_ICONS).map(([key, Icon]) => (
               <button
                 key={key}
-                onClick={() => setSelectedIcon(key)}
+                onClick={() => form.setFieldValue("icon", key)}
                 className={cn(
                   "flex size-9 items-center justify-center rounded-lg border transition-all",
                   selectedIcon === key
@@ -117,7 +119,7 @@ export function FolderIconPicker({
               <button
                 key={label}
                 title={label}
-                onClick={() => setSelectedColor(value)}
+                onClick={() => form.setFieldValue("color", value)}
                 className={cn(
                   "size-7 rounded-full border-2 transition-all",
                   selectedColor === value
@@ -147,12 +149,16 @@ export function FolderIconPicker({
                 }}
                 title="Custom color"
               >
-                <input
-                  type="color"
-                  className="absolute inset-0 cursor-pointer opacity-0"
-                  value={selectedColor ?? "#8b5cf6"}
-                  onChange={(event) => setSelectedColor(event.target.value)}
-                />
+                <form.Field name="color">
+                  {(field) => (
+                    <input
+                      type="color"
+                      className="absolute inset-0 cursor-pointer opacity-0"
+                      value={field.state.value ?? "#8b5cf6"}
+                      onChange={(event) => field.handleChange(event.target.value)}
+                    />
+                  )}
+                </form.Field>
               </div>
             </div>
           </div>
@@ -162,7 +168,7 @@ export function FolderIconPicker({
           <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={handleApply}>Apply</Button>
+          <Button onClick={() => void form.handleSubmit()}>Apply</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

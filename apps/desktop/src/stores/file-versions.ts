@@ -1,19 +1,21 @@
-import { create } from "zustand";
+import { Store } from "@tanstack/store";
 
 type FileVersionsState = {
   versions: Record<string, number>; // `${syncFolderId}:${relativePath}` -> last known server version
-  setVersion: (syncFolderId: string, relativePath: string, version: number) => void;
-  getVersion: (syncFolderId: string, relativePath: string) => number;
 };
 
-export const useFileVersionsStore = create<FileVersionsState>()((set, get) => ({
-  versions: {},
+export const fileVersionsStore = new Store<FileVersionsState>({ versions: {} });
 
-  setVersion: (syncFolderId, relativePath, version) =>
-    set((state) => ({
-      versions: { ...state.versions, [`${syncFolderId}:${relativePath}`]: version },
-    })),
+export function setFileVersion(
+  syncFolderId: string,
+  relativePath: string,
+  version: number,
+): void {
+  fileVersionsStore.setState((s) => ({
+    versions: { ...s.versions, [`${syncFolderId}:${relativePath}`]: version },
+  }));
+}
 
-  getVersion: (syncFolderId, relativePath) =>
-    get().versions[`${syncFolderId}:${relativePath}`] ?? 0,
-}));
+export function getFileVersion(syncFolderId: string, relativePath: string): number {
+  return fileVersionsStore.state.versions[`${syncFolderId}:${relativePath}`] ?? 0;
+}

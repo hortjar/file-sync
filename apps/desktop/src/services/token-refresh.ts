@@ -1,5 +1,5 @@
 import { setAuthHeader } from "../lib/api-client";
-import { useAuthStore } from "../stores/auth";
+import { authStore, logout, setTokens } from "../stores/auth";
 
 import { logger } from "./logger";
 
@@ -20,7 +20,7 @@ const refreshLock = { current: undefined as Promise<boolean> | undefined };
 const timerState = { id: undefined as ReturnType<typeof setTimeout> | undefined };
 
 async function doRefresh(): Promise<boolean> {
-  const { refreshToken, serverUrl } = useAuthStore.getState();
+  const { refreshToken, serverUrl } = authStore.state;
   if (!refreshToken) {
     logger.warn("[auth] doRefresh: no refresh token available");
     return false;
@@ -36,12 +36,12 @@ async function doRefresh(): Promise<boolean> {
 
     if (!response.ok) {
       logger.warn(`[auth] token refresh failed: ${response.status} — logging out`);
-      useAuthStore.getState().logout();
+      logout();
       return false;
     }
 
     const data = (await response.json()) as { accessToken: string };
-    useAuthStore.getState().setTokens(data.accessToken, refreshToken);
+    setTokens(data.accessToken, refreshToken);
     setAuthHeader(data.accessToken);
     scheduleTokenRefresh(data.accessToken);
     logger.info("[auth] access token refreshed successfully");

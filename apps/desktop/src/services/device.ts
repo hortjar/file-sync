@@ -2,7 +2,7 @@ import { getVersion } from "@tauri-apps/api/app";
 import { invoke } from "@tauri-apps/api/core";
 
 import { fetchWithAuth } from "../lib/fetch-with-auth";
-import { useAuthStore } from "../stores/auth";
+import { authStore, setDeviceId } from "../stores/auth";
 
 import { logger } from "./logger";
 
@@ -24,7 +24,7 @@ async function getAppVersion(): Promise<string> {
 }
 
 export async function registerDevice(): Promise<string> {
-  const { deviceId, setDeviceId, serverUrl } = useAuthStore.getState();
+  const { deviceId, serverUrl } = authStore.state;
   if (deviceId) {
     logger.debug(`[device] already registered: ${deviceId}`);
     return deviceId;
@@ -61,7 +61,7 @@ export async function registerDevice(): Promise<string> {
 
 export function startHeartbeat(deviceId: string): () => void {
   const sendHeartbeat = () => {
-    const { serverUrl } = useAuthStore.getState();
+    const { serverUrl } = authStore.state;
     logger.debug(`[device] heartbeat for ${deviceId}`);
     void getAppVersion().then((appVersion) => {
       void fetchWithAuth(`${serverUrl}/api/devices/${deviceId}/heartbeat`, {

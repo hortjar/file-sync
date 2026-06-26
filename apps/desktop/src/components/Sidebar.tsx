@@ -3,7 +3,7 @@ import { AlertTriangle, FileText, FolderSync, LogOut, Settings, Wifi, WifiOff } 
 
 import { useConflictCount } from "../hooks/use-conflict-count";
 import { cn } from "../lib/cn";
-import { useAuthStore } from "../stores/auth";
+import { logout, useAuthStore } from "../stores/auth";
 import { useSyncStatusStore } from "../stores/sync-status";
 
 import { Badge } from "./ui/badge";
@@ -32,7 +32,6 @@ const navLinkClass = cn(
 
 export function Sidebar() {
   const userEmail = useAuthStore((s) => s.userEmail);
-  const logout = useAuthStore((s) => s.logout);
   const conflictCount = useConflictCount();
   const status = useSyncStatusStore((s) => s.status);
   const isOnline = status !== "error";
