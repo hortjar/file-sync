@@ -1,5 +1,5 @@
 import { client } from "../generated/client.gen";
-import { useAuthStore } from "../stores/auth";
+import { authStore, logout } from "../stores/auth";
 
 import { tryRefreshToken } from "./token-refresh";
 
@@ -11,7 +11,7 @@ export function initApiClient(serverUrl: string): void {
   client.interceptors.response.clear();
 
   client.interceptors.request.use((request) => {
-    const { accessToken } = useAuthStore.getState();
+    const { accessToken } = authStore.state;
     if (accessToken) request.headers.set("Authorization", `Bearer ${accessToken}`);
     return request;
   });
@@ -21,7 +21,7 @@ export function initApiClient(serverUrl: string): void {
     if (response.status !== 401) return response;
     const wasRefreshed = await tryRefreshToken();
     if (!wasRefreshed) {
-      useAuthStore.getState().logout();
+      logout();
       clearAuthHeader();
     }
     return response;

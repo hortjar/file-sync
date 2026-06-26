@@ -18,10 +18,10 @@ import { FoldersPage } from "./pages/FoldersPage";
 import { LogDetailPage } from "./pages/LogDetailPage";
 import { Login } from "./pages/Login";
 import { LogsPage } from "./pages/LogsPage";
-import { useAuthStore } from "./stores/auth";
+import { authStore } from "./stores/auth";
 
 // Bootstrap the API client with persisted auth state.
-const { serverUrl, accessToken } = useAuthStore.getState();
+const { serverUrl, accessToken } = authStore.state;
 initApiClient(serverUrl);
 if (accessToken) setAuthHeader(accessToken);
 

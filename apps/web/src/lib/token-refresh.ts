@@ -1,6 +1,6 @@
 import { client } from "../generated/client.gen";
 import { postApiAuthRefresh } from "../generated/sdk.gen";
-import { useAuthStore } from "../stores/auth";
+import { authStore, setTokens } from "../stores/auth";
 
 type RefreshResponse = { accessToken: string; refreshToken: string };
 
@@ -9,7 +9,7 @@ const refreshState = { isPending: false };
 
 export async function tryRefreshToken(): Promise<boolean> {
   if (refreshState.isPending) return false;
-  const { refreshToken } = useAuthStore.getState();
+  const { refreshToken } = authStore.state;
   if (!refreshToken) return false;
 
   refreshState.isPending = true;
@@ -17,7 +17,7 @@ export async function tryRefreshToken(): Promise<boolean> {
     const { data } = await postApiAuthRefresh({ body: { refreshToken } });
     if (!data) return false;
     const response = data as RefreshResponse;
-    useAuthStore.getState().setTokens(response.accessToken, response.refreshToken);
+    setTokens(response.accessToken, response.refreshToken);
     client.setConfig({ headers: { Authorization: `Bearer ${response.accessToken}` } });
     return true;
   } catch {

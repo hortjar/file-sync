@@ -16,7 +16,7 @@ import { Separator } from "../components/ui/separator";
 import { getHealthOptions } from "../generated/@tanstack/react-query.gen";
 import { clearAuthHeader } from "../lib/api-client";
 import { cn } from "../lib/cn";
-import { useAuthStore } from "../stores/auth";
+import { logout, useAuthStore } from "../stores/auth";
 
 const NAV = [
   { to: "/dashboard", icon: LayoutDashboard, label: "nav.dashboard" },
@@ -30,7 +30,7 @@ type HealthResponse = { status: string };
 export function AppLayout() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const { userEmail, logout } = useAuthStore();
+  const userEmail = useAuthStore((s) => s.userEmail);
 
   const { data: healthRaw, isError: healthError } = useQuery({
     ...getHealthOptions(),
