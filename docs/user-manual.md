@@ -17,10 +17,13 @@ FileSync keeps folders synchronized across your devices in real time. Changes on
 6. [Conflicts](#conflicts)
    - Why conflicts happen
    - Resolving a conflict
-7. [Settings](#settings)
-8. [System tray](#system-tray)
-9. [Status indicators](#status-indicators)
-10. [Troubleshooting](#troubleshooting)
+7. [Downloading files (web dashboard)](#downloading-files-web-dashboard)
+8. [Server Logs (web dashboard)](#server-logs-web-dashboard)
+9. [Settings](#settings)
+10. [App version & updates](#app-version--updates)
+11. [System tray](#system-tray)
+12. [Status indicators](#status-indicators)
+13. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -162,13 +165,46 @@ The conflict is removed from the list once resolved. The sidebar badge clears wh
 
 ---
 
+## Downloading files (web dashboard)
+
+The web dashboard lets you pull files and whole folders out of FileSync without a synced device.
+
+**A single file** — open a sync folder, hover a file row, and click the **download** icon.
+
+- Types a browser can display — **images, PDFs, video, audio, and text** — open in a **new browser tab** and render natively (correct content type is sent by the server).
+- Everything else **downloads** to your computer.
+
+**A folder (or subfolder) as a zip** — every folder gets a zip download:
+
+- On the **Sync Folders** list, hover a folder card and click the **download** icon to get the entire folder as `<folder>.zip`.
+- Inside a folder, the **Download** button in the header zips the whole folder; hovering any subfolder row and clicking its download icon zips just that subfolder. Relative paths are preserved inside the archive.
+
+Downloads use your signed-in session — no extra login. Large folders are zipped on the server and may take a moment.
+
+---
+
+## Server Logs (web dashboard)
+
+The **Logs** page (web) shows recent server log entries. Two independent controls:
+
+- **View level** — choose any combination of **Debug / Info / Warn / Error** to show. Each toggles on/off independently (e.g. show Debug + Warn but hide Info), and **Select all / Deselect all** flips them together. This only filters what you see; it doesn't change the server.
+- **Server level** — sets how verbose the server's logging actually is. This is a single threshold (the selected level **and above**).
+
+Use the search box to filter by text, and click an entry to see its full detail.
+
+---
+
 ## Settings
 
 Open **Settings** from the bottom of the sidebar.
 
 ### Server URL
 
-Change the server this app connects to. Useful if you move the server to a different address. Click **Save** to apply — the change takes effect immediately.
+Change the server this app connects to. Useful if you move the server to a different address. Click **Save** to apply — the change takes effect immediately. The **Reconnect** button next to it forces an immediate reconnect to the server (handy if the app is stuck showing Disconnected but the server is up).
+
+### Health check
+
+A panel of checks confirms everything FileSync needs is working: server reachability, authentication, notification permission, folder read/write access, and **client version**. An overall verdict is shown at the top; click **Re-check** to run them again. If a linked folder can't be read or written, the check reports which folder and why.
 
 ### This Device
 
@@ -181,6 +217,19 @@ Choose the brand color used for buttons, gradients, and highlights. Available op
 ### Appearance
 
 Switch between **Light**, **Dark**, and **System** (follows your OS setting). Dark mode is the default.
+
+---
+
+## App version & updates
+
+The app version is shown as muted text next to the **FileSync** logo at the top of the sidebar. Development builds also show a small **Dev** badge there; production builds show only the version.
+
+The server reports the latest client version it expects. If your installed app is **behind** that version, FileSync surfaces it in two places:
+
+- The **connection status** hover card (bottom of the sidebar) shows a prominent orange **"Update available — vX.Y.Z"** notice.
+- The **Health check** in Settings shows an amber "Client version" row telling you the version you have and the latest.
+
+Download the newer build from the releases page to update.
 
 ---
 
@@ -198,13 +247,17 @@ Sync continues in the background even when the window is closed.
 
 ## Status indicators
 
-The bottom of the sidebar always shows the current state.
+The bottom of the sidebar always shows the current state. Hover it for a detail card (server URL, client/server versions, connection times) — the card stays open so you can click or copy from it.
 
-| Indicator                  | Meaning                                                                                                |
-| -------------------------- | ------------------------------------------------------------------------------------------------------ |
-| Green dot + **Connected**  | WebSocket is connected. Changes sync in real time.                                                     |
-| Spinning + **Syncing…**    | A file upload or download is in progress.                                                              |
-| Red dot + **Disconnected** | The server is unreachable. The app will reconnect automatically with exponential backoff (1 s → 30 s). |
+| Indicator                  | Meaning                                                                                            |
+| -------------------------- | -------------------------------------------------------------------------------------------------- |
+| Green dot + **Connected**  | WebSocket is connected. Changes sync in real time.                                                 |
+| Spinning + **Syncing…**    | A file upload or download is in progress.                                                          |
+| Red dot + **Disconnected** | The server is unreachable. The app reconnects automatically with exponential backoff (1 s → 30 s). |
+
+A **sync error** (e.g. a file that can't be read) no longer flips the indicator to Disconnected — the connection dot reflects only the live server connection. Sync problems are surfaced as toasts/notifications and in the Health check instead.
+
+When **Disconnected**, the hover card shows **"Disconnected since"** and a live **"Disconnected for"** timer, plus a **Reconnect** button to retry immediately instead of waiting for backoff.
 
 The sidebar's **Conflicts** nav item shows a red badge with the count of unresolved conflicts.
 
@@ -219,7 +272,11 @@ The server URL is wrong or the server is not running. Check the Server URL in Se
 
 - Make sure the folder has a linked local path on this device (green check mark on the folder card).
 - Check that the sidebar shows **Connected** in green.
+- If it's stuck on **Disconnected** while the server is actually up, hover the status and click **Reconnect** (or use Reconnect in Settings → Server) instead of waiting for backoff.
 - Quit and reopen the app to force a fresh WebSocket connection and reconciliation.
+
+**"Some items were skipped" / a folder won't fully sync**  
+Some files couldn't be read during the scan. The toast says how many and why. Most often this is a permissions/locked-file issue, or the folder is outside the app's allowed locations. Re-linking the folder re-grants access to the whole tree; if it persists, check the folder's OS permissions and that no other program holds the files open. The Settings → Health check **Folder access** row shows exactly which folder failed.
 
 **A file I deleted on one device came back**  
 Deletions are synced like any other change. If the file reappeared, another device likely re-uploaded it before the delete propagated, or the reconciler on that device downloaded it as "missing". Resolve by deleting on all devices.
