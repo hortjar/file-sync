@@ -55,36 +55,43 @@ export function StatusIndicator({
         {online && !syncing && <Wifi className="size-3 text-[hsl(var(--success))] opacity-50" />}
       </div>
 
-      {/* Detailed status on hover — fits its content, never wraps. pointer-events
-          enabled on hover so the reconnect button inside stays clickable. */}
-      <div className="pointer-events-none absolute bottom-full left-2 z-50 mb-2 w-max max-w-[80vw] whitespace-nowrap rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--surface))] p-3 opacity-0 shadow-[var(--shadow-lg)] transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100">
-        <p
-          className={cn(
-            "text-base font-semibold",
-            online ? "text-[hsl(var(--success))]" : "text-[hsl(var(--danger))]",
-          )}
-        >
-          {title}
-        </p>
-        <dl className="mt-2 flex flex-col gap-1.5 text-[11px]">
-          {details.map((detail) => (
-            <div key={detail.label} className="flex items-center justify-between gap-6">
-              <dt className="text-[hsl(var(--text-faint))]">{detail.label}</dt>
-              <dd className="font-mono text-[hsl(var(--text-muted))]">{detail.value}</dd>
-            </div>
-          ))}
-        </dl>
-
-        {!online && onReconnect && reconnectLabel && (
-          <button
-            type="button"
-            onClick={onReconnect}
-            className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-[hsl(var(--border))] py-1.5 text-xs font-medium text-[hsl(var(--text-muted))] transition-colors hover:bg-[hsl(var(--surface-2))] hover:text-[hsl(var(--text))]"
+      {/* Detailed status on hover — fits its content, never wraps. The bottom
+          padding (instead of a margin) keeps the gap between the row and the
+          card part of the hover area, so the cursor can travel up into the card
+          to click/copy without it disappearing. pointer-events enabled on hover
+          so the contents stay interactive. */}
+      <div className="pointer-events-none absolute bottom-full left-2 z-50 w-max max-w-[80vw] pb-2 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100">
+        <div className="whitespace-nowrap rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--surface))] p-3 shadow-[var(--shadow-lg)]">
+          <p
+            className={cn(
+              "text-base font-semibold",
+              online ? "text-[hsl(var(--success))]" : "text-[hsl(var(--danger))]",
+            )}
           >
-            <RefreshCw className="size-3" />
-            {reconnectLabel}
-          </button>
-        )}
+            {title}
+          </p>
+          <dl className="mt-2 flex flex-col gap-1.5 text-[11px]">
+            {details.map((detail) => (
+              <div key={detail.label} className="flex items-center justify-between gap-6">
+                <dt className="text-[hsl(var(--text-faint))]">{detail.label}</dt>
+                <dd className="select-text font-mono text-[hsl(var(--text-muted))]">
+                  {detail.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+
+          {!online && onReconnect && reconnectLabel && (
+            <button
+              type="button"
+              onClick={onReconnect}
+              className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-[hsl(var(--border))] py-1.5 text-xs font-medium text-[hsl(var(--text-muted))] transition-colors hover:bg-[hsl(var(--surface-2))] hover:text-[hsl(var(--text))]"
+            >
+              <RefreshCw className="size-3" />
+              {reconnectLabel}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
