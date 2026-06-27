@@ -37,6 +37,6 @@ export async function uploadLocalFile(
     throw new Error(`Upload failed: ${text}`);
   }
 
-  logger.info(`Uploaded: ${relativePath}`);
+  logger.info(`[upload] uploaded file: ${relativePath} (v${version})`);
   return { contentHash };
 }
