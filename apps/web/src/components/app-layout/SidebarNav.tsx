@@ -1,4 +1,4 @@
-import { FileText, FolderSync, LayoutDashboard, Monitor, ScrollText } from "lucide-react";
+import { FileText, FolderSync, LayoutDashboard, Monitor, ScrollText, Settings } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { NavLink } from "react-router-dom";
 
@@ -10,6 +10,7 @@ const NAV = [
   { to: "/devices", icon: Monitor, label: "nav.devices" },
   { to: "/logs", icon: FileText, label: "nav.logs" },
   { to: "/device-logs", icon: ScrollText, label: "nav.deviceLogs" },
+  { to: "/settings", icon: Settings, label: "nav.settings" },
 ] as const;
 
 export function SidebarNav() {

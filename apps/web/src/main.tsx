@@ -20,12 +20,15 @@ import { LogDetailPage } from "./pages/LogDetailPage";
 import { Login } from "./pages/Login";
 import { LogsPage } from "./pages/LogsPage";
 import { NotificationsPage } from "./pages/NotificationsPage";
+import { SettingsPage } from "./pages/SettingsPage";
 import { authStore } from "./stores/auth";
+import { initTheme } from "./stores/theme";
 
 // Bootstrap the API client with persisted auth state.
 const { serverUrl, accessToken } = authStore.state;
 initApiClient(serverUrl);
 if (accessToken) setAuthHeader(accessToken);
+initTheme();
 
 const router = createBrowserRouter([
   { path: "/login", element: <Login /> },
@@ -46,6 +49,7 @@ const router = createBrowserRouter([
       { path: "logs/:id", element: <LogDetailPage /> },
       { path: "device-logs", element: <DeviceLogsPage /> },
       { path: "notifications", element: <NotificationsPage /> },
+      { path: "settings", element: <SettingsPage /> },
     ],
   },
   { path: "*", element: <Navigate to="/" replace /> },
