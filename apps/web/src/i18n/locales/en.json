@@ -3,7 +3,36 @@
     "dashboard": "Dashboard",
     "folders": "Folders",
     "devices": "Devices",
-    "deviceLogs": "Device Logs"
+    "logs": "Logs",
+    "deviceLogs": "Device Logs",
+    "settings": "Settings"
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Manage appearance, language, and check connectivity.",
+    "accentColor": "Accent Color",
+    "accentColorHint": "Brand color used for buttons, gradients, and icons.",
+    "customColor": "Custom color",
+    "customColorHint": "Click to pick any color",
+    "language": "Language",
+    "languageHint": "Choose the interface language."
+  },
+  "health": {
+    "title": "Health check",
+    "recheck": "Re-check",
+    "checking": "Checking…",
+    "allGood": "Everything looks good.",
+    "hasIssues": "Some checks need attention.",
+    "serverLabel": "Server connection",
+    "serverOk": "Reachable",
+    "serverError": "Cannot reach the server. Check your network.",
+    "authLabel": "Authentication",
+    "authOk": "Signed in",
+    "authError": "Not signed in. Sign in again.",
+    "notificationsLabel": "Notification permission",
+    "notificationsOk": "Granted",
+    "notificationsDenied": "Denied — enable notifications in your browser settings.",
+    "notificationsUnsupported": "Notifications aren't supported in this browser."
   },
   "auth": {
     "signIn": "Sign in",
@@ -45,6 +74,8 @@
     "path": "Local path",
     "noFiles": "No files synced yet.",
     "downloadAll": "Download",
+    "expandAll": "Expand all",
+    "collapseAll": "Collapse all",
     "downloadFailed": "Download failed"
   },
   "devices": {

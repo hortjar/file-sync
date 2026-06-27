@@ -3,7 +3,36 @@
     "dashboard": "Přehled",
     "folders": "Složky",
     "devices": "Zařízení",
-    "deviceLogs": "Záznamy zařízení"
+    "logs": "Záznamy",
+    "deviceLogs": "Záznamy zařízení",
+    "settings": "Nastavení"
+  },
+  "settings": {
+    "title": "Nastavení",
+    "subtitle": "Spravujte vzhled, jazyk a zkontrolujte připojení.",
+    "accentColor": "Barva motivu",
+    "accentColorHint": "Barva použitá pro tlačítka, přechody a ikony.",
+    "customColor": "Vlastní barva",
+    "customColorHint": "Klikněte pro výběr libovolné barvy",
+    "language": "Jazyk",
+    "languageHint": "Vyberte jazyk rozhraní."
+  },
+  "health": {
+    "title": "Kontrola stavu",
+    "recheck": "Zkontrolovat znovu",
+    "checking": "Kontroluji…",
+    "allGood": "Vše vypadá v pořádku.",
+    "hasIssues": "Některé kontroly vyžadují pozornost.",
+    "serverLabel": "Připojení k serveru",
+    "serverOk": "Dostupný",
+    "serverError": "Server není dostupný. Zkontrolujte síť.",
+    "authLabel": "Ověření",
+    "authOk": "Přihlášeno",
+    "authError": "Nepřihlášeno. Přihlaste se znovu.",
+    "notificationsLabel": "Oprávnění k oznámením",
+    "notificationsOk": "Povoleno",
+    "notificationsDenied": "Zamítnuto — povolte oznámení v nastavení prohlížeče.",
+    "notificationsUnsupported": "Oznámení nejsou v tomto prohlížeči podporována."
   },
   "auth": {
     "signIn": "Přihlásit se",
@@ -45,6 +74,8 @@
     "path": "Lokální cesta",
     "noFiles": "Zatím nejsou synchronizovány žádné soubory.",
     "downloadAll": "Stáhnout",
+    "expandAll": "Rozbalit vše",
+    "collapseAll": "Sbalit vše",
     "downloadFailed": "Stažení selhalo"
   },
   "devices": {

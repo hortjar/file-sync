@@ -9,7 +9,16 @@ import {
   iconBorder,
 } from "@file-sync/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, CheckCircle2, ChevronDown, Download, RefreshCw } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  ChevronDown,
+  ChevronsDownUp,
+  ChevronsUpDown,
+  Download,
+  MonitorSmartphone,
+  RefreshCw,
+} from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router-dom";
@@ -35,6 +44,9 @@ export function FolderDetailPage() {
   const folderId = id ?? "";
   const queryClient = useQueryClient();
   const [devicesOpen, setDevicesOpen] = useState(false);
+  // `nonce` bumps on each expand/collapse-all click to remount the tree, which
+  // resets every TreeItem's expand state to `expanded`.
+  const [treeExpansion, setTreeExpansion] = useState({ expanded: true, nonce: 0 });
 
   const { data: foldersRaw } = useQuery(getApiSyncFoldersOptions());
   const folder = ((foldersRaw as SyncFolder[] | undefined) ?? []).find((f) => f.id === folderId);
@@ -49,6 +61,7 @@ export function FolderDetailPage() {
   );
   const entries = (stateRaw as FileEntry[] | undefined) ?? [];
   const tree = buildTree(entries);
+  const hasFolders = entries.some((entry) => entry.relativePath.includes("/"));
 
   function handleRefresh() {
     void queryClient.invalidateQueries({
@@ -144,7 +157,8 @@ export function FolderDetailPage() {
           className="flex w-full cursor-pointer items-center justify-between border-b border-white/[0.05] px-4 py-3"
           onClick={() => setDevicesOpen((v) => !v)}
         >
-          <span className="text-xs font-semibold uppercase tracking-wider text-[hsl(var(--text-faint))]">
+          <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[hsl(var(--text-faint))]">
+            <MonitorSmartphone className="size-3.5" />
             {t("folders.linkedDevices")}
           </span>
           <div className="flex items-center gap-2">
@@ -196,18 +210,42 @@ export function FolderDetailPage() {
 
       {/* File tree */}
       <div className="rounded-lg border border-white/[0.07] bg-white/[0.03]">
-        <div className="flex items-center gap-2 border-b border-white/[0.05] px-4 py-3">
-          <FolderIcon
-            iconKey={folder?.iconKey ?? "folder"}
-            color={folder?.iconColor}
-            className="size-3.5 text-[hsl(var(--brand-from))]"
-          />
-          <span className="text-xs font-semibold uppercase tracking-wider text-[hsl(var(--text-faint))]">
-            {t("folders.files", { count: entries.length })}
+        <div className="flex items-center justify-between gap-2 border-b border-white/[0.05] px-4 py-3">
+          <span className="flex items-center gap-2">
+            <FolderIcon
+              iconKey={folder?.iconKey ?? "folder"}
+              color={folder?.iconColor}
+              className="size-3.5 text-[hsl(var(--brand-from))]"
+            />
+            <span className="text-xs font-semibold uppercase tracking-wider text-[hsl(var(--text-faint))]">
+              {t("folders.files", { count: entries.length })}
+            </span>
           </span>
+          {tree.length > 0 && hasFolders && (
+            <span className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => setTreeExpansion((s) => ({ expanded: true, nonce: s.nonce + 1 }))}
+              >
+                <ChevronsUpDown className="size-3.5" />
+                {t("folders.expandAll")}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => setTreeExpansion((s) => ({ expanded: false, nonce: s.nonce + 1 }))}
+              >
+                <ChevronsDownUp className="size-3.5" />
+                {t("folders.collapseAll")}
+              </Button>
+            </span>
+          )}
         </div>
 
-        <div className="p-2">
+        <div className="p-2" key={treeExpansion.nonce}>
           {isFilesLoading ? (
             <div className="flex items-center justify-center py-12 text-sm text-[hsl(var(--text-muted))]">
               <span className="mr-2 inline-block size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -223,6 +261,7 @@ export function FolderDetailPage() {
                 key={node.path}
                 node={node}
                 depth={0}
+                defaultExpanded={treeExpansion.expanded}
                 onDownloadFile={(fileNode) => void handleDownloadFile(fileNode)}
                 onDownloadFolder={(folderNode) => void handleDownloadFolder(folderNode)}
               />

@@ -1,6 +1,6 @@
-import { type LogEntry, LogViewer, parseLogText } from "@file-sync/ui";
+import { type LogEntry, LogViewer, PlatformIcon, parseLogText } from "@file-sync/ui";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, ChevronLeft, FileText, Monitor } from "lucide-react";
+import { AlertTriangle, ChevronLeft, FileText } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
@@ -110,7 +110,7 @@ function DeviceList({
                 : "text-[hsl(var(--text-muted))] hover:bg-white/[0.05]"
             }`}
           >
-            <Monitor className="size-3.5 shrink-0" />
+            <PlatformIcon platform={device.platform} className="size-3.5 shrink-0" />
             <span className="min-w-0 flex-1 truncate">{device.name}</span>
             {(counts[device.id] ?? 0) > 0 && (
               <span className="shrink-0 rounded-full bg-[hsl(var(--surface-2))] px-1.5 py-0.5 text-[10px] font-medium text-[hsl(var(--text-faint))]">

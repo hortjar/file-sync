@@ -1,4 +1,4 @@
-import { FolderIcon, iconBg, iconBorder } from "@file-sync/ui";
+import { FolderIcon, PlatformIcon, iconBg, iconBorder } from "@file-sync/ui";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Download, Plus, Trash2 } from "lucide-react";
@@ -138,11 +138,26 @@ export function FoldersPage() {
                   <p className="truncate text-sm font-medium text-[hsl(var(--text))]">
                     {folder.name}
                   </p>
-                  <p className="text-xs text-[hsl(var(--text-faint))]">
-                    {folder.devices.length > 0
-                      ? folder.devices.map((d) => d.name).join(", ")
-                      : t("folders.noDevices")}
-                  </p>
+                  {folder.devices.length > 0 ? (
+                    <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[hsl(var(--text-faint))]">
+                      {folder.devices
+                        .filter(
+                          (device, index) =>
+                            folder.devices.findIndex((other) => other.name === device.name) ===
+                            index,
+                        )
+                        .map((device) => (
+                          <span key={device.name} className="inline-flex items-center gap-1">
+                            <PlatformIcon platform={device.platform} className="size-3" />
+                            {device.name}
+                          </span>
+                        ))}
+                    </span>
+                  ) : (
+                    <p className="text-xs text-[hsl(var(--text-faint))]">
+                      {t("folders.noDevices")}
+                    </p>
+                  )}
                 </div>
 
                 <Button

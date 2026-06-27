@@ -18,6 +18,7 @@ import {
   ChevronsUpDown,
   FolderOpen,
   HardDrive,
+  MonitorSmartphone,
   RefreshCw,
   RotateCcw,
   XCircle,
@@ -220,7 +221,8 @@ export function FolderDetailPage() {
           className="flex w-full cursor-pointer items-center justify-between border-b border-white/[0.05] px-4 py-3"
           onClick={() => setIsDevicesExpanded((v) => !v)}
         >
-          <span className="text-xs font-semibold uppercase tracking-wider text-[hsl(var(--text-faint))]">
+          <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[hsl(var(--text-faint))]">
+            <MonitorSmartphone className="size-3.5" />
             {t("folderDetail.linkedDevices")}
           </span>
           <div className="flex items-center gap-2">
