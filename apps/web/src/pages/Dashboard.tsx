@@ -2,6 +2,7 @@ import { formatSize, MetricChart } from "@file-sync/ui";
 import { useQuery } from "@tanstack/react-query";
 import { Activity, FolderSync, Monitor, Server } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 
 import { Card, CardContent } from "../components/ui/card";
 import {
@@ -26,14 +27,26 @@ function StatCard({
   label,
   value,
   accent,
+  onClick,
 }: {
   icon: React.ElementType;
   label: string;
   value: React.ReactNode;
   accent?: boolean;
+  onClick?: () => void;
 }) {
   return (
-    <Card>
+    <Card
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={(event) => {
+        if (onClick && (event.key === "Enter" || event.key === " ")) onClick();
+      }}
+      className={
+        onClick ? "cursor-pointer transition-shadow hover:shadow-[var(--shadow-sm)]" : undefined
+      }
+    >
       <CardContent className="flex items-center gap-4 p-5">
         <div
           className={`flex size-10 items-center justify-center rounded-xl ${
@@ -53,6 +66,7 @@ function StatCard({
 
 export function Dashboard() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
   // Poll health and treat the server as offline when the most recent fetch
   // failed. Without this, a cached successful response keeps "Online" forever.
@@ -91,9 +105,20 @@ export function Dashboard() {
             </span>
           }
           accent={isOnline}
+          onClick={() => void navigate("/settings")}
         />
-        <StatCard icon={FolderSync} label={t("dashboard.totalFolders")} value={folders.length} />
-        <StatCard icon={Monitor} label={t("dashboard.totalDevices")} value={devices.length} />
+        <StatCard
+          icon={FolderSync}
+          label={t("dashboard.totalFolders")}
+          value={folders.length}
+          onClick={() => void navigate("/folders")}
+        />
+        <StatCard
+          icon={Monitor}
+          label={t("dashboard.totalDevices")}
+          value={devices.length}
+          onClick={() => void navigate("/devices")}
+        />
         <StatCard
           icon={Activity}
           label={t("dashboard.onlineDevices")}
@@ -102,6 +127,7 @@ export function Dashboard() {
               {onlineCount}
             </span>
           }
+          onClick={() => void navigate("/devices")}
         />
       </div>
 
