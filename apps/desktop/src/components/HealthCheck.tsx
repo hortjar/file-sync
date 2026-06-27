@@ -145,9 +145,20 @@ export function HealthCheck() {
         </div>
         <CardDescription>{t("health.hint")}</CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
+      <CardContent className="flex flex-col gap-4">
+        {/* Overall summary — a distinct, status-tinted banner so it reads as a
+            verdict rather than blending into the individual check rows. */}
         {checks.length > 0 && (
-          <div className="flex items-center gap-2">
+          <div
+            className={cn(
+              "flex items-center gap-2.5 rounded-lg border px-3 py-2.5",
+              summaryStatus === "ok"
+                ? "border-[hsl(var(--success)/.25)] bg-[hsl(var(--success)/.08)]"
+                : summaryStatus === "warning"
+                  ? "border-amber-400/25 bg-amber-400/[0.08]"
+                  : "border-[hsl(var(--danger)/.25)] bg-[hsl(var(--danger)/.08)]",
+            )}
+          >
             <SummaryIcon className={cn("size-4 shrink-0", STATUS_COLOR[summaryStatus])} />
             <span className="text-sm font-medium text-[hsl(var(--text))]">
               {t(summaryStatus === "ok" ? "health.allGood" : "health.hasIssues")}
@@ -159,11 +170,13 @@ export function HealthCheck() {
           {checks.map((check) => {
             const Icon = STATUS_ICON[check.status];
             return (
-              <div key={check.id} className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0">
+              <div key={check.id} className="flex items-start gap-2.5 py-2.5 first:pt-0 last:pb-0">
                 <Icon className={cn("mt-0.5 size-4 shrink-0", STATUS_COLOR[check.status])} />
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-[hsl(var(--text))]">{check.label}</p>
-                  <p className="whitespace-pre-line text-xs text-[hsl(var(--text-muted))]">
+                  <p className="text-sm font-medium leading-5 text-[hsl(var(--text))]">
+                    {check.label}
+                  </p>
+                  <p className="mt-0.5 whitespace-pre-line text-xs leading-5 text-[hsl(var(--text-muted))]">
                     {check.detail}
                   </p>
                 </div>
