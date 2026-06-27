@@ -1,4 +1,5 @@
 import { RefreshCw, Wifi, WifiOff } from "lucide-react";
+import { useRef, useState } from "react";
 
 import { cn } from "../lib/cn";
 
@@ -28,6 +29,13 @@ export type StatusIndicatorProperties = {
  * Sidebar connection indicator: a status dot + label, with a hover card showing
  * detailed status and an optional reconnect action. Presentational only —
  * desktop and web supply the data and behaviour.
+ *
+ * Open/close is driven by JS hover intent with a short close delay rather than
+ * pure CSS `:hover`. A CSS-only hover card drops `:hover` the instant the cursor
+ * crosses the gap between the row and the card — on Windows/WebView2 with
+ * fractional DPI scaling that gap can be a dead zone, leaving the card visible
+ * but impossible to move into, click, or select text from. The delay bridges
+ * that crossing reliably on every platform.
  */
 export function StatusIndicator({
   online,
@@ -38,8 +46,21 @@ export function StatusIndicator({
   onReconnect,
   reconnectLabel,
 }: StatusIndicatorProperties) {
+  const [isOpen, setIsOpen] = useState(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  function open() {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setIsOpen(true);
+  }
+
+  function scheduleClose() {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    closeTimer.current = setTimeout(() => setIsOpen(false), 150);
+  }
+
   return (
-    <div className="group relative">
+    <div className="relative" onMouseEnter={open} onMouseLeave={scheduleClose}>
       <div className="flex items-center px-3 py-1.5">
         {/* Dot centered in a size-4 box so it lines up with the nav row icons. */}
         <div className="mr-2.5 flex size-4 shrink-0 items-center justify-center">
@@ -55,12 +76,16 @@ export function StatusIndicator({
         {online && !syncing && <Wifi className="size-3 text-[hsl(var(--success))] opacity-50" />}
       </div>
 
-      {/* Detailed status on hover — fits its content, never wraps. The bottom
-          padding (instead of a margin) keeps the gap between the row and the
-          card part of the hover area, so the cursor can travel up into the card
-          to click/copy without it disappearing. pointer-events enabled on hover
-          so the contents stay interactive. */}
-      <div className="pointer-events-none absolute bottom-full left-2 z-50 w-max max-w-[80vw] pb-2 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100">
+      {/* Detailed status card. The bottom padding (instead of a margin) keeps the
+          gap between the row and the card inside the hover area; combined with
+          the close delay the cursor can always travel up into the card to click
+          or copy. */}
+      <div
+        className={cn(
+          "absolute bottom-full left-2 z-50 w-max max-w-[80vw] pb-2 transition-opacity duration-150",
+          isOpen ? "opacity-100" : "pointer-events-none opacity-0",
+        )}
+      >
         <div className="whitespace-nowrap rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--surface))] p-3 shadow-[var(--shadow-lg)]">
           <p
             className={cn(
@@ -85,7 +110,7 @@ export function StatusIndicator({
             <button
               type="button"
               onClick={onReconnect}
-              className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-[hsl(var(--border))] py-1.5 text-xs font-medium text-[hsl(var(--text-muted))] transition-colors hover:bg-[hsl(var(--surface-2))] hover:text-[hsl(var(--text))]"
+              className="mt-3 flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-[hsl(var(--border))] py-1.5 text-xs font-medium text-[hsl(var(--text-muted))] transition-colors hover:bg-[hsl(var(--surface-2))] hover:text-[hsl(var(--text))]"
             >
               <RefreshCw className="size-3" />
               {reconnectLabel}

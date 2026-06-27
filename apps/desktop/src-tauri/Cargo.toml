@@ -1,6 +1,6 @@
 [package]
 name = "file-sync-desktop"
-version = "0.1.11"
+version = "0.1.12"
 description = "FileSync Desktop App"
 authors = []
 edition = "2021"
