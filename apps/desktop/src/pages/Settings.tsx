@@ -1,19 +1,17 @@
-import { type ThemeColor, THEME_LABELS, PlatformIcon, formatPlatform } from "@file-sync/ui";
+import { type ThemeColor, THEME_LABELS } from "@file-sync/ui";
 import { useForm } from "@tanstack/react-form";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { getVersion } from "@tauri-apps/api/app";
 import { invoke } from "@tauri-apps/api/core";
 import {
   ExternalLink,
   FileText,
-  Laptop,
   Moon,
   Palette,
   RefreshCw,
   Server,
   Sun,
   SunMoon,
-  Trash2,
 } from "lucide-react";
 import { useRef } from "react";
 import { useTranslation } from "react-i18next";
@@ -22,11 +20,6 @@ import { HealthCheck } from "../components/HealthCheck";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
-import {
-  deleteApiDevicesByIdMutation,
-  getApiDevicesOptions,
-  getApiDevicesQueryKey,
-} from "../generated/@tanstack/react-query.gen";
 import { configureApiClient } from "../lib/api-client";
 import { cn } from "../lib/cn";
 import { toast } from "../lib/toast";
@@ -61,48 +54,18 @@ const MODE_OPTIONS = [
   { value: "system" as const, icon: SunMoon, labelKey: "settings.modeSystem" },
 ];
 
-type DeviceRow = {
-  id: string;
-  name: string;
-  platform: string;
-  lastSeenAt: string;
-  appVersion?: string;
-};
-
-const ONLINE_THRESHOLD_MS = 2 * 60 * 1000;
-
-function isDeviceOnline(lastSeenAt: string): boolean {
-  return Date.now() - new Date(lastSeenAt).getTime() < ONLINE_THRESHOLD_MS;
-}
-
 export function SettingsPage() {
   const { t } = useTranslation();
   const theme = useThemeStore((s) => s.theme);
   const customColor = useThemeStore((s) => s.customColor);
   const serverUrl = useAuthStore((s) => s.serverUrl);
-  const deviceId = useAuthStore((s) => s.deviceId);
   const colorInputReference = useRef<HTMLInputElement>(null);
   const logLevel = useLogLevelStore((s) => s.logLevel);
-  const queryClient = useQueryClient();
 
   const { data: appVersion } = useQuery({
     queryKey: ["app-version"],
     queryFn: getVersion,
     staleTime: Infinity,
-  });
-
-  const { data: devicesRaw } = useQuery(getApiDevicesOptions());
-  const devices = (devicesRaw as DeviceRow[] | undefined) ?? [];
-
-  const deviceDeletion = useMutation({
-    ...deleteApiDevicesByIdMutation(),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: getApiDevicesQueryKey() });
-      toast.success(t("settings.deviceRemoved"));
-    },
-    onError: () => {
-      toast.error(t("settings.deviceRemoveFailed"));
-    },
   });
 
   const serverForm = useForm({
@@ -336,88 +299,6 @@ export function SettingsPage() {
             </div>
           </CardContent>
         </Card>
-
-        {/* All devices */}
-        {devices.length > 0 && (
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Laptop className="size-4 text-[hsl(var(--text-muted))]" />
-                <CardTitle>{t("settings.devices")}</CardTitle>
-              </div>
-              <CardDescription>{t("settings.devicesHint")}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col divide-y divide-white/[0.05]">
-                {devices.map((device) => {
-                  const isThis = device.id === deviceId;
-                  const lastSeen = new Date(device.lastSeenAt);
-                  const isOnline = isDeviceOnline(device.lastSeenAt);
-                  return (
-                    <div
-                      key={device.id}
-                      className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
-                    >
-                      <PlatformIcon
-                        platform={device.platform}
-                        className="size-4 shrink-0 text-[hsl(var(--text-muted))]"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-[hsl(var(--text))]">
-                            {device.name}
-                          </span>
-                          {isThis && (
-                            <span className="rounded-full bg-[hsl(var(--brand-from)/.15)] px-2 py-0.5 text-[10px] font-medium text-[hsl(var(--brand-from))]">
-                              {t("settings.thisDevice")}
-                            </span>
-                          )}
-                          {device.appVersion && (
-                            <span className="rounded-full bg-[hsl(var(--surface-2))] px-1.5 py-0.5 text-[10px] text-[hsl(var(--text-faint))]">
-                              v{device.appVersion}
-                            </span>
-                          )}
-                        </div>
-                        <p className="flex items-center gap-1 text-xs text-[hsl(var(--text-faint))]">
-                          <PlatformIcon platform={device.platform} className="size-3" />
-                          {formatPlatform(device.platform)}
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-3">
-                        <div className="flex flex-col items-end gap-1">
-                          <div className="flex items-center gap-1.5">
-                            <span
-                              className={`size-1.5 rounded-full ${isOnline ? "bg-green-500" : "bg-[hsl(var(--text-faint))]"}`}
-                            />
-                            <span className="text-xs text-[hsl(var(--text-faint))]">
-                              {t(isOnline ? "settings.online" : "settings.offline")}
-                            </span>
-                          </div>
-                          {!isOnline && (
-                            <span className="text-[10px] text-[hsl(var(--text-faint))]">
-                              {lastSeen.toLocaleString()}
-                            </span>
-                          )}
-                        </div>
-                        {!isThis && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            loading={deviceDeletion.isPending}
-                            onClick={() => deviceDeletion.mutate({ path: { id: device.id } })}
-                            className="text-[hsl(var(--text-muted))] hover:text-[hsl(var(--danger))]"
-                          >
-                            <Trash2 className="size-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </div>
     </div>
   );

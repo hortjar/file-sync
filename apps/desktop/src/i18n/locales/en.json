@@ -1,9 +1,28 @@
 {
   "nav": {
     "syncFolders": "Sync Folders",
+    "devices": "Devices",
     "conflicts": "Conflicts",
+    "logs": "Logs",
     "settings": "Settings",
     "notifications": "Notifications"
+  },
+  "devices": {
+    "title": "Devices",
+    "subtitle": "{{count}} device(s) registered to your account",
+    "noDevices": "No devices registered yet",
+    "thisDevice": "this device",
+    "isOnline": "Online",
+    "offline": "Offline",
+    "removed": "Device removed",
+    "removeFailed": "Failed to remove device",
+    "confirmRemove": "Remove {{name}}?",
+    "confirmRemoveHint": "The device will be signed out immediately if it is connected.",
+    "remove": "Remove",
+    "cancel": "Cancel",
+    "loading": "Loading devices…",
+    "loadError": "Could not load devices",
+    "loadErrorHint": "Check the server connection and try again."
   },
   "auth": {
     "signIn": "Sign In",

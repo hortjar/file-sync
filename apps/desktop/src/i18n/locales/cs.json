@@ -1,9 +1,28 @@
 {
   "nav": {
     "syncFolders": "Synchronizované složky",
+    "devices": "Zařízení",
     "conflicts": "Konflikty",
+    "logs": "Záznamy",
     "settings": "Nastavení",
     "notifications": "Oznámení"
+  },
+  "devices": {
+    "title": "Zařízení",
+    "subtitle": "{{count}} zařízení registrováno k vašemu účtu",
+    "noDevices": "Zatím nejsou registrována žádná zařízení",
+    "thisDevice": "toto zařízení",
+    "isOnline": "Online",
+    "offline": "Offline",
+    "removed": "Zařízení odebráno",
+    "removeFailed": "Odebrání zařízení se nezdařilo",
+    "confirmRemove": "Odebrat {{name}}?",
+    "confirmRemoveHint": "Zařízení bude okamžitě odhlášeno, pokud je připojeno.",
+    "remove": "Odebrat",
+    "cancel": "Zrušit",
+    "loading": "Načítám zařízení…",
+    "loadError": "Nelze načíst zařízení",
+    "loadErrorHint": "Zkontrolujte připojení k serveru a zkuste to znovu."
   },
   "auth": {
     "signIn": "Přihlásit se",

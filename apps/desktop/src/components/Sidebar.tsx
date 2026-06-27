@@ -1,7 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { getVersion } from "@tauri-apps/api/app";
-import { AlertTriangle, FileText, FolderSync, Globe, LogOut, Settings } from "lucide-react";
+import {
+  AlertTriangle,
+  FileText,
+  FolderSync,
+  Globe,
+  LogOut,
+  Monitor,
+  Settings,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { useConflictCount } from "../hooks/use-conflict-count";
@@ -22,6 +30,7 @@ import { Separator } from "./ui/separator";
 
 const navItems = [
   { to: "/", id: "syncFolders", labelKey: "nav.syncFolders", icon: FolderSync },
+  { to: "/devices", id: "devices", labelKey: "nav.devices", icon: Monitor },
   { to: "/conflicts", id: "conflicts", labelKey: "nav.conflicts", icon: AlertTriangle },
   { to: "/logs", id: "logs", labelKey: "nav.logs", icon: FileText },
 ] as const;
