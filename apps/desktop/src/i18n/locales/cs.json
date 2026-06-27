@@ -57,7 +57,9 @@
     "online": "Online",
     "offline": "Offline",
     "deviceRemoved": "Zařízení odebráno",
-    "deviceRemoveFailed": "Odebrání zařízení se nezdařilo"
+    "deviceRemoveFailed": "Odebrání zařízení se nezdařilo",
+    "reconnect": "Znovu připojit",
+    "reconnecting": "Připojuji se k serveru…"
   },
   "folders": {
     "noFoldersYet": "Zatím žádné složky",
@@ -166,7 +168,10 @@
     "connectedSince": "Připojeno od",
     "server": "Server",
     "clientVersion": "Verze klienta",
-    "serverVersion": "Verze serveru"
+    "serverVersion": "Verze serveru",
+    "disconnectedSince": "Odpojeno od",
+    "disconnectedFor": "Odpojeno po dobu",
+    "reconnect": "Znovu připojit"
   },
   "appearance": {
     "title": "Vzhled složky",

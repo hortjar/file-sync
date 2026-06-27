@@ -57,7 +57,9 @@
     "online": "Online",
     "offline": "Offline",
     "deviceRemoved": "Device removed",
-    "deviceRemoveFailed": "Failed to remove device"
+    "deviceRemoveFailed": "Failed to remove device",
+    "reconnect": "Reconnect",
+    "reconnecting": "Reconnecting to server…"
   },
   "folders": {
     "noFoldersYet": "No folders yet",
@@ -165,7 +167,10 @@
     "connectedSince": "Connected since",
     "server": "Server",
     "clientVersion": "Client version",
-    "serverVersion": "Server version"
+    "serverVersion": "Server version",
+    "disconnectedSince": "Disconnected since",
+    "disconnectedFor": "Disconnected for",
+    "reconnect": "Reconnect"
   },
   "appearance": {
     "title": "Folder Appearance",

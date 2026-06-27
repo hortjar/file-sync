@@ -10,6 +10,7 @@ import {
   Moon,
   Monitor,
   Palette,
+  RefreshCw,
   Server,
   Sun,
   SunMoon,
@@ -31,6 +32,7 @@ import {
 import { configureApiClient } from "../lib/api-client";
 import { cn } from "../lib/cn";
 import { toast } from "../lib/toast";
+import { reconnectNow } from "../services/ws-client";
 import { setServerUrl, useAuthStore } from "../stores/auth";
 import type { LogLevel } from "../stores/log-level";
 import { setLogLevel, useLogLevelStore } from "../stores/log-level";
@@ -161,6 +163,18 @@ export function SettingsPage() {
               </serverForm.Field>
               <Button type="submit" variant="secondary" className="shrink-0">
                 {t("settings.save")}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="shrink-0 gap-1.5"
+                onClick={() => {
+                  reconnectNow();
+                  toast.info(t("settings.reconnecting"));
+                }}
+              >
+                <RefreshCw className="size-3.5" />
+                {t("settings.reconnect")}
               </Button>
             </form>
           </CardContent>
