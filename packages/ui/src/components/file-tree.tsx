@@ -113,10 +113,17 @@ function DownloadButton({ title, onClick }: { title: string; onClick: () => void
 export function TreeItem({
   node,
   depth,
+  defaultExpanded = true,
   onDownloadFile,
   onDownloadFolder,
-}: { node: TreeNode; depth: number } & TreeDownloadHandlers) {
-  const [isExpanded, setIsExpanded] = useState(true);
+}: {
+  node: TreeNode;
+  depth: number;
+  /** Initial expand state for directory rows. Changing it requires a remount
+      (e.g. via a `key`), which is how "expand/collapse all" is driven. */
+  defaultExpanded?: boolean;
+} & TreeDownloadHandlers) {
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const indent = 8 + depth * 16;
 
   if (node.isDir) {
@@ -149,6 +156,7 @@ export function TreeItem({
               key={child.path}
               node={child}
               depth={depth + 1}
+              defaultExpanded={defaultExpanded}
               onDownloadFile={onDownloadFile}
               onDownloadFolder={onDownloadFolder}
             />

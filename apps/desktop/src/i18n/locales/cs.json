@@ -109,6 +109,8 @@
     "openInFinder": "Zobrazit ve Finderu",
     "openInExplorer": "Zobrazit v Průzkumníku",
     "openInFiles": "Otevřít složku",
+    "expandAll": "Rozbalit vše",
+    "collapseAll": "Sbalit vše",
     "forceSyncComplete": "Vynucená synchronizace dokončena",
     "syncFailed": "Synchronizace selhala",
     "linkedDevices": "Propojená zařízení",

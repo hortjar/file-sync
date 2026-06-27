@@ -6,6 +6,8 @@ import {
   ArrowLeft,
   CheckCircle2,
   ChevronDown,
+  ChevronsDownUp,
+  ChevronsUpDown,
   FolderOpen,
   HardDrive,
   Monitor,
@@ -73,6 +75,9 @@ export function FolderDetailPage() {
 
   const [isSyncing, setIsSyncing] = useState(false);
   const [isDevicesExpanded, setIsDevicesExpanded] = useState(false);
+  // `nonce` bumps on each expand/collapse-all click to remount the tree, which
+  // resets every TreeItem's expand state to `expanded`.
+  const [treeExpansion, setTreeExpansion] = useState({ expanded: true, nonce: 0 });
 
   const { data: foldersData } = useQuery(getApiSyncFoldersOptions());
   const folder = ((foldersData as SyncFolder[] | undefined) ?? []).find((f) => f.id === folderId);
@@ -91,6 +96,9 @@ export function FolderDetailPage() {
 
   const entries = (stateData as FileEntry[] | undefined) ?? [];
   const tree = buildTree(entries);
+  // Any nested path means there are collapsible directories worth offering
+  // expand/collapse-all controls for.
+  const hasFolders = entries.some((entry) => entry.relativePath.includes("/"));
 
   function handleRefresh() {
     void queryClient.invalidateQueries({
@@ -298,6 +306,29 @@ export function FolderDetailPage() {
         )}
       </div>
 
+      {!isFilesLoading && !isError && tree.length > 0 && hasFolders && (
+        <div className="mb-2 flex items-center justify-end gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => setTreeExpansion((s) => ({ expanded: true, nonce: s.nonce + 1 }))}
+          >
+            <ChevronsUpDown className="size-3.5" />
+            {t("folderDetail.expandAll")}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => setTreeExpansion((s) => ({ expanded: false, nonce: s.nonce + 1 }))}
+          >
+            <ChevronsDownUp className="size-3.5" />
+            {t("folderDetail.collapseAll")}
+          </Button>
+        </div>
+      )}
+
       <div className="rounded-lg border border-white/[0.07] bg-white/[0.03]">
         {isFilesLoading ? (
           <div className="flex items-center justify-center py-16 text-sm text-[hsl(var(--text-muted))]">
@@ -313,9 +344,14 @@ export function FolderDetailPage() {
             {t("folderDetail.noFiles")}
           </p>
         ) : (
-          <div className="p-2">
+          <div className="p-2" key={treeExpansion.nonce}>
             {tree.map((node) => (
-              <TreeItem key={node.path} node={node} depth={0} />
+              <TreeItem
+                key={node.path}
+                node={node}
+                depth={0}
+                defaultExpanded={treeExpansion.expanded}
+              />
             ))}
           </div>
         )}

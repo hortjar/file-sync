@@ -109,6 +109,8 @@
     "openInFinder": "Reveal in Finder",
     "openInExplorer": "Show in File Explorer",
     "openInFiles": "Open folder",
+    "expandAll": "Expand all",
+    "collapseAll": "Collapse all",
     "forceSyncComplete": "Force sync complete",
     "syncFailed": "Sync failed",
     "linkedDevices": "Linked Devices",
