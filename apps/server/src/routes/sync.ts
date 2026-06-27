@@ -1,14 +1,34 @@
 import type { WsMessage } from "@file-sync/shared";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { Elysia, t } from "elysia";
+import { zip } from "fflate";
 
 import { database } from "../db";
 import { conflicts, deviceFolderLinks, devices, fileEntries, syncFolders } from "../db/schema";
 import { logger } from "../lib/logger";
 import { authPlugin } from "../middleware/auth";
+import { isInlineViewable, mimeType } from "../services/mime";
 import { sanitizePath } from "../services/path-sanitizer";
 import { addBlobReference, readBlob, removeBlobReference, writeBlob } from "../services/storage";
 import { broadcast } from "../ws/connections";
+
+/** Reused query field — flattens otherwise deeply-nested schema calls. */
+const optionalString = t.Optional(t.String());
+
+/** Quote a filename for a Content-Disposition header (strip quotes/control chars). */
+function dispositionFilename(filename: string): string {
+  return filename.replaceAll(/["\r\n]/gu, "");
+}
+
+/** Build a zip archive from a map of path → bytes (async, off the main tick). */
+function buildZip(files: Record<string, Uint8Array>): Promise<Uint8Array> {
+  return new Promise((resolve, reject) => {
+    zip(files, { level: 6 }, (error, data) => {
+      if (error) reject(error);
+      else resolve(data);
+    });
+  });
+}
 
 function ownsFolder(userId: string, syncFolderId: string) {
   return database
@@ -261,7 +281,7 @@ export const syncRoutes = new Elysia({ prefix: "/api/sync" })
   )
   .get(
     "/download/:fileEntryId",
-    async ({ params, userId, set }) => {
+    async ({ params, query, userId, set }) => {
       if (!userId) {
         set.status = 401;
         return { message: "Unauthorized" };
@@ -284,15 +304,87 @@ export const syncRoutes = new Elysia({ prefix: "/api/sync" })
         return { message: "Access denied" };
       }
 
+      // Raw bytes — the desktop sync client reads this body verbatim to write
+      // the file locally, so the body must stay the decompressed blob. The
+      // headers below only affect browser presentation.
       const data = await readBlob(entry.contentHash);
+      const filename = entry.relativePath.split("/").at(-1) ?? "file";
+      const mime = mimeType(filename);
+      // Viewable types render inline in a browser tab; "?download=1" forces save.
+      const isInline = isInlineViewable(mime) && query.download !== "1";
+
+      set.headers["Content-Type"] = mime;
       set.headers["Content-Disposition"] =
-        `attachment; filename="${entry.relativePath.split("/").at(-1) ?? "file"}"`;
-      set.headers["Content-Type"] = "application/octet-stream";
+        `${isInline ? "inline" : "attachment"}; filename="${dispositionFilename(filename)}"`;
+      set.headers["Content-Length"] = String(data.byteLength);
       return new Response(data);
     },
     {
       params: t.Object({ fileEntryId: t.String() }),
-      detail: { summary: "Download a file by file entry ID" },
+      query: t.Object({ download: optionalString }),
+      detail: { summary: "Download or view a file by file entry ID" },
+    },
+  )
+  .get(
+    "/zip/:syncFolderId",
+    async ({ params, query, userId, set }) => {
+      if (!userId) {
+        set.status = 401;
+        return { message: "Unauthorized" };
+      }
+
+      const [folder] = await database
+        .select({ id: syncFolders.id, name: syncFolders.name })
+        .from(syncFolders)
+        .where(and(eq(syncFolders.id, params.syncFolderId), eq(syncFolders.userId, userId)))
+        .limit(1);
+      if (!folder) {
+        set.status = 404;
+        return { message: "Sync folder not found" };
+      }
+
+      // Optional subtree: only entries at/under this relative path are included,
+      // and the prefix is stripped so the zip root is the subfolder's contents.
+      const prefix = query.path ? sanitizePath(query.path) : "";
+
+      const entries = await database
+        .select({ relativePath: fileEntries.relativePath, contentHash: fileEntries.contentHash })
+        .from(fileEntries)
+        .where(
+          and(eq(fileEntries.syncFolderId, params.syncFolderId), isNull(fileEntries.deletedAt)),
+        );
+
+      const files: Record<string, Uint8Array> = {};
+      for (const entry of entries) {
+        if (!entry.contentHash) continue;
+        if (prefix && entry.relativePath !== prefix && !entry.relativePath.startsWith(`${prefix}/`))
+          continue;
+        const archivePath = prefix
+          ? entry.relativePath.slice(prefix.length).replace(/^\//u, "")
+          : entry.relativePath;
+        if (!archivePath) continue;
+        files[archivePath] = await readBlob(entry.contentHash);
+      }
+
+      const archive = await buildZip(files);
+      const zipName =
+        (prefix ? (prefix.split("/").at(-1) ?? folder.name) : folder.name) || "folder";
+
+      logger.info(
+        { syncFolderId: params.syncFolderId, prefix, fileCount: Object.keys(files).length },
+        "folder zipped",
+      );
+
+      set.headers["Content-Type"] = "application/zip";
+      set.headers["Content-Disposition"] =
+        `attachment; filename="${dispositionFilename(zipName)}.zip"`;
+      set.headers["Content-Length"] = String(archive.byteLength);
+      return new Response(archive);
+    },
+    {
+      params: t.Object({ syncFolderId: t.String() }),
+      query: t.Object({ path: optionalString }),
+      detail: { summary: "Download a sync folder (or subfolder) as a zip archive" },
     },
   )
   .post(
