@@ -66,7 +66,7 @@ Core product (Phases 0–4: scaffolding, auth, devices/folders, CAS sync engine,
 
 ## Key decisions / gotchas (read before touching these areas)
 
-- **Tauri fs scope**: user folders must be granted at runtime (`allow_directory`) — the static capability only covers home. See [[gotcha_tauri_fs_scope_restored_folders]] reasoning above.
+- **Tauri fs scope**: user folders must be granted at runtime (`allow_directory`) — the static capability only covers home. See the forbidden-path note under "Work done this session".
 - **`connected` ≠ `status`**: never re-couple sync errors to the connection indicator.
 - **Download endpoint is dual-use**: web browser viewing/saving **and** desktop sync. Keep the response body the raw decompressed blob; only headers gate browser presentation.
 - **Web downloads** use fetch-blob + object URL (keeps the token in the header, not the URL). Trade-off: the whole file/zip is buffered in memory client- and server-side, and video has no HTTP range/seek. Fine for typical content; revisit for large media.
