@@ -1,6 +1,8 @@
 import "./globals.css";
 import "./i18n/index";
 
+import { DEFAULT_APP_NAME } from "@file-sync/shared";
+import { setAppName } from "@file-sync/ui";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
@@ -9,7 +11,7 @@ import { createRoot } from "react-dom/client";
 import { configureApiClient, initApiClient, setAuthHeader } from "./lib/api-client";
 import { queryClient } from "./lib/query";
 import { router } from "./lib/router";
-import { registerDevice, startHeartbeat } from "./services/device";
+import { loadDeviceInfo, registerDevice, startHeartbeat } from "./services/device";
 import { startDeviceReporting } from "./services/device-reporting";
 import { startSyncEngine } from "./services/sync-engine";
 import { scheduleTokenRefresh, stopTokenRefresh } from "./services/token-refresh";
@@ -24,6 +26,9 @@ initApiClient();
 // manually saves the URL in Settings.
 configureApiClient(authStore.state.serverUrl);
 initTheme();
+setAppName(import.meta.env.VITE_APP_NAME ?? DEFAULT_APP_NAME);
+// Cache device name + version so every request can carry identity headers.
+void loadDeviceInfo();
 
 type AuthState = typeof authStore.state;
 

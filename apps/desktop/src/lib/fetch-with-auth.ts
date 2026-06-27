@@ -3,6 +3,8 @@ import { tryRefreshToken } from "../services/token-refresh";
 import { authStore } from "../stores/auth";
 import { logLevelStore } from "../stores/log-level";
 
+import { deviceHeaders } from "./device-info";
+
 function authHeaders(): Record<string, string> {
   const { accessToken } = authStore.state;
   return accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
@@ -76,7 +78,11 @@ async function peekResponseBody(response: Response): Promise<[string, Response]>
 async function fetchOnce(url: string, init?: RequestInit): Promise<Response> {
   return fetch(url, {
     ...init,
-    headers: { ...(init?.headers as Record<string, string> | undefined), ...authHeaders() },
+    headers: {
+      ...deviceHeaders(),
+      ...(init?.headers as Record<string, string> | undefined),
+      ...authHeaders(),
+    },
   });
 }
 

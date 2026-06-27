@@ -1,6 +1,7 @@
 import { getVersion } from "@tauri-apps/api/app";
 import { invoke } from "@tauri-apps/api/core";
 
+import { setDeviceInfo } from "../lib/device-info";
 import { fetchWithAuth } from "../lib/fetch-with-auth";
 import { authStore, setDeviceId } from "../stores/auth";
 
@@ -21,6 +22,25 @@ async function getAppVersion(): Promise<string> {
   } catch {
     return "unknown";
   }
+}
+
+async function getHostname(): Promise<string> {
+  try {
+    return await invoke<string>("get_hostname");
+  } catch (error: unknown) {
+    logger.warn("[device] failed to get OS hostname", error);
+    return "Unknown Device";
+  }
+}
+
+/**
+ * Resolve this device's name and version and cache them so every outgoing
+ * request can carry `filesync-device-name` / `filesync-device-version` headers,
+ * even when the device is already registered (so registration is skipped).
+ */
+export async function loadDeviceInfo(): Promise<void> {
+  const [hostname, appVersion] = await Promise.all([getHostname(), getAppVersion()]);
+  setDeviceInfo(hostname, appVersion);
 }
 
 export async function registerDevice(): Promise<string> {

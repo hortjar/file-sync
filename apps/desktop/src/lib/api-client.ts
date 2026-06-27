@@ -2,11 +2,17 @@ import { client } from "../generated/client.gen";
 import { tryRefreshToken } from "../services/token-refresh";
 import { authStore } from "../stores/auth";
 
+import { deviceHeaders } from "./device-info";
+
 export function initApiClient(): void {
-  // Always inject the current token before each request (picks up refreshed tokens automatically)
+  // Always inject the current token + device identity before each request
+  // (picks up refreshed tokens automatically).
   client.interceptors.request.use((request) => {
     const { accessToken } = authStore.state;
     if (accessToken) request.headers.set("Authorization", `Bearer ${accessToken}`);
+    for (const [key, value] of Object.entries(deviceHeaders())) {
+      request.headers.set(key, value);
+    }
     return request;
   });
 
