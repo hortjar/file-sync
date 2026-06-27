@@ -171,7 +171,8 @@
     "serverVersion": "Verze serveru",
     "disconnectedSince": "Odpojeno od",
     "disconnectedFor": "Odpojeno po dobu",
-    "reconnect": "Znovu připojit"
+    "reconnect": "Znovu připojit",
+    "updateAvailable": "Dostupná aktualizace"
   },
   "appearance": {
     "title": "Vzhled složky",
@@ -213,7 +214,10 @@
     "folderDenied": "{{path}}: {{reason}}",
     "folderCantRead": "bez přístupu pro čtení",
     "folderCantWrite": "bez přístupu pro zápis",
-    "folderCantAccess": "bez přístupu pro čtení i zápis"
+    "folderCantAccess": "bez přístupu pro čtení i zápis",
+    "versionLabel": "Verze klienta",
+    "versionOk": "Aktuální (v{{version}})",
+    "versionOutdated": "Dostupná aktualizace — máte v{{current}}, nejnovější je v{{latest}}"
   },
   "permissions": {
     "settingsHint": "Zvolte jiné umístění nebo udělte přístup v Nastavení systému → Soukromí a zabezpečení → Soubory a složky.",

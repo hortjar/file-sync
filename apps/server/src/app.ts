@@ -74,6 +74,10 @@ export function createApp() {
       .get("/health", () => ({
         status: "ok",
         version: packageJson.version,
+        // Latest client version clients should be running. Server and desktop
+        // ship together, so the server version is the default; override with
+        // LATEST_CLIENT_VERSION when they diverge.
+        latestClientVersion: process.env["LATEST_CLIENT_VERSION"] ?? packageJson.version,
         timestamp: new Date().toISOString(),
       }))
       .use(authRoutes)

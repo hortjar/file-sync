@@ -3,11 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import { getVersion } from "@tauri-apps/api/app";
 import { useTranslation } from "react-i18next";
 
+import { isOutdated } from "../lib/version";
 import { reconnectNow } from "../services/ws-client";
 import { useAuthStore } from "../stores/auth";
 import { useSyncStatusStore } from "../stores/sync-status";
 
-type Health = { status: string; version?: string };
+type Health = { status: string; version?: string; latestClientVersion?: string };
 
 /** Format an elapsed millisecond span as a compact "1h 4m" / "4m 12s" / "9s". */
 function formatDuration(ms: number): string {
@@ -80,6 +81,15 @@ export function ConnectionStatus() {
     { label: t("status.clientVersion"), value: clientVersion ? `v${clientVersion}` : "—" },
     { label: t("status.serverVersion"), value: health?.version ? `v${health.version}` : "—" },
   );
+
+  // Surface an update hint when the running client is behind the latest version
+  // the server reports.
+  if (isOutdated(clientVersion, health?.latestClientVersion)) {
+    details.push({
+      label: t("status.updateAvailable"),
+      value: `v${health?.latestClientVersion ?? ""}`,
+    });
+  }
 
   return (
     <StatusIndicator

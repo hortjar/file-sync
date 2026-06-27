@@ -170,7 +170,8 @@
     "serverVersion": "Server version",
     "disconnectedSince": "Disconnected since",
     "disconnectedFor": "Disconnected for",
-    "reconnect": "Reconnect"
+    "reconnect": "Reconnect",
+    "updateAvailable": "Update available"
   },
   "appearance": {
     "title": "Folder Appearance",
@@ -212,7 +213,10 @@
     "folderDenied": "{{path}}: {{reason}}",
     "folderCantRead": "no read access",
     "folderCantWrite": "no write access",
-    "folderCantAccess": "no read or write access"
+    "folderCantAccess": "no read or write access",
+    "versionLabel": "Client version",
+    "versionOk": "Up to date (v{{version}})",
+    "versionOutdated": "Update available — you have v{{current}}, latest is v{{latest}}"
   },
   "permissions": {
     "settingsHint": "Choose a different location or grant access in System Settings → Privacy & Security → Files and Folders.",
