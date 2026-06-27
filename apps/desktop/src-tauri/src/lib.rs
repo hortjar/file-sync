@@ -2,12 +2,28 @@ mod tray;
 mod watcher;
 
 use tauri::WindowEvent;
+use tauri_plugin_fs::FsExt;
 
 pub use watcher::{watch, FileChangeEvent};
 
 #[tauri::command]
 fn start_watching(app: tauri::AppHandle, sync_folder_id: String, local_path: String) {
-    let path = std::path::PathBuf::from(local_path);
+    let path = std::path::PathBuf::from(&local_path);
+
+    // Grant the fs plugin recursive access to this folder and everything under
+    // it. The static capability scope only covers the home dir (+ /Volumes);
+    // folders restored from server links — or chosen outside home, e.g.
+    // C:\Temp\... on Windows — are otherwise rejected with "forbidden path"
+    // when the reconciler walks into nested subfolders. Granting the tree here,
+    // at the moment we start watching it, keeps the JS-side fs scope in sync
+    // with what the user has actually linked.
+    match app.fs_scope().allow_directory(&path, true) {
+        Ok(()) => log::info!("[watcher] fs scope granted (recursive) for {local_path}"),
+        Err(error) => {
+            log::error!("[watcher] failed to grant fs scope for {local_path}: {error}")
+        }
+    }
+
     watcher::watch(app, sync_folder_id, path);
 }
 
