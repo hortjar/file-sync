@@ -43,7 +43,9 @@
     "confirmDelete": "Smazat {{name}}?",
     "confirmDeleteHint": "Tímto trvale smažete složku a veškerou historii souborů. Připojená zařízení přestanou synchronizovat.",
     "path": "Lokální cesta",
-    "noFiles": "Zatím nejsou synchronizovány žádné soubory."
+    "noFiles": "Zatím nejsou synchronizovány žádné soubory.",
+    "downloadAll": "Stáhnout",
+    "downloadFailed": "Stažení selhalo"
   },
   "devices": {
     "title": "Zařízení",

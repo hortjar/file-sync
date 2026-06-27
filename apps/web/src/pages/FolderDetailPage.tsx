@@ -1,6 +1,6 @@
-import { FolderIcon, TreeItem, buildTree, iconBg, iconBorder } from "@file-sync/ui";
+import { FolderIcon, type TreeNode, TreeItem, buildTree, iconBg, iconBorder } from "@file-sync/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, CheckCircle2, ChevronDown, Monitor, RefreshCw } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ChevronDown, Download, Monitor, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router-dom";
@@ -12,6 +12,8 @@ import {
   getApiSyncStateBySyncFolderIdOptions,
   getApiSyncStateBySyncFolderIdQueryKey,
 } from "../generated/@tanstack/react-query.gen";
+import { downloadFileEntry, downloadFolderZip } from "../lib/download";
+import { toast } from "../lib/toast";
 
 type FileEntry = { id: string; relativePath: string; size: number; mtime: string };
 type ServerLink = { deviceId: string; deviceName: string; platform: string; localPath: string };
@@ -43,6 +45,31 @@ export function FolderDetailPage() {
     void queryClient.invalidateQueries({
       queryKey: getApiSyncStateBySyncFolderIdQueryKey({ path: { syncFolderId: folderId } }),
     });
+  }
+
+  async function handleDownloadFile(node: TreeNode) {
+    if (!node.id) return;
+    try {
+      await downloadFileEntry(node.id, node.name);
+    } catch {
+      toast.error(t("folders.downloadFailed"));
+    }
+  }
+
+  async function handleDownloadFolder(node: TreeNode) {
+    try {
+      await downloadFolderZip(folderId, node.name, node.path);
+    } catch {
+      toast.error(t("folders.downloadFailed"));
+    }
+  }
+
+  async function handleDownloadAll() {
+    try {
+      await downloadFolderZip(folderId, folder?.name ?? "folder");
+    } catch {
+      toast.error(t("folders.downloadFailed"));
+    }
   }
 
   return (
@@ -86,6 +113,16 @@ export function FolderDetailPage() {
           </h1>
         )}
 
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => void handleDownloadAll()}
+          disabled={entries.length === 0}
+          className="gap-1.5"
+        >
+          <Download className="size-3.5" />
+          {t("folders.downloadAll")}
+        </Button>
         <Button variant="ghost" size="icon" onClick={handleRefresh} title={t("common.refresh")}>
           <RefreshCw className="size-4" />
         </Button>
@@ -168,7 +205,15 @@ export function FolderDetailPage() {
               {t("folders.noFiles")}
             </p>
           ) : (
-            tree.map((node) => <TreeItem key={node.path} node={node} depth={0} />)
+            tree.map((node) => (
+              <TreeItem
+                key={node.path}
+                node={node}
+                depth={0}
+                onDownloadFile={(fileNode) => void handleDownloadFile(fileNode)}
+                onDownloadFolder={(folderNode) => void handleDownloadFolder(folderNode)}
+              />
+            ))
           )}
         </div>
       </div>

@@ -43,7 +43,9 @@
     "confirmDelete": "Delete \"{{name}}\"?",
     "confirmDeleteHint": "This will permanently delete the folder and all its file history. Connected devices will stop syncing.",
     "path": "Local path",
-    "noFiles": "No files synced yet."
+    "noFiles": "No files synced yet.",
+    "downloadAll": "Download",
+    "downloadFailed": "Download failed"
   },
   "devices": {
     "title": "Devices",

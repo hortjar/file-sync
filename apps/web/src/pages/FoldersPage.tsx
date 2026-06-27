@@ -1,7 +1,7 @@
 import { FolderIcon, iconBg, iconBorder } from "@file-sync/ui";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2 } from "lucide-react";
+import { Download, Plus, Trash2 } from "lucide-react";
 import { type MouseEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -14,6 +14,7 @@ import {
   getApiSyncFoldersQueryKey,
   postApiSyncFoldersMutation,
 } from "../generated/@tanstack/react-query.gen";
+import { downloadFolderZip } from "../lib/download";
 import { toast } from "../lib/toast";
 
 type SyncFolder = {
@@ -68,6 +69,14 @@ export function FoldersPage() {
   function closeCreate() {
     setIsCreateOpen(false);
     folderForm.reset();
+  }
+
+  async function downloadFolder(folder: SyncFolder) {
+    try {
+      await downloadFolderZip(folder.id, folder.name);
+    } catch {
+      toast.error(t("folders.downloadFailed"));
+    }
   }
 
   if (isLoading) {
@@ -136,6 +145,18 @@ export function FoldersPage() {
                   </p>
                 </div>
 
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  title={t("folders.downloadAll")}
+                  onClick={(event: MouseEvent<HTMLButtonElement>) => {
+                    event.stopPropagation();
+                    void downloadFolder(folder);
+                  }}
+                  className="opacity-0 group-hover:opacity-100 text-[hsl(var(--text-muted))] hover:text-[hsl(var(--text))]"
+                >
+                  <Download className="size-4" />
+                </Button>
                 <Button
                   variant="ghost"
                   size="icon"
