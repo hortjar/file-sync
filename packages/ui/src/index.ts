@@ -29,6 +29,10 @@ export type { MetricChartProperties, MetricPoint } from "./components/metric-cha
 // Log parsing
 export { parseLogLine, parseLogText, logTimeRange } from "./lib/parse-log";
 
+// Connection status indicator
+export { StatusIndicator } from "./components/status-indicator";
+export type { StatusDetail, StatusIndicatorProperties } from "./components/status-indicator";
+
 // Log viewer
 export { LogViewer, LogDetail } from "./components/log-viewer";
 export type {

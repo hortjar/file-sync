@@ -1,23 +1,13 @@
+import { type StatusDetail, StatusIndicator } from "@file-sync/ui";
 import { useQuery } from "@tanstack/react-query";
 import { getVersion } from "@tauri-apps/api/app";
-import { RefreshCw, Wifi, WifiOff } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { cn } from "../lib/cn";
 import { reconnectNow } from "../services/ws-client";
 import { useAuthStore } from "../stores/auth";
 import { useSyncStatusStore } from "../stores/sync-status";
 
 type Health = { status: string; version?: string };
-
-function DetailRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-6">
-      <dt className="text-[hsl(var(--text-faint))]">{label}</dt>
-      <dd className="font-mono text-[hsl(var(--text-muted))]">{value}</dd>
-    </div>
-  );
-}
 
 /** Format an elapsed millisecond span as a compact "1h 4m" / "4m 12s" / "9s". */
 function formatDuration(ms: number): string {
@@ -37,6 +27,7 @@ export function ConnectionStatus() {
   const connectedAt = useSyncStatusStore((s) => s.connectedAt);
   const disconnectedAt = useSyncStatusStore((s) => s.disconnectedAt);
   const serverUrl = useAuthStore((s) => s.serverUrl);
+  const isSyncing = status === "syncing";
 
   const { data: clientVersion } = useQuery({
     queryKey: ["app-version"],
@@ -65,85 +56,46 @@ export function ConnectionStatus() {
     initialData: () => Date.now(),
   });
 
+  const details: StatusDetail[] = [];
+  if (isOnline && connectedAt) {
+    details.push({
+      label: t("status.connectedSince"),
+      value: new Date(connectedAt).toLocaleTimeString(),
+    });
+  }
+  if (!isOnline && disconnectedAt) {
+    details.push(
+      {
+        label: t("status.disconnectedSince"),
+        value: new Date(disconnectedAt).toLocaleTimeString(),
+      },
+      {
+        label: t("status.disconnectedFor"),
+        value: formatDuration(now - new Date(disconnectedAt).getTime()),
+      },
+    );
+  }
+  details.push(
+    { label: t("status.server"), value: serverUrl },
+    { label: t("status.clientVersion"), value: clientVersion ? `v${clientVersion}` : "—" },
+    { label: t("status.serverVersion"), value: health?.version ? `v${health.version}` : "—" },
+  );
+
   return (
-    <div className="group relative">
-      <div className="flex items-center px-3 py-1.5">
-        {/* Dot centered in a size-4 box so it lines up with the row icons. */}
-        <div className="mr-2.5 flex size-4 shrink-0 items-center justify-center">
-          <div
-            className={cn(
-              "size-1.5 rounded-full",
-              isOnline ? "bg-[hsl(var(--success))]" : "bg-[hsl(var(--danger))]",
-            )}
-          />
-        </div>
-        <span className="flex-1 text-xs text-[hsl(var(--text-faint))]">
-          {t(
-            status === "syncing" && isOnline
-              ? "sidebar.syncing"
-              : isOnline
-                ? "sidebar.connected"
-                : "sidebar.disconnected",
-          )}
-        </span>
-        {!isOnline && <WifiOff className="size-3 text-[hsl(var(--danger))]" />}
-        {isOnline && status !== "syncing" && (
-          <Wifi className="size-3 text-[hsl(var(--success))] opacity-50" />
-        )}
-      </div>
-
-      {/* Detailed status on hover. pointer-events enabled on hover so the
-          Reconnect button inside is actually clickable. */}
-      <div className="pointer-events-none absolute bottom-full left-2 z-50 mb-2 w-max max-w-[80vw] whitespace-nowrap rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--surface))] p-3 opacity-0 shadow-[var(--shadow-lg)] transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100">
-        <p
-          className={cn(
-            "text-base font-semibold",
-            isOnline ? "text-[hsl(var(--success))]" : "text-[hsl(var(--danger))]",
-          )}
-        >
-          {t(isOnline ? "status.online" : "status.offline")}
-        </p>
-        <dl className="mt-2 flex flex-col gap-1.5 text-[11px]">
-          {isOnline && connectedAt && (
-            <DetailRow
-              label={t("status.connectedSince")}
-              value={new Date(connectedAt).toLocaleTimeString()}
-            />
-          )}
-          {!isOnline && disconnectedAt && (
-            <>
-              <DetailRow
-                label={t("status.disconnectedSince")}
-                value={new Date(disconnectedAt).toLocaleTimeString()}
-              />
-              <DetailRow
-                label={t("status.disconnectedFor")}
-                value={formatDuration(now - new Date(disconnectedAt).getTime())}
-              />
-            </>
-          )}
-          <DetailRow label={t("status.server")} value={serverUrl} />
-          <DetailRow
-            label={t("status.clientVersion")}
-            value={clientVersion ? `v${clientVersion}` : "—"}
-          />
-          <DetailRow
-            label={t("status.serverVersion")}
-            value={health?.version ? `v${health.version}` : "—"}
-          />
-        </dl>
-
-        {!isOnline && (
-          <button
-            type="button"
-            onClick={() => reconnectNow()}
-            className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-[hsl(var(--border))] py-1.5 text-xs font-medium text-[hsl(var(--text-muted))] transition-colors hover:bg-[hsl(var(--surface-2))] hover:text-[hsl(var(--text))]"
-          >
-            <RefreshCw className="size-3" />
-            {t("status.reconnect")}
-          </button>
-        )}
-      </div>
-    </div>
+    <StatusIndicator
+      online={isOnline}
+      syncing={isSyncing}
+      rowLabel={t(
+        isSyncing && isOnline
+          ? "sidebar.syncing"
+          : isOnline
+            ? "sidebar.connected"
+            : "sidebar.disconnected",
+      )}
+      title={t(isOnline ? "status.online" : "status.offline")}
+      details={details}
+      onReconnect={reconnectNow}
+      reconnectLabel={t("status.reconnect")}
+    />
   );
 }
