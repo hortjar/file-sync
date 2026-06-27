@@ -1,4 +1,4 @@
-import { RefreshCw, Wifi, WifiOff } from "lucide-react";
+import { ArrowUpCircle, RefreshCw, Wifi, WifiOff } from "lucide-react";
 import { useRef, useState } from "react";
 
 import { cn } from "../lib/cn";
@@ -16,6 +16,11 @@ export type StatusIndicatorProperties = {
   title: string;
   /** Detail rows (label/value) shown in the hover card. */
   details: StatusDetail[];
+  /**
+   * Optional prominent info notice (e.g. "Update available — v0.3.0") shown as a
+   * highlighted orange box at the top of the hover card.
+   */
+  notice?: string | undefined;
   /**
    * Optional reconnect action. When provided and the client is offline, a
    * reconnect button is rendered at the bottom of the hover card.
@@ -43,6 +48,7 @@ export function StatusIndicator({
   rowLabel,
   title,
   details,
+  notice,
   onReconnect,
   reconnectLabel,
 }: StatusIndicatorProperties) {
@@ -95,6 +101,16 @@ export function StatusIndicator({
           >
             {title}
           </p>
+
+          {notice && (
+            <div className="mt-2 flex items-start gap-2 rounded-lg border border-orange-400/30 bg-orange-400/10 px-2.5 py-2 text-orange-300">
+              <ArrowUpCircle className="mt-px size-3.5 shrink-0" />
+              <span className="whitespace-normal text-[11px] font-medium leading-snug">
+                {notice}
+              </span>
+            </div>
+          )}
+
           <dl className="mt-2 flex flex-col gap-1.5 text-[11px]">
             {details.map((detail) => (
               <div key={detail.label} className="flex items-center justify-between gap-6">

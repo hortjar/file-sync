@@ -172,7 +172,8 @@
     "disconnectedSince": "Odpojeno od",
     "disconnectedFor": "Odpojeno po dobu",
     "reconnect": "Znovu připojit",
-    "updateAvailable": "Dostupná aktualizace"
+    "updateAvailable": "Dostupná aktualizace",
+    "updateNotice": "Dostupná aktualizace — v{{version}}"
   },
   "appearance": {
     "title": "Vzhled složky",

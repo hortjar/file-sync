@@ -82,14 +82,11 @@ export function ConnectionStatus() {
     { label: t("status.serverVersion"), value: health?.version ? `v${health.version}` : "—" },
   );
 
-  // Surface an update hint when the running client is behind the latest version
+  // Prominent update notice when the running client is behind the latest version
   // the server reports.
-  if (isOutdated(clientVersion, health?.latestClientVersion)) {
-    details.push({
-      label: t("status.updateAvailable"),
-      value: `v${health?.latestClientVersion ?? ""}`,
-    });
-  }
+  const updateNotice = isOutdated(clientVersion, health?.latestClientVersion)
+    ? t("status.updateNotice", { version: health?.latestClientVersion ?? "" })
+    : undefined;
 
   return (
     <StatusIndicator
@@ -104,6 +101,7 @@ export function ConnectionStatus() {
       )}
       title={t(isOnline ? "status.online" : "status.offline")}
       details={details}
+      notice={updateNotice}
       onReconnect={reconnectNow}
       reconnectLabel={t("status.reconnect")}
     />
