@@ -1,3 +1,4 @@
+import { DEFAULT_APP_NAME, DEVICE_NAME_HEADER, DEVICE_VERSION_HEADER } from "@file-sync/shared";
 import {
   Activity,
   AlertCircle,
@@ -23,6 +24,7 @@ import {
   Lock,
   Mail,
   Monitor,
+  MonitorSmartphone,
   Package,
   Search,
   Server,
@@ -37,6 +39,16 @@ import { useState } from "react";
 import { cn } from "../lib/cn";
 
 import { PlatformIcon, formatPlatform } from "./platform";
+
+// Product name used to prefix device-identity header labels. Held in an object so
+// `setAppName` mutates a property rather than reassigning a module binding.
+// Overridable per app via `setAppName` (sourced from the `VITE_APP_NAME` env var).
+const product = { name: DEFAULT_APP_NAME };
+
+/** Override the product name used in device-header labels. */
+export function setAppName(name: string): void {
+  product.name = name;
+}
 
 export type LogLevel = "debug" | "info" | "warn" | "error" | "trace";
 
@@ -146,6 +158,26 @@ function tryParseJsonString(value: unknown): unknown {
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** Read a request-header value off a log entry's structured data (if present). */
+function deviceHeaderValue(entry: LogEntry, header: string): string | undefined {
+  const data = tryParseJsonString(entry.data);
+  if (!isPlainObject(data)) return undefined;
+  const requestHeaders = tryParseJsonString(data["requestHeaders"]);
+  if (!isPlainObject(requestHeaders)) return undefined;
+  const value = requestHeaders[header];
+  return typeof value === "string" ? value : undefined;
+}
+
+/** Distinct, sorted header values across all entries (for filter dropdowns). */
+function distinctHeaderValues(entries: LogEntry[], header: string): string[] {
+  const values = new Set<string>();
+  for (const entry of entries) {
+    const value = deviceHeaderValue(entry, header);
+    if (value) values.add(value);
+  }
+  return [...values].toSorted((a, b) => a.localeCompare(b));
 }
 
 // ── HTTP method badge ──────────────────────────────────────────────────────────
@@ -261,6 +293,8 @@ const KEY_ICON: Record<
   relativePath: FileText,
   localPath: FileText,
   size: FileText,
+  [DEVICE_NAME_HEADER]: MonitorSmartphone,
+  [DEVICE_VERSION_HEADER]: Package,
 };
 
 /** Subtle per-key icon colours so meaning reads at a glance. */
@@ -304,6 +338,8 @@ const KEY_ICON_TONE: Record<string, string> = {
   clientVersion: "text-emerald-400",
   serverVersion: "text-emerald-400",
   size: "text-orange-400",
+  [DEVICE_NAME_HEADER]: "text-blue-400",
+  [DEVICE_VERSION_HEADER]: "text-emerald-400",
 };
 
 function capitalizeWord(word: string): string {
@@ -312,6 +348,8 @@ function capitalizeWord(word: string): string {
 
 /** Human label for a data key: known names, HTTP Header-Case, or sentence case. */
 function formatKey(key: string): string {
+  if (key === DEVICE_NAME_HEADER) return `${product.name} device name`;
+  if (key === DEVICE_VERSION_HEADER) return `${product.name} device version`;
   const known = KEY_LABELS[key];
   if (known) return known;
   if (key.includes("-"))
@@ -1304,6 +1342,45 @@ function Pagination({
   );
 }
 
+// ── Header-value filter dropdown ───────────────────────────────────────────────
+
+function FilterSelect({
+  icon: Icon,
+  value,
+  options,
+  allLabel,
+  onChange,
+}: {
+  icon: (properties: { className?: string | undefined }) => React.ReactNode;
+  value: string;
+  options: string[];
+  allLabel: string;
+  onChange: (next: string) => void;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex shrink-0 items-center gap-1.5 rounded-lg border bg-[hsl(var(--surface))] px-2.5 py-1.5",
+        value ? "border-[hsl(var(--brand-from)/.5)]" : "border-[hsl(var(--border))]",
+      )}
+    >
+      <Icon className="size-3.5 shrink-0 text-[hsl(var(--text-faint))]" />
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="max-w-40 cursor-pointer truncate bg-transparent font-mono text-xs text-[hsl(var(--text))] focus:outline-none"
+      >
+        <option value="">{allLabel}</option>
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 // ── Public LogViewer ─────────────────────────────────────────────────────────
 
 export type LogViewerProperties = {
@@ -1320,15 +1397,26 @@ export function LogViewer({
   onViewDetail,
 }: LogViewerProperties) {
   const [search, setSearch] = useState("");
+  const [deviceNameFilter, setDeviceNameFilter] = useState("");
+  const [deviceVersionFilter, setDeviceVersionFilter] = useState("");
   const [page, setPage] = useState(0);
 
-  const filtered = search
-    ? entries.filter(
-        (entry) =>
-          entry.msg.toLowerCase().includes(search.toLowerCase()) ||
-          (entry.source ?? "").toLowerCase().includes(search.toLowerCase()),
-      )
-    : entries;
+  const deviceNames = distinctHeaderValues(entries, DEVICE_NAME_HEADER);
+  const deviceVersions = distinctHeaderValues(entries, DEVICE_VERSION_HEADER);
+  const searchLower = search.toLowerCase();
+
+  const filtered = entries.filter((entry) => {
+    const isSearchMatch =
+      !search ||
+      entry.msg.toLowerCase().includes(searchLower) ||
+      (entry.source ?? "").toLowerCase().includes(searchLower);
+    const isNameMatch =
+      !deviceNameFilter || deviceHeaderValue(entry, DEVICE_NAME_HEADER) === deviceNameFilter;
+    const isVersionMatch =
+      !deviceVersionFilter ||
+      deviceHeaderValue(entry, DEVICE_VERSION_HEADER) === deviceVersionFilter;
+    return isSearchMatch && isNameMatch && isVersionMatch;
+  });
 
   const ordered = newestFirst ? filtered.toReversed() : filtered;
 
@@ -1345,11 +1433,21 @@ export function LogViewer({
     setPage(0);
   }
 
+  function handleDeviceNameFilter(next: string) {
+    setDeviceNameFilter(next);
+    setPage(0);
+  }
+
+  function handleDeviceVersionFilter(next: string) {
+    setDeviceVersionFilter(next);
+    setPage(0);
+  }
+
   return (
     <div className={cn("flex flex-col", className)}>
-      {/* Search bar */}
-      <div className="border-b border-[hsl(var(--border))] bg-[hsl(var(--surface-2))] px-4 py-2.5">
-        <div className="flex items-center gap-2.5 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--surface))] px-3 py-1.5">
+      {/* Search + filters */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-[hsl(var(--border))] bg-[hsl(var(--surface-2))] px-4 py-2.5">
+        <div className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--surface))] px-3 py-1.5">
           <Search className="size-3.5 shrink-0 text-[hsl(var(--text-faint))]" />
           <input
             type="text"
@@ -1372,6 +1470,25 @@ export function LogViewer({
             </span>
           )}
         </div>
+
+        {deviceNames.length > 0 && (
+          <FilterSelect
+            icon={MonitorSmartphone}
+            value={deviceNameFilter}
+            options={deviceNames}
+            allLabel={`All ${product.name} devices`}
+            onChange={handleDeviceNameFilter}
+          />
+        )}
+        {deviceVersions.length > 0 && (
+          <FilterSelect
+            icon={Package}
+            value={deviceVersionFilter}
+            options={deviceVersions}
+            allLabel="All versions"
+            onChange={handleDeviceVersionFilter}
+          />
+        )}
       </div>
 
       {/* Entries */}

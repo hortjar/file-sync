@@ -37,7 +37,7 @@ export { StatusIndicator } from "./components/status-indicator";
 export type { StatusDetail, StatusIndicatorProperties } from "./components/status-indicator";
 
 // Log viewer
-export { LogViewer, LogDetail } from "./components/log-viewer";
+export { LogViewer, LogDetail, setAppName } from "./components/log-viewer";
 export type {
   LogEntry,
   LogLevel,
