@@ -67,6 +67,167 @@ body {
     hsl(var(--bg));
 }
 
+/* ---------------------------------------------------------------------------
+   Landing page — animations & decorative utilities
+   --------------------------------------------------------------------------- */
+
+@keyframes lp-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes lp-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes lp-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+@keyframes lp-spin-slow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes lp-pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  70%,
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+@keyframes lp-aurora {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  33% {
+    transform: translate3d(6%, -4%, 0) scale(1.15);
+  }
+  66% {
+    transform: translate3d(-5%, 5%, 0) scale(0.92);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes lp-gradient-pan {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes lp-marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* On-load entrance — used for above-the-fold (hero) content with staggered
+   `animation-delay` set inline. Holds the hidden frame until it starts. */
+.lp-enter {
+  opacity: 0;
+  animation: lp-fade-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Scroll-reveal — driven by the element's position in the viewport where the
+   browser supports scroll-linked animations, otherwise a one-shot on load. */
+@supports (animation-timeline: view()) {
+  .lp-reveal {
+    animation: lp-fade-up linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 55%;
+  }
+}
+@supports not (animation-timeline: view()) {
+  .lp-reveal {
+    animation: lp-fade-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
+.lp-float {
+  animation: lp-float 6s ease-in-out infinite;
+}
+
+.lp-spin-slow {
+  animation: lp-spin-slow 22s linear infinite;
+}
+
+.lp-aurora {
+  animation: lp-aurora 18s ease-in-out infinite;
+  will-change: transform;
+}
+
+.lp-gradient-animated {
+  background-size: 200% 200%;
+  animation: lp-gradient-pan 6s ease infinite;
+}
+
+/* Decorative dotted grid backdrop. */
+.lp-grid {
+  background-image: radial-gradient(hsl(var(--text-faint) / 0.18) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 30%, transparent 75%);
+}
+
+/* Card hover lift used across feature + download cards. */
+.lp-card {
+  transition:
+    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    background-color 0.25s ease;
+}
+.lp-card:hover {
+  transform: translateY(-4px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-enter,
+  .lp-reveal,
+  .lp-float,
+  .lp-spin-slow,
+  .lp-aurora,
+  .lp-gradient-animated {
+    animation: none !important;
+  }
+  .lp-enter,
+  .lp-reveal {
+    opacity: 1;
+    transform: none;
+  }
+  .lp-card:hover {
+    transform: none;
+  }
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;

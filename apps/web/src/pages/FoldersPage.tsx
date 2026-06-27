@@ -117,7 +117,7 @@ export function FoldersPage() {
             <Card
               key={folder.id}
               className="group cursor-pointer transition-shadow hover:shadow-[var(--shadow-sm)]"
-              onClick={() => void navigate(`/folders/${folder.id}`)}
+              onClick={() => void navigate(`/admin/folders/${folder.id}`)}
             >
               <CardContent className="flex items-center gap-4 p-4">
                 <div

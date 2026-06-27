@@ -87,7 +87,7 @@ export function NotificationBell() {
                   {t("notifications.title")}
                 </span>
                 <Link
-                  to="/notifications"
+                  to="/admin/notifications"
                   onClick={close}
                   className="text-[11px] text-[hsl(var(--brand-from))] hover:underline"
                 >

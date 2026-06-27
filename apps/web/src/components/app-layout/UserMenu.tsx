@@ -13,7 +13,7 @@ export function UserMenu() {
   function handleLogout() {
     clearAuthHeader();
     logout();
-    void navigate("/login");
+    void navigate("/admin/login");
   }
 
   return (

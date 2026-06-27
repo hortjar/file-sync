@@ -1,4 +1,4 @@
-import { Slot } from "@radix-ui/react-slot";
+import { Slot, Slottable } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import { type ButtonHTMLAttributes, forwardRef } from "react";
 
@@ -52,7 +52,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProperties>(
         {loading && (
           <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
         )}
-        {children}
+        <Slottable>{children}</Slottable>
       </Component>
     );
   },

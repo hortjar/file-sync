@@ -6,7 +6,13 @@ import { setAppName } from "@file-sync/ui";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
+import {
+  createBrowserRouter,
+  Navigate,
+  Outlet,
+  RouterProvider,
+  ScrollRestoration,
+} from "react-router-dom";
 import { Toaster } from "sonner";
 
 import { AppLayout } from "./components/AppLayout";
@@ -16,8 +22,10 @@ import { queryClient } from "./lib/query";
 import { Dashboard } from "./pages/Dashboard";
 import { DeviceLogsPage } from "./pages/DeviceLogsPage";
 import { DevicesPage } from "./pages/DevicesPage";
+import { DownloadsPage } from "./pages/DownloadsPage";
 import { FolderDetailPage } from "./pages/FolderDetailPage";
 import { FoldersPage } from "./pages/FoldersPage";
+import { LandingPage } from "./pages/LandingPage";
 import { LogDetailPage } from "./pages/LogDetailPage";
 import { Login } from "./pages/Login";
 import { LogsPage } from "./pages/LogsPage";
@@ -31,31 +39,51 @@ const { serverUrl, accessToken } = authStore.state;
 initApiClient(serverUrl);
 if (accessToken) setAuthHeader(accessToken);
 initTheme();
-setAppName(import.meta.env.VITE_APP_NAME ?? DEFAULT_APP_NAME);
+const appName = import.meta.env.VITE_APP_NAME ?? DEFAULT_APP_NAME;
+setAppName(appName);
+document.title = appName;
+
+// Root layout: resets window scroll to the top on every push navigation (and
+// restores it on back/forward), so public pages always open at the top.
+function RootLayout() {
+  return (
+    <>
+      <ScrollRestoration />
+      <Outlet />
+    </>
+  );
+}
 
 const router = createBrowserRouter([
-  { path: "/login", element: <Login /> },
   {
-    path: "/",
-    element: (
-      <ProtectedRoute>
-        <AppLayout />
-      </ProtectedRoute>
-    ),
+    element: <RootLayout />,
     children: [
-      { index: true, element: <Navigate to="/dashboard" replace /> },
-      { path: "dashboard", element: <Dashboard /> },
-      { path: "folders", element: <FoldersPage /> },
-      { path: "folders/:id", element: <FolderDetailPage /> },
-      { path: "devices", element: <DevicesPage /> },
-      { path: "logs", element: <LogsPage /> },
-      { path: "logs/:id", element: <LogDetailPage /> },
-      { path: "device-logs", element: <DeviceLogsPage /> },
-      { path: "notifications", element: <NotificationsPage /> },
-      { path: "settings", element: <SettingsPage /> },
+      { path: "/", element: <LandingPage /> },
+      { path: "/downloads", element: <DownloadsPage /> },
+      { path: "/admin/login", element: <Login /> },
+      {
+        path: "/admin",
+        element: (
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        ),
+        children: [
+          { index: true, element: <Navigate to="/admin/dashboard" replace /> },
+          { path: "dashboard", element: <Dashboard /> },
+          { path: "folders", element: <FoldersPage /> },
+          { path: "folders/:id", element: <FolderDetailPage /> },
+          { path: "devices", element: <DevicesPage /> },
+          { path: "logs", element: <LogsPage /> },
+          { path: "logs/:id", element: <LogDetailPage /> },
+          { path: "device-logs", element: <DeviceLogsPage /> },
+          { path: "notifications", element: <NotificationsPage /> },
+          { path: "settings", element: <SettingsPage /> },
+        ],
+      },
+      { path: "*", element: <Navigate to="/" replace /> },
     ],
   },
-  { path: "*", element: <Navigate to="/" replace /> },
 ]);
 
 const root = document.querySelector("#root");

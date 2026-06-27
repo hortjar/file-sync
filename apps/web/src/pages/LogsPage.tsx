@@ -105,7 +105,7 @@ export function LogsPage() {
   });
 
   function handleViewDetail(entry: LogEntry) {
-    void navigate(`/logs/${entry.id}`);
+    void navigate(`/admin/logs/${entry.id}`);
   }
 
   return (

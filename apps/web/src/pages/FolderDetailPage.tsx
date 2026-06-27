@@ -99,7 +99,7 @@ export function FolderDetailPage() {
       {/* Header */}
       <div className="mb-6 flex items-center gap-3">
         <Link
-          to="/folders"
+          to="/admin/folders"
           className="flex size-8 items-center justify-center rounded-xl text-[hsl(var(--text-muted))] transition-colors hover:bg-white/[0.06] hover:text-[hsl(var(--text))]"
         >
           <ArrowLeft className="size-4" />

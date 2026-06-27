@@ -105,19 +105,19 @@ export function Dashboard() {
             </span>
           }
           accent={isOnline}
-          onClick={() => void navigate("/settings")}
+          onClick={() => void navigate("/admin/settings")}
         />
         <StatCard
           icon={FolderSync}
           label={t("dashboard.totalFolders")}
           value={folders.length}
-          onClick={() => void navigate("/folders")}
+          onClick={() => void navigate("/admin/folders")}
         />
         <StatCard
           icon={Monitor}
           label={t("dashboard.totalDevices")}
           value={devices.length}
-          onClick={() => void navigate("/devices")}
+          onClick={() => void navigate("/admin/devices")}
         />
         <StatCard
           icon={Activity}
@@ -127,7 +127,7 @@ export function Dashboard() {
               {onlineCount}
             </span>
           }
-          onClick={() => void navigate("/devices")}
+          onClick={() => void navigate("/admin/devices")}
         />
       </div>
 

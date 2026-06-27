@@ -168,7 +168,7 @@ function LogsTab({
           <LogViewer
             entries={entries}
             className="h-full overflow-y-auto"
-            onViewDetail={(entry) => void navigate(`/logs/${entry.id}`)}
+            onViewDetail={(entry) => void navigate(`/admin/logs/${entry.id}`)}
           />
         )}
       </Card>

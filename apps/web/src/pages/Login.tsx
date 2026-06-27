@@ -44,14 +44,14 @@ export function Login() {
         setUserId(response.user.id);
         setUserEmail(response.user.email);
         setAuthHeader(response.accessToken);
-        void navigate("/dashboard");
+        void navigate("/admin/dashboard");
       } catch {
         toast.error(t("auth.connectionError"));
       }
     },
   });
 
-  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
+  if (isAuthenticated) return <Navigate to="/admin/dashboard" replace />;
 
   return (
     <div className="flex min-h-full items-center justify-center p-4">

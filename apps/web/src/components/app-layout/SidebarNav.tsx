@@ -5,11 +5,11 @@ import { NavLink } from "react-router-dom";
 import { cn } from "../../lib/cn";
 
 const NAV = [
-  { to: "/dashboard", icon: LayoutDashboard, label: "nav.dashboard" },
-  { to: "/folders", icon: FolderSync, label: "nav.folders" },
-  { to: "/devices", icon: Monitor, label: "nav.devices" },
-  { to: "/logs", icon: FileText, label: "nav.logs" },
-  { to: "/device-logs", icon: ScrollText, label: "nav.deviceLogs" },
+  { to: "/admin/dashboard", icon: LayoutDashboard, label: "nav.dashboard" },
+  { to: "/admin/folders", icon: FolderSync, label: "nav.folders" },
+  { to: "/admin/devices", icon: Monitor, label: "nav.devices" },
+  { to: "/admin/logs", icon: FileText, label: "nav.logs" },
+  { to: "/admin/device-logs", icon: ScrollText, label: "nav.deviceLogs" },
 ] as const;
 
 export function SidebarNav() {

@@ -25,7 +25,7 @@ export function Sidebar() {
         <div className="flex min-w-0 flex-col">
           <div className="flex items-center gap-1.5">
             <Link
-              to="/dashboard"
+              to="/admin/dashboard"
               className="text-[13px] font-semibold tracking-tight gradient-brand-text"
             >
               FileSync
@@ -55,7 +55,7 @@ export function Sidebar() {
         <NotificationBell />
         <LanguageToggle />
         <NavLink
-          to="/settings"
+          to="/admin/settings"
           className={({ isActive }) =>
             cn(
               "flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] transition-all duration-150",
