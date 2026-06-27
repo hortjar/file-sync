@@ -13,4 +13,5 @@ export {
   SKIP_PATTERNS,
   SKIP_COMPRESSION_EXTENSIONS,
 } from "./constants/sync";
+export { DEVICE_NAME_HEADER, DEVICE_VERSION_HEADER, DEFAULT_APP_NAME } from "./constants/headers";
 export { sanitizeRelativePath, isSafePath } from "./utils/path";
