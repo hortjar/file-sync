@@ -1,6 +1,15 @@
-import { FolderIcon, type TreeNode, TreeItem, buildTree, iconBg, iconBorder } from "@file-sync/ui";
+import {
+  FolderIcon,
+  PlatformIcon,
+  type TreeNode,
+  TreeItem,
+  buildTree,
+  formatPlatform,
+  iconBg,
+  iconBorder,
+} from "@file-sync/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, CheckCircle2, ChevronDown, Download, Monitor, RefreshCw } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ChevronDown, Download, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router-dom";
@@ -160,14 +169,18 @@ export function FolderDetailPage() {
                 key={link.deviceId}
                 className="flex items-start gap-3 border-b border-white/[0.04] px-4 py-3 last:border-0"
               >
-                <Monitor className="mt-0.5 size-3.5 shrink-0 text-[hsl(var(--text-faint))]" />
+                <PlatformIcon
+                  platform={link.platform}
+                  className="mt-0.5 size-3.5 shrink-0 text-[hsl(var(--text-muted))]"
+                />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-[hsl(var(--text))]">
                       {link.deviceName}
                     </span>
-                    <span className="capitalize text-xs text-[hsl(var(--text-faint))]">
-                      {link.platform}
+                    <span className="flex items-center gap-1 text-xs text-[hsl(var(--text-faint))]">
+                      <PlatformIcon platform={link.platform} className="size-3" />
+                      {formatPlatform(link.platform)}
                     </span>
                   </div>
                   <p className="mt-0.5 truncate font-mono text-[11px] text-[hsl(var(--text-faint))]">

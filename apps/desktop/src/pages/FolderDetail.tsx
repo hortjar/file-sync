@@ -1,4 +1,12 @@
-import { FolderIcon, TreeItem, buildTree, iconBg, iconBorder } from "@file-sync/ui";
+import {
+  FolderIcon,
+  PlatformIcon,
+  TreeItem,
+  buildTree,
+  formatPlatform,
+  iconBg,
+  iconBorder,
+} from "@file-sync/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { invoke } from "@tauri-apps/api/core";
@@ -10,7 +18,6 @@ import {
   ChevronsUpDown,
   FolderOpen,
   HardDrive,
-  Monitor,
   RefreshCw,
   RotateCcw,
   XCircle,
@@ -241,7 +248,10 @@ export function FolderDetailPage() {
                   key={link.deviceId}
                   className="flex items-start gap-3 border-b border-white/[0.04] px-4 py-3 last:border-0"
                 >
-                  <Monitor className="mt-0.5 size-3.5 shrink-0 text-[hsl(var(--text-faint))]" />
+                  <PlatformIcon
+                    platform={link.platform}
+                    className="mt-0.5 size-3.5 shrink-0 text-[hsl(var(--text-muted))]"
+                  />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-[hsl(var(--text))]">
@@ -252,8 +262,9 @@ export function FolderDetailPage() {
                           {t("folderDetail.thisDevice")}
                         </span>
                       )}
-                      <span className="capitalize text-xs text-[hsl(var(--text-faint))]">
-                        {link.platform}
+                      <span className="flex items-center gap-1 text-xs text-[hsl(var(--text-faint))]">
+                        <PlatformIcon platform={link.platform} className="size-3" />
+                        {formatPlatform(link.platform)}
                       </span>
                     </div>
                     <p className="mt-0.5 truncate font-mono text-[11px] text-[hsl(var(--text-faint))]">

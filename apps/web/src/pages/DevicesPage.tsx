@@ -1,3 +1,4 @@
+import { PlatformIcon, formatPlatform } from "@file-sync/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Monitor, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -92,7 +93,10 @@ export function DevicesPage() {
               return (
                 <div key={device.id} className="flex items-center gap-4 px-5 py-4">
                   <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[hsl(var(--surface-2))]">
-                    <Monitor className="size-5 text-[hsl(var(--text-muted))]" />
+                    <PlatformIcon
+                      platform={device.platform}
+                      className="size-5 text-[hsl(var(--text-muted))]"
+                    />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
@@ -105,8 +109,9 @@ export function DevicesPage() {
                         </span>
                       )}
                     </div>
-                    <p className="text-xs capitalize text-[hsl(var(--text-faint))]">
-                      {device.platform}
+                    <p className="flex items-center gap-1 text-xs text-[hsl(var(--text-faint))]">
+                      <PlatformIcon platform={device.platform} className="size-3" />
+                      {formatPlatform(device.platform)}
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-3">
