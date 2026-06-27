@@ -84,6 +84,7 @@
     "changeIconColor": "Change icon and color",
     "createdOn": "Created {{date}}",
     "alsoOn": "· also on {{devices}}",
+    "alsoOnLabel": "· also on",
     "changePath": "Change path",
     "linkFolder": "Link folder",
     "registering": "Registering…",

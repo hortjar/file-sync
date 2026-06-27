@@ -1,4 +1,4 @@
-import { FolderIcon, iconBg, iconBorder } from "@file-sync/ui";
+import { FolderIcon, PlatformIcon, iconBg, iconBorder } from "@file-sync/ui";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
@@ -103,7 +103,10 @@ function FolderCard({
 }: FolderCardProperties) {
   const { t } = useTranslation();
   const otherDevices = folder.devices;
-  const uniqueDeviceNames = [...new Set(otherDevices.map((d) => d.name))];
+  // Dedupe by name while keeping each device's platform for its icon.
+  const uniqueDevices = otherDevices.filter(
+    (device, index) => otherDevices.findIndex((other) => other.name === device.name) === index,
+  );
 
   return (
     <Card
@@ -146,9 +149,15 @@ function FolderCard({
                 {t("folders.createdOn", { date: new Date(folder.createdAt).toLocaleDateString() })}
               </span>
             )}
-            {uniqueDeviceNames.length > 0 && (
-              <span className="text-xs text-[hsl(var(--text-faint))] opacity-60">
-                {t("folders.alsoOn", { devices: uniqueDeviceNames.join(", ") })}
+            {uniqueDevices.length > 0 && (
+              <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[hsl(var(--text-faint))] opacity-70">
+                {t("folders.alsoOnLabel")}
+                {uniqueDevices.map((device) => (
+                  <span key={device.name} className="inline-flex items-center gap-1">
+                    <PlatformIcon platform={device.platform} className="size-3" />
+                    {device.name}
+                  </span>
+                ))}
               </span>
             )}
           </div>

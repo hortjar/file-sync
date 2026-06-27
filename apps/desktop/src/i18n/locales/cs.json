@@ -84,6 +84,7 @@
     "changeIconColor": "Změnit ikonu a barvu",
     "createdOn": "Vytvořeno {{date}}",
     "alsoOn": "· také na {{devices}}",
+    "alsoOnLabel": "· také na",
     "changePath": "Změnit cestu",
     "linkFolder": "Propojit složku",
     "registering": "Registruji…",
