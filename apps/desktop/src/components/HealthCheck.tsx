@@ -1,3 +1,4 @@
+import { getVersion } from "@tauri-apps/api/app";
 import { isPermissionGranted, requestPermission } from "@tauri-apps/plugin-notification";
 import { AlertTriangle, CheckCircle2, HeartPulse, RefreshCw, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -5,6 +6,7 @@ import { useTranslation } from "react-i18next";
 
 import { getHealth } from "../generated/sdk.gen";
 import { cn } from "../lib/cn";
+import { isOutdated } from "../lib/version";
 import { requestFolderPermissions } from "../services/permission-check";
 import { authStore } from "../stores/auth";
 import { linksStore } from "../stores/links";
@@ -37,8 +39,11 @@ export function HealthCheck() {
     const results: Check[] = [];
 
     // Server reachability
+    let latestClientVersion: string | undefined;
     try {
-      const { error } = await getHealth();
+      const { data, error } = await getHealth();
+      latestClientVersion = (data as { latestClientVersion?: string } | undefined)
+        ?.latestClientVersion;
       results.push({
         id: "server",
         label: t("health.serverLabel"),
@@ -52,6 +57,22 @@ export function HealthCheck() {
         status: "error",
         detail: t("health.serverError"),
       });
+    }
+
+    // Client version — informational warning when behind the server's latest.
+    try {
+      const appVersion = await getVersion();
+      const isVersionOutdated = isOutdated(appVersion, latestClientVersion);
+      results.push({
+        id: "version",
+        label: t("health.versionLabel"),
+        status: isVersionOutdated ? "warning" : "ok",
+        detail: isVersionOutdated
+          ? t("health.versionOutdated", { current: appVersion, latest: latestClientVersion ?? "?" })
+          : t("health.versionOk", { version: appVersion }),
+      });
+    } catch {
+      // Version unavailable — skip the check rather than failing the panel.
     }
 
     // Authentication
@@ -145,25 +166,20 @@ export function HealthCheck() {
         </div>
         <CardDescription>{t("health.hint")}</CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        {/* Overall summary — a distinct, status-tinted banner so it reads as a
-            verdict rather than blending into the individual check rows. */}
+      <CardContent className="flex flex-col gap-3">
+        {/* Overall summary — same icon/text columns as the check rows below so
+            everything lines up vertically; a divider keeps it distinct as the
+            top-line verdict. */}
         {checks.length > 0 && (
-          <div
-            className={cn(
-              "flex items-center gap-2.5 rounded-lg border px-3 py-2.5",
-              summaryStatus === "ok"
-                ? "border-[hsl(var(--success)/.25)] bg-[hsl(var(--success)/.08)]"
-                : summaryStatus === "warning"
-                  ? "border-amber-400/25 bg-amber-400/[0.08]"
-                  : "border-[hsl(var(--danger)/.25)] bg-[hsl(var(--danger)/.08)]",
-            )}
-          >
-            <SummaryIcon className={cn("size-4 shrink-0", STATUS_COLOR[summaryStatus])} />
-            <span className="text-sm font-medium text-[hsl(var(--text))]">
-              {t(summaryStatus === "ok" ? "health.allGood" : "health.hasIssues")}
-            </span>
-          </div>
+          <>
+            <div className="flex items-start gap-2.5">
+              <SummaryIcon className={cn("mt-0.5 size-4 shrink-0", STATUS_COLOR[summaryStatus])} />
+              <span className="text-sm font-semibold leading-5 text-[hsl(var(--text))]">
+                {t(summaryStatus === "ok" ? "health.allGood" : "health.hasIssues")}
+              </span>
+            </div>
+            <div className="h-px bg-white/[0.06]" />
+          </>
         )}
 
         <div className="flex flex-col divide-y divide-white/[0.05]">
