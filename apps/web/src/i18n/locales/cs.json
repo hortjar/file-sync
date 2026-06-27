@@ -2,7 +2,8 @@
   "nav": {
     "dashboard": "Přehled",
     "folders": "Složky",
-    "devices": "Zařízení"
+    "devices": "Zařízení",
+    "deviceLogs": "Záznamy zařízení"
   },
   "auth": {
     "signIn": "Přihlásit se",
@@ -68,7 +69,28 @@
     "setLevel": "Nastavit úroveň logování",
     "noLogs": "Žádné záznamy neodpovídají aktuálnímu filtru.",
     "serverLevel": "Úroveň logování serveru",
-    "viewLevel": "Úroveň zobrazení"
+    "viewLevel": "Úroveň zobrazení",
+    "loading": "Načítám…",
+    "backToList": "Zpět na seznam",
+    "noUploads": "Pro toto zařízení zatím nejsou nahrané žádné záznamy",
+    "noEvents": "Z tohoto zařízení nebyly hlášeny žádné chyby",
+    "lineCount_one": "{{count}} řádek",
+    "lineCount_few": "{{count}} řádky",
+    "lineCount_other": "{{count}} řádků"
+  },
+  "deviceLogs": {
+    "title": "Záznamy zařízení",
+    "subtitle": "Procházejte nahrané záznamy a chyby ze všech zařízení na vašem účtu",
+    "tabLogs": "Soubory záznamů",
+    "tabErrors": "Chyby"
+  },
+  "status": {
+    "online": "Online",
+    "offline": "Offline",
+    "connectedSince": "Připojeno od",
+    "server": "Server",
+    "clientVersion": "Verze klienta",
+    "serverVersion": "Verze serveru"
   },
   "notifications": {
     "markAllRead": "Označit vše jako přečtené"

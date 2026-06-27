@@ -45,15 +45,6 @@ function log(level: LogLevel, message: string, data?: unknown): void {
   void TAURI_FN[level](message + serialize(data));
 }
 
-// Writes a session-start banner so each app run is visually separated in the file.
-export async function initLogger(): Promise<void> {
-  const ts = new Date().toISOString();
-  const separator = "─".repeat(72);
-  await tauriInfo(separator);
-  await tauriInfo("FileSync session started  " + ts);
-  await tauriInfo(separator);
-}
-
 export const logger = {
   debug: (message: string, data?: unknown) => log("debug", message, data),
   info: (message: string, data?: unknown) => log("info", message, data),

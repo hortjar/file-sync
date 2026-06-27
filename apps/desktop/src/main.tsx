@@ -10,7 +10,7 @@ import { configureApiClient, initApiClient, setAuthHeader } from "./lib/api-clie
 import { queryClient } from "./lib/query";
 import { router } from "./lib/router";
 import { registerDevice, startHeartbeat } from "./services/device";
-import { initLogger } from "./services/logger";
+import { startDeviceReporting } from "./services/device-reporting";
 import { startSyncEngine } from "./services/sync-engine";
 import { scheduleTokenRefresh, stopTokenRefresh } from "./services/token-refresh";
 import { loadAndRestoreLinks, startWsClient } from "./services/ws-client";
@@ -24,7 +24,6 @@ initApiClient();
 // manually saves the URL in Settings.
 configureApiClient(authStore.state.serverUrl);
 initTheme();
-void initLogger();
 
 type AuthState = typeof authStore.state;
 
@@ -32,6 +31,7 @@ const services = {
   stopSyncEngine: undefined as (() => void) | undefined,
   stopWsClient: undefined as (() => void) | undefined,
   stopHeartbeat: undefined as (() => void) | undefined,
+  stopDeviceReporting: undefined as (() => void) | undefined,
   isRunning: false,
 };
 
@@ -50,6 +50,7 @@ function startServices(state: AuthState): void {
 
   void registerDevice().then((deviceId) => {
     services.stopHeartbeat = startHeartbeat(deviceId);
+    services.stopDeviceReporting = startDeviceReporting();
 
     void loadAndRestoreLinks().catch((error: unknown) => {
       console.error("Failed to load folder links on startup", error);
@@ -70,9 +71,11 @@ function stopServices(): void {
   services.stopHeartbeat?.();
   services.stopSyncEngine?.();
   services.stopWsClient?.();
+  services.stopDeviceReporting?.();
   services.stopHeartbeat = undefined;
   services.stopSyncEngine = undefined;
   services.stopWsClient = undefined;
+  services.stopDeviceReporting = undefined;
   setFolderPaths({});
 }
 

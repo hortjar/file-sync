@@ -1,10 +1,10 @@
-import { and, asc, gte, inArray } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNull, or } from "drizzle-orm";
 import { Elysia, t } from "elysia";
 
 import { database } from "../db";
 import { metricSamples } from "../db/schema";
 import { authPlugin } from "../middleware/auth";
-import { METRIC_KEYS } from "../services/metrics-sampler";
+import { INFRA_METRIC_KEYS, METRIC_KEYS, RESOURCE_METRIC_KEYS } from "../services/metrics-sampler";
 
 const DEFAULT_HOURS = 24;
 const MAX_HOURS = 7 * 24;
@@ -25,6 +25,17 @@ export const metricsRoutes = new Elysia({ prefix: "/api/metrics" }).use(authPlug
     const hours = Math.min(Math.max(query.hours ?? DEFAULT_HOURS, 1), MAX_HOURS);
     const since = new Date(Date.now() - hours * 60 * 60 * 1000);
 
+    // Resource metrics are scoped to the caller's account; infrastructure
+    // counters (requests, errors) are server-wide (stored with a null userId).
+    const resourceFilter = and(
+      eq(metricSamples.userId, userId),
+      inArray(metricSamples.metric, [...RESOURCE_METRIC_KEYS]),
+    );
+    const infraFilter = and(
+      isNull(metricSamples.userId),
+      inArray(metricSamples.metric, [...INFRA_METRIC_KEYS]),
+    );
+
     const rows = await database
       .select({
         metric: metricSamples.metric,
@@ -32,9 +43,7 @@ export const metricsRoutes = new Elysia({ prefix: "/api/metrics" }).use(authPlug
         capturedAt: metricSamples.capturedAt,
       })
       .from(metricSamples)
-      .where(
-        and(gte(metricSamples.capturedAt, since), inArray(metricSamples.metric, [...METRIC_KEYS])),
-      )
+      .where(and(gte(metricSamples.capturedAt, since), or(resourceFilter, infraFilter)))
       .orderBy(asc(metricSamples.capturedAt));
 
     const byMetric = new Map<string, MetricPoint[]>();

@@ -2,10 +2,14 @@ import { cors } from "@elysia/cors";
 import { openapi } from "@elysia/openapi";
 import { Elysia } from "elysia";
 
+import packageJson from "../package.json";
+
 import { headersToObject, logger, logRequest, summarizeBody } from "./lib/logger";
 import { recordRequest } from "./lib/metrics";
 import { authRoutes } from "./routes/auth";
 import { conflictsRoutes } from "./routes/conflicts";
+import { deviceEventsRoutes } from "./routes/device-events";
+import { deviceLogsRoutes } from "./routes/device-logs";
 import { devicesRoutes } from "./routes/devices";
 import { logsRoutes } from "./routes/logs";
 import { metricsRoutes } from "./routes/metrics";
@@ -69,6 +73,7 @@ export function createApp() {
       })
       .get("/health", () => ({
         status: "ok",
+        version: packageJson.version,
         timestamp: new Date().toISOString(),
       }))
       .use(authRoutes)
@@ -77,6 +82,8 @@ export function createApp() {
       .use(syncRoutes)
       .use(conflictsRoutes)
       .use(logsRoutes)
+      .use(deviceLogsRoutes)
+      .use(deviceEventsRoutes)
       .use(metricsRoutes)
       .use(wsRoutes)
   );

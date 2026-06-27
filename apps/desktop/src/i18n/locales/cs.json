@@ -142,9 +142,31 @@
     "title": "Záznamy",
     "showLevel": "Zobrazená úroveň",
     "writeLevel": "Úroveň zápisu",
+    "refresh": "Obnovit",
+    "levelDebug": "Debug",
     "levelInfo": "Info",
+    "levelWarn": "Varování",
+    "levelError": "Chyba",
     "loading": "Načítám záznamy…",
-    "loadFailed": "Načtení záznamů se nezdařilo"
+    "loadFailed": "Načtení záznamů se nezdařilo",
+    "tabLive": "Živé",
+    "tabUploaded": "Nahrané",
+    "uploadCurrent": "Nahrát aktuální záznam",
+    "uploadSuccess": "Nahráno {{file}}",
+    "uploadFailed": "Nahrání záznamu se nezdařilo",
+    "backToList": "Zpět na seznam",
+    "noUploads": "Zatím žádné nahrané záznamy",
+    "lineCount_one": "{{count}} řádek",
+    "lineCount_few": "{{count}} řádky",
+    "lineCount_other": "{{count}} řádků"
+  },
+  "status": {
+    "online": "Online",
+    "offline": "Offline",
+    "connectedSince": "Připojeno od",
+    "server": "Server",
+    "clientVersion": "Verze klienta",
+    "serverVersion": "Verze serveru"
   },
   "appearance": {
     "title": "Vzhled složky",

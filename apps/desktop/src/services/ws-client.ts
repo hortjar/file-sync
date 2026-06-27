@@ -10,7 +10,7 @@ import { fetchWithAuth } from "../lib/fetch-with-auth";
 import { queryClient } from "../lib/query";
 import { authStore, logout } from "../stores/auth";
 import { linksStore, setFolderPaths } from "../stores/links";
-import { setSyncStatus } from "../stores/sync-status";
+import { markConnected, setSyncStatus } from "../stores/sync-status";
 
 import { downloadFile } from "./downloader";
 import { logger } from "./logger";
@@ -87,7 +87,7 @@ export async function loadAndRestoreLinks(): Promise<void> {
 
 async function onConnect(): Promise<void> {
   ws.reconnectDelay = WS_RECONNECT_MIN_MS;
-  setSyncStatus("idle");
+  markConnected();
   logger.info("[ws] connected — loading and restoring links");
   await loadAndRestoreLinks();
 }

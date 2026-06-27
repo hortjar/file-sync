@@ -168,20 +168,84 @@ export const refreshTokens = pgTable(
   (table) => [index("refresh_tokens_user_id_idx").on(table.userId)],
 );
 
-// Time-series snapshots of server-wide metrics (storage, files, devices,
-// request throughput). Written periodically by the metrics sampler and read
-// by the dashboard charts. Server-wide, so no userId column.
+// Time-series snapshots of metrics. Resource metrics (storage, files, folders,
+// devices) are recorded per-account (userId set); infrastructure counters
+// (requests, errors) are server-wide (userId null). Written periodically by the
+// metrics sampler and read by the dashboard charts.
 export const metricSamples = pgTable(
   "metric_samples",
   {
     id: uuid("id")
       .primaryKey()
       .default(sql`gen_random_uuid()`),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
     metric: varchar("metric", { length: 64 }).notNull(),
     value: bigint("value", { mode: "number" }).notNull(),
     capturedAt: timestamp("captured_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [index("metric_samples_metric_captured_idx").on(table.metric, table.capturedAt)],
+  (table) => [
+    index("metric_samples_metric_captured_idx").on(table.metric, table.capturedAt),
+    index("metric_samples_user_metric_captured_idx").on(
+      table.userId,
+      table.metric,
+      table.capturedAt,
+    ),
+  ],
+);
+
+// Uploaded log-file snapshots from desktop devices. Stored as raw text and
+// parsed client-side; per-account so the web dashboard can browse every
+// device's logs, while a desktop client only requests its own.
+export const deviceLogs = pgTable(
+  "device_logs",
+  {
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    deviceId: uuid("device_id")
+      .notNull()
+      .references(() => devices.id, { onDelete: "cascade" }),
+    filename: varchar("filename", { length: 255 }).notNull(),
+    content: text("content").notNull(),
+    sizeBytes: integer("size_bytes").notNull().default(0),
+    lineCount: integer("line_count").notNull().default(0),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    endedAt: timestamp("ended_at", { withTimezone: true }),
+    uploadedAt: timestamp("uploaded_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("device_logs_user_id_idx").on(table.userId),
+    index("device_logs_device_id_idx").on(table.deviceId),
+  ],
+);
+
+// Error (and other) notifications pushed live from devices, so the account
+// owner can see what went wrong on each device from the web dashboard.
+export const deviceEvents = pgTable(
+  "device_events",
+  {
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    deviceId: uuid("device_id")
+      .notNull()
+      .references(() => devices.id, { onDelete: "cascade" }),
+    level: varchar("level", { length: 16 }).notNull().default("error"),
+    title: text("title").notNull(),
+    description: text("description"),
+    occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("device_events_user_id_idx").on(table.userId),
+    index("device_events_device_id_idx").on(table.deviceId),
+  ],
 );
 
 // Relations

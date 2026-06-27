@@ -2,7 +2,8 @@
   "nav": {
     "dashboard": "Dashboard",
     "folders": "Folders",
-    "devices": "Devices"
+    "devices": "Devices",
+    "deviceLogs": "Device Logs"
   },
   "auth": {
     "signIn": "Sign in",
@@ -68,7 +69,27 @@
     "setLevel": "Set log level",
     "noLogs": "No log entries match the current filter.",
     "serverLevel": "Server log level",
-    "viewLevel": "View level"
+    "viewLevel": "View level",
+    "loading": "Loading…",
+    "backToList": "Back to list",
+    "noUploads": "No uploaded logs for this device yet",
+    "noEvents": "No errors reported from this device",
+    "lineCount_one": "{{count}} line",
+    "lineCount_other": "{{count}} lines"
+  },
+  "deviceLogs": {
+    "title": "Device Logs",
+    "subtitle": "Browse uploaded logs and errors from every device on your account",
+    "tabLogs": "Log files",
+    "tabErrors": "Errors"
+  },
+  "status": {
+    "online": "Online",
+    "offline": "Offline",
+    "connectedSince": "Connected since",
+    "server": "Server",
+    "clientVersion": "Client version",
+    "serverVersion": "Server version"
   },
   "notifications": {
     "markAllRead": "Mark all read"

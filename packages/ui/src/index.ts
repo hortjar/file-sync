@@ -26,6 +26,9 @@ export { Separator } from "./components/separator";
 export { MetricChart } from "./components/metric-chart";
 export type { MetricChartProperties, MetricPoint } from "./components/metric-chart";
 
+// Log parsing
+export { parseLogLine, parseLogText, logTimeRange } from "./lib/parse-log";
+
 // Log viewer
 export { LogViewer, LogDetail } from "./components/log-viewer";
 export type {

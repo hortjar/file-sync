@@ -8,6 +8,7 @@ type SyncStatusState = {
   pendingCount: number;
   lastSyncedAt: string | undefined;
   errorMessage: string | undefined;
+  connectedAt: string | undefined;
 };
 
 export const syncStatusStore = new Store<SyncStatusState>({
@@ -15,10 +16,27 @@ export const syncStatusStore = new Store<SyncStatusState>({
   pendingCount: 0,
   lastSyncedAt: undefined,
   errorMessage: undefined,
+  connectedAt: undefined,
 });
 
 export function setSyncStatus(status: SyncStatusKind, errorMessage?: string): void {
-  syncStatusStore.setState((s) => ({ ...s, status, errorMessage }));
+  syncStatusStore.setState((s) => ({
+    ...s,
+    status,
+    errorMessage,
+    // Losing the connection clears the "connected since" timestamp.
+    connectedAt: status === "error" ? undefined : s.connectedAt,
+  }));
+}
+
+/** Mark the WebSocket as freshly connected, stamping the connection time. */
+export function markConnected(): void {
+  syncStatusStore.setState((s) => ({
+    ...s,
+    status: "idle",
+    errorMessage: undefined,
+    connectedAt: new Date().toISOString(),
+  }));
 }
 
 export function setPendingCount(pendingCount: number): void {

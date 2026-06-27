@@ -12,6 +12,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { initApiClient, setAuthHeader } from "./lib/api-client";
 import { queryClient } from "./lib/query";
 import { Dashboard } from "./pages/Dashboard";
+import { DeviceLogsPage } from "./pages/DeviceLogsPage";
 import { DevicesPage } from "./pages/DevicesPage";
 import { FolderDetailPage } from "./pages/FolderDetailPage";
 import { FoldersPage } from "./pages/FoldersPage";
@@ -43,6 +44,7 @@ const router = createBrowserRouter([
       { path: "devices", element: <DevicesPage /> },
       { path: "logs", element: <LogsPage /> },
       { path: "logs/:id", element: <LogDetailPage /> },
+      { path: "device-logs", element: <DeviceLogsPage /> },
       { path: "notifications", element: <NotificationsPage /> },
     ],
   },

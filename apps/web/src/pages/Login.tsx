@@ -10,7 +10,11 @@ import { initApiClient, setAuthHeader } from "../lib/api-client";
 import { toast } from "../lib/toast";
 import { setServerUrl, setTokens, setUserEmail, setUserId, useAuthStore } from "../stores/auth";
 
-type LoginResponse = { accessToken: string; refreshToken: string; userId: string; email: string };
+type LoginResponse = {
+  accessToken: string;
+  refreshToken: string;
+  user: { id: string; email: string };
+};
 
 export function Login() {
   const { t } = useTranslation();
@@ -37,8 +41,8 @@ export function Login() {
         const response = data as LoginResponse;
         setServerUrl(serverUrl);
         setTokens(response.accessToken, response.refreshToken);
-        setUserId(response.userId);
-        setUserEmail(response.email);
+        setUserId(response.user.id);
+        setUserEmail(response.user.email);
         setAuthHeader(response.accessToken);
         void navigate("/dashboard");
       } catch {

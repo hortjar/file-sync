@@ -1,21 +1,12 @@
 import { Link } from "@tanstack/react-router";
-import {
-  AlertTriangle,
-  FileText,
-  FolderSync,
-  Globe,
-  LogOut,
-  Settings,
-  Wifi,
-  WifiOff,
-} from "lucide-react";
+import { AlertTriangle, FileText, FolderSync, Globe, LogOut, Settings } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { useConflictCount } from "../hooks/use-conflict-count";
 import { cn } from "../lib/cn";
 import { logout, useAuthStore } from "../stores/auth";
-import { useSyncStatusStore } from "../stores/sync-status";
 
+import { ConnectionStatus } from "./ConnectionStatus";
 import { NotificationBell } from "./NotificationBell";
 import { Badge } from "./ui/badge";
 import {
@@ -45,8 +36,6 @@ export function Sidebar() {
   const { t, i18n } = useTranslation();
   const userEmail = useAuthStore((s) => s.userEmail);
   const conflictCount = useConflictCount();
-  const status = useSyncStatusStore((s) => s.status);
-  const isOnline = status !== "error";
 
   function toggleLang() {
     void i18n.changeLanguage(i18n.language === "cs" ? "en" : "cs");
@@ -91,28 +80,8 @@ export function Sidebar() {
       <div className="flex flex-col gap-0.5 p-2 pb-3">
         <Separator className="mb-2 bg-white/[0.06]" />
 
-        {/* Connected status */}
-        <div className="flex items-center gap-2 px-3 py-1.5">
-          <div
-            className={cn(
-              "size-1.5 shrink-0 rounded-full",
-              isOnline ? "bg-[hsl(var(--success))]" : "bg-[hsl(var(--danger))]",
-            )}
-          />
-          <span className="flex-1 text-xs text-[hsl(var(--text-faint))]">
-            {t(
-              status === "syncing"
-                ? "sidebar.syncing"
-                : isOnline
-                  ? "sidebar.connected"
-                  : "sidebar.disconnected",
-            )}
-          </span>
-          {!isOnline && <WifiOff className="size-3 text-[hsl(var(--danger))]" />}
-          {isOnline && status !== "syncing" && (
-            <Wifi className="size-3 text-[hsl(var(--success))] opacity-50" />
-          )}
-        </div>
+        {/* Connection status (hover for details) */}
+        <ConnectionStatus />
 
         {/* Notifications */}
         <NotificationBell />

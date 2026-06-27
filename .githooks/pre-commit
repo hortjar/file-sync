@@ -22,33 +22,57 @@ write_json_version() {
     perl -pi -e "s/\"version\": \"${old_esc}\"/\"version\": \"${new}\"/" "$file"
 }
 
-# ── Desktop: tauri.conf.json ─────────────────────────────────────────────────
-TAURI_CONF="apps/desktop/src-tauri/tauri.conf.json"
-tauri_old=$(read_json_version "$TAURI_CONF")
-tauri_new=$(bump_patch "$tauri_old")
-write_json_version "$TAURI_CONF" "$tauri_old" "$tauri_new"
-git add "$TAURI_CONF"
+# Bump a JSON package's "version" and re-stage it. Prints the change.
+bump_json_pkg() {
+    local file="$1" label="$2" old new
+    old=$(read_json_version "$file")
+    new=$(bump_patch "$old")
+    write_json_version "$file" "$old" "$new"
+    git add "$file"
+    printf '   %-8s %s → %s\n' "$label" "$old" "$new"
+}
 
-# ── Desktop: Cargo.toml ──────────────────────────────────────────────────────
-CARGO_TOML="apps/desktop/src-tauri/Cargo.toml"
-tauri_old_esc=$(printf '%s' "$tauri_old" | sed 's/\./\\./g')
-perl -pi -e "s/^version = \"${tauri_old_esc}\"/version = \"${tauri_new}\"/" "$CARGO_TOML"
-git add "$CARGO_TOML"
+# Which areas have staged changes?
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+changed() { grep -q "$1" <<< "$staged"; }
 
-# ── Desktop: package.json ────────────────────────────────────────────────────
-DESKTOP_PKG="apps/desktop/package.json"
-desktop_old=$(read_json_version "$DESKTOP_PKG")
-desktop_new=$(bump_patch "$desktop_old")
-write_json_version "$DESKTOP_PKG" "$desktop_old" "$desktop_new"
-git add "$DESKTOP_PKG"
+web_changed=false
+server_changed=false
+desktop_changed=false
+changed '^apps/web/'     && web_changed=true || true
+changed '^apps/server/'  && server_changed=true || true
+changed '^apps/desktop/' && desktop_changed=true || true
 
-# ── Server: package.json ─────────────────────────────────────────────────────
-SERVER_PKG="apps/server/package.json"
-server_old=$(read_json_version "$SERVER_PKG")
-server_new=$(bump_patch "$server_old")
-write_json_version "$SERVER_PKG" "$server_old" "$server_new"
-git add "$SERVER_PKG"
+# Shared packages feed every app — bump all three when they change.
+if changed '^packages/'; then
+    web_changed=true
+    server_changed=true
+    desktop_changed=true
+fi
+
+if [[ "$web_changed" == false && "$server_changed" == false && "$desktop_changed" == false ]]; then
+    exit 0
+fi
 
 printf '\n📦 version bump\n'
-printf '   desktop  %s → %s\n' "$tauri_old" "$tauri_new"
-printf '   server   %s → %s\n' "$server_old" "$server_new"
+
+if [[ "$server_changed" == true ]]; then
+    bump_json_pkg "apps/server/package.json" "server"
+fi
+
+if [[ "$web_changed" == true ]]; then
+    bump_json_pkg "apps/web/package.json" "web"
+fi
+
+if [[ "$desktop_changed" == true ]]; then
+    TAURI_CONF="apps/desktop/src-tauri/tauri.conf.json"
+    CARGO_TOML="apps/desktop/src-tauri/Cargo.toml"
+    tauri_old=$(read_json_version "$TAURI_CONF")
+    tauri_new=$(bump_patch "$tauri_old")
+    write_json_version "$TAURI_CONF" "$tauri_old" "$tauri_new"
+    tauri_old_esc=$(printf '%s' "$tauri_old" | sed 's/\./\\./g')
+    perl -pi -e "s/^version = \"${tauri_old_esc}\"/version = \"${tauri_new}\"/" "$CARGO_TOML"
+    git add "$TAURI_CONF" "$CARGO_TOML"
+    bump_json_pkg "apps/desktop/package.json" "desktop"
+    printf '   %-8s %s → %s (tauri + cargo)\n' "tauri" "$tauri_old" "$tauri_new"
+fi

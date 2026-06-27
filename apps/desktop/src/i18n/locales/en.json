@@ -142,9 +142,30 @@
     "title": "Logs",
     "showLevel": "Show level",
     "writeLevel": "Write level",
+    "refresh": "Refresh",
+    "levelDebug": "Debug",
     "levelInfo": "Info",
+    "levelWarn": "Warn",
+    "levelError": "Error",
     "loading": "Loading logs…",
-    "loadFailed": "Failed to load logs"
+    "loadFailed": "Failed to load logs",
+    "tabLive": "Live",
+    "tabUploaded": "Uploaded",
+    "uploadCurrent": "Upload current log",
+    "uploadSuccess": "Uploaded {{file}}",
+    "uploadFailed": "Log upload failed",
+    "backToList": "Back to list",
+    "noUploads": "No uploaded logs yet",
+    "lineCount_one": "{{count}} line",
+    "lineCount_other": "{{count}} lines"
+  },
+  "status": {
+    "online": "Online",
+    "offline": "Offline",
+    "connectedSince": "Connected since",
+    "server": "Server",
+    "clientVersion": "Client version",
+    "serverVersion": "Server version"
   },
   "appearance": {
     "title": "Folder Appearance",

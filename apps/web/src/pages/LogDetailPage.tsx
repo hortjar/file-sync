@@ -12,7 +12,9 @@ export function LogDetailPage() {
   const entry = getCachedLogEntry(id);
 
   function handleClose() {
-    void navigate("/logs");
+    // Go back to wherever we came from (server logs or a device's log list)
+    // rather than always landing on the server-logs page.
+    void navigate(-1);
   }
 
   if (!entry) {
