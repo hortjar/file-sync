@@ -1,4 +1,6 @@
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
+import { getVersion } from "@tauri-apps/api/app";
 import { AlertTriangle, FileText, FolderSync, Globe, LogOut, Settings } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -25,7 +27,7 @@ const navItems = [
 ] as const;
 
 const navLinkClass = cn(
-  "flex items-center rounded-xl px-3 py-2 text-[13px] transition-all duration-150",
+  "flex cursor-pointer items-center rounded-xl px-3 py-2 text-[13px] transition-all duration-150",
   "text-[hsl(var(--text-muted))]",
   "hover:bg-white/[0.06] hover:text-[hsl(var(--text))]",
   "[&.active]:bg-white/[0.08] [&.active]:text-white [&.active]:font-medium",
@@ -36,6 +38,12 @@ export function Sidebar() {
   const { t, i18n } = useTranslation();
   const userEmail = useAuthStore((s) => s.userEmail);
   const conflictCount = useConflictCount();
+
+  const { data: appVersion } = useQuery({
+    queryKey: ["app-version"],
+    queryFn: () => getVersion(),
+    staleTime: Infinity,
+  });
 
   function toggleLang() {
     void i18n.changeLanguage(i18n.language === "cs" ? "en" : "cs");
@@ -54,9 +62,23 @@ export function Sidebar() {
         <div className="flex size-7 shrink-0 items-center justify-center rounded-xl gradient-brand shadow-md shadow-[hsl(var(--brand-from)/.3)]">
           <FolderSync className="size-3.5 text-white" />
         </div>
-        <span className="text-[13px] font-semibold tracking-tight gradient-brand-text">
-          FileSync
-        </span>
+        <div className="flex min-w-0 flex-col">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[13px] font-semibold tracking-tight gradient-brand-text">
+              FileSync
+            </span>
+            {import.meta.env.DEV && (
+              <span className="rounded-full bg-amber-400/15 px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide text-amber-400">
+                Dev
+              </span>
+            )}
+          </div>
+          {appVersion && (
+            <span className="text-[10px] leading-tight text-[hsl(var(--text-faint))]">
+              v{appVersion}
+            </span>
+          )}
+        </div>
       </div>
 
       <Separator className="bg-white/[0.06]" />
@@ -101,7 +123,7 @@ export function Sidebar() {
         {/* User — click to reveal sign-out */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] text-[hsl(var(--text-muted))] transition-all duration-150 hover:bg-white/[0.06] hover:text-[hsl(var(--text))]">
+            <button className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] text-[hsl(var(--text-muted))] transition-all duration-150 hover:bg-white/[0.06] hover:text-[hsl(var(--text))]">
               <div className="flex size-6 shrink-0 items-center justify-center rounded-full gradient-brand text-[10px] font-bold text-white shadow-sm">
                 {(userEmail?.[0] ?? "?").toUpperCase()}
               </div>
