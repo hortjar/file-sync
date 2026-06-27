@@ -23,7 +23,6 @@ import { HealthCheck } from "../components/HealthCheck";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
-import { Separator } from "../components/ui/separator";
 import {
   deleteApiDevicesByIdMutation,
   getApiDevicesOptions,
@@ -192,16 +191,17 @@ export function SettingsPage() {
             </div>
             <CardDescription>{t("settings.accentColorHint")}</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            {/* Preset swatches */}
-            <div className="flex flex-wrap gap-2">
+          <CardContent className="flex flex-col gap-3">
+            {/* Preset swatches, with the custom color picker as the final option. */}
+            <div className="flex flex-wrap items-center gap-2">
               {COLOR_OPTIONS.map((color) => (
                 <button
                   key={color}
+                  type="button"
                   title={THEME_LABELS[color]}
                   onClick={() => setTheme({ color })}
                   className={cn(
-                    "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-all",
+                    "flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-all",
                     theme.color === color && !customColor
                       ? "border-[hsl(var(--text-muted)/.4)] bg-[hsl(var(--surface-2))] font-medium text-[hsl(var(--text))] shadow-[var(--shadow-xs)]"
                       : "border-[hsl(var(--border))] text-[hsl(var(--text-muted))] hover:border-[hsl(var(--text-muted)/.3)] hover:text-[hsl(var(--text))]",
@@ -211,35 +211,31 @@ export function SettingsPage() {
                   {THEME_LABELS[color]}
                 </button>
               ))}
-            </div>
 
-            <Separator className="bg-white/[0.06]" />
-
-            {/* Custom color picker */}
-            <div className="flex items-center gap-3">
-              <div
-                className="relative size-8 shrink-0 cursor-pointer overflow-hidden rounded-lg border border-white/[0.12]"
-                style={{ backgroundColor: customColor ?? "#8b5cf6" }}
-                onClick={() => colorInputReference.current?.click()}
+              {/* Custom color — a chip that opens the native color picker. */}
+              <label
+                title={t("settings.customColorHint")}
+                className={cn(
+                  "relative flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-all",
+                  customColor
+                    ? "border-[hsl(var(--text-muted)/.4)] bg-[hsl(var(--surface-2))] font-medium text-[hsl(var(--text))] shadow-[var(--shadow-xs)]"
+                    : "border-[hsl(var(--border))] text-[hsl(var(--text-muted))] hover:border-[hsl(var(--text-muted)/.3)] hover:text-[hsl(var(--text))]",
+                )}
               >
+                <span
+                  className="size-2.5 rounded-full border border-white/[0.2]"
+                  style={{ backgroundColor: customColor ?? "#8b5cf6" }}
+                />
+                {customColor ?? t("settings.customColor")}
                 <input
                   ref={colorInputReference}
                   type="color"
                   defaultValue={customColor ?? "#8b5cf6"}
                   onChange={(event) => setCustomColor(event.target.value)}
-                  className="absolute inset-0 cursor-pointer opacity-0"
+                  className="absolute inset-0 size-0 cursor-pointer opacity-0"
                 />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-[hsl(var(--text))]">
-                  {t("settings.customColor")}
-                </p>
-                <p className="text-xs text-[hsl(var(--text-faint))]">
-                  {customColor
-                    ? t("settings.customColorOverride", { color: customColor })
-                    : t("settings.customColorHint")}
-                </p>
-              </div>
+              </label>
+
               {customColor && (
                 <Button
                   variant="ghost"
@@ -268,9 +264,10 @@ export function SettingsPage() {
               {MODE_OPTIONS.map(({ value, icon: Icon, labelKey }) => (
                 <button
                   key={value}
+                  type="button"
                   onClick={() => setTheme({ mode: value })}
                   className={cn(
-                    "flex flex-col items-center gap-2 rounded-xl border p-4 text-xs transition-all",
+                    "flex cursor-pointer flex-col items-center gap-2 rounded-xl border p-4 text-xs transition-all",
                     theme.mode === value
                       ? "border-[hsl(var(--text-muted)/.4)] bg-[hsl(var(--surface-2))] font-medium text-[hsl(var(--text))] shadow-[var(--shadow-xs)]"
                       : "border-[hsl(var(--border))] text-[hsl(var(--text-muted))] hover:border-[hsl(var(--text-muted)/.3)] hover:text-[hsl(var(--text))]",
@@ -303,9 +300,10 @@ export function SettingsPage() {
                 {LOG_LEVEL_OPTIONS.map(({ value, labelKey }) => (
                   <button
                     key={value}
+                    type="button"
                     onClick={() => setLogLevel(value)}
                     className={cn(
-                      "rounded-lg border py-2 text-xs font-medium transition-all",
+                      "cursor-pointer rounded-lg border py-2 text-xs font-medium transition-all",
                       logLevel === value
                         ? "border-[hsl(var(--text-muted)/.4)] bg-[hsl(var(--surface-2))] text-[hsl(var(--text))] shadow-[var(--shadow-xs)]"
                         : "border-[hsl(var(--border))] text-[hsl(var(--text-muted))] hover:border-[hsl(var(--text-muted)/.3)] hover:text-[hsl(var(--text))]",

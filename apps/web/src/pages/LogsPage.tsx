@@ -132,7 +132,7 @@ export function LogsPage() {
             <button
               type="button"
               onClick={toggleAllLevels}
-              className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${
+              className={`cursor-pointer rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${
                 isAllSelected
                   ? "border-[hsl(var(--text-muted)/.4)] bg-[hsl(var(--surface-2))] text-[hsl(var(--text))]"
                   : "border-[hsl(var(--border))] text-[hsl(var(--text-muted))] hover:text-[hsl(var(--text))]"
@@ -148,7 +148,7 @@ export function LogsPage() {
                   type="button"
                   aria-pressed={isSelected}
                   onClick={() => toggleLevel(level)}
-                  className={`rounded-lg border px-3 py-1.5 text-xs font-medium capitalize transition-all ${
+                  className={`cursor-pointer rounded-lg border px-3 py-1.5 text-xs font-medium capitalize transition-all ${
                     isSelected
                       ? "border-[hsl(var(--text-muted)/.4)] bg-[hsl(var(--surface-2))] text-[hsl(var(--text))]"
                       : "border-[hsl(var(--border))] text-[hsl(var(--text-muted))] hover:text-[hsl(var(--text))]"

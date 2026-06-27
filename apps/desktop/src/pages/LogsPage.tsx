@@ -82,7 +82,7 @@ function LevelFilter({
             key={value}
             type="button"
             onClick={() => onChange(value)}
-            className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${
+            className={`cursor-pointer rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${
               viewLevel === value
                 ? "border-[hsl(var(--text-muted)/.4)] bg-[hsl(var(--surface-2))] text-[hsl(var(--text))]"
                 : "border-[hsl(var(--border))] text-[hsl(var(--text-muted))] hover:text-[hsl(var(--text))]"
@@ -152,7 +152,7 @@ function LiveTab({
                 key={value}
                 type="button"
                 onClick={() => setLogLevel(value)}
-                className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${
+                className={`cursor-pointer rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${
                   logLevel === value
                     ? "border-[hsl(var(--brand-from)/.5)] bg-[hsl(var(--brand-from)/.1)] text-[hsl(var(--brand-from))]"
                     : "border-[hsl(var(--border))] text-[hsl(var(--text-muted))] hover:text-[hsl(var(--text))]"
@@ -251,7 +251,7 @@ function UploadedTab({
         <button
           type="button"
           onClick={() => setSelectedId(undefined)}
-          className="mb-2 flex items-center gap-1 text-xs text-[hsl(var(--text-muted))] hover:text-[hsl(var(--text))]"
+          className="mb-2 flex cursor-pointer items-center gap-1 text-xs text-[hsl(var(--text-muted))] hover:text-[hsl(var(--text))]"
         >
           <ChevronLeft className="size-3.5" />
           {t("logs.backToList")}
@@ -292,7 +292,7 @@ function UploadedTab({
               key={log.id}
               type="button"
               onClick={() => setSelectedId(log.id)}
-              className="flex items-center justify-between gap-4 px-4 py-3 text-left transition-colors hover:bg-white/[0.04]"
+              className="flex cursor-pointer items-center justify-between gap-4 px-4 py-3 text-left transition-colors hover:bg-white/[0.04]"
             >
               <div className="min-w-0">
                 <p className="truncate font-mono text-xs text-[hsl(var(--text))]">{log.filename}</p>
@@ -334,7 +334,7 @@ export function LogsPage() {
               key={value}
               type="button"
               onClick={() => setTab(value)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
+              className={`cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
                 tab === value
                   ? "bg-[hsl(var(--surface-2))] text-[hsl(var(--text))]"
                   : "text-[hsl(var(--text-muted))] hover:text-[hsl(var(--text))]"

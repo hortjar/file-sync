@@ -24,7 +24,7 @@ export function LogDetailPage() {
         <p className="mt-1 text-xs text-[hsl(var(--text-faint))]">{t("logs.notFoundHint")}</p>
         <button
           type="button"
-          className="mt-4 inline-flex items-center gap-1 text-xs text-[hsl(var(--brand-from))] hover:underline"
+          className="mt-4 inline-flex cursor-pointer items-center gap-1 text-xs text-[hsl(var(--brand-from))] hover:underline"
           onClick={handleClose}
         >
           <ArrowLeft className="size-3" />

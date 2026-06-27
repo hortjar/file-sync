@@ -96,7 +96,7 @@ export function FolderIconPicker({
                 key={key}
                 onClick={() => form.setFieldValue("icon", key)}
                 className={cn(
-                  "flex size-9 items-center justify-center rounded-lg border transition-all",
+                  "flex size-9 cursor-pointer items-center justify-center rounded-lg border transition-all",
                   selectedIcon === key
                     ? "border-transparent text-white"
                     : "border-white/[0.07] bg-white/[0.03] text-[hsl(var(--text-muted))] hover:border-white/[0.15] hover:text-[hsl(var(--text))]",
@@ -127,7 +127,7 @@ export function FolderIconPicker({
                 title={t(labelKey)}
                 onClick={() => form.setFieldValue("color", value)}
                 className={cn(
-                  "size-7 rounded-full border-2 transition-all",
+                  "size-7 cursor-pointer rounded-full border-2 transition-all",
                   selectedColor === value
                     ? "border-white scale-110"
                     : "border-transparent hover:scale-105",
