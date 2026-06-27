@@ -20,7 +20,7 @@ export function UserMenu() {
     <button
       type="button"
       onClick={handleLogout}
-      className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] text-[hsl(var(--text-muted))] transition-all duration-150 hover:bg-[hsl(var(--danger)/.1)] hover:text-[hsl(var(--danger))]"
+      className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] text-[hsl(var(--text-muted))] transition-all duration-150 hover:bg-[hsl(var(--danger)/.1)] hover:text-[hsl(var(--danger))]"
     >
       <div className="flex size-6 shrink-0 items-center justify-center rounded-full gradient-brand text-[10px] font-bold text-white shadow-sm">
         {(userEmail?.[0] ?? "?").toUpperCase()}

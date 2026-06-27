@@ -28,7 +28,7 @@ const TYPE_COLOR: Record<NotificationType, string> = {
 };
 
 const triggerClass = cn(
-  "flex w-full items-center rounded-xl px-3 py-2 text-[13px] transition-all duration-150",
+  "flex w-full cursor-pointer items-center rounded-xl px-3 py-2 text-[13px] transition-all duration-150",
   "text-[hsl(var(--text-muted))]",
   "hover:bg-white/[0.06] hover:text-[hsl(var(--text))]",
 );
