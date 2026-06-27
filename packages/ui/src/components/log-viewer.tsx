@@ -1,4 +1,5 @@
 import {
+  Activity,
   AlertCircle,
   ArrowRightLeft,
   Braces,
@@ -349,6 +350,16 @@ function isLeafValue(value: unknown): boolean {
   return parsed === null || parsed === undefined || typeof parsed !== "object";
 }
 
+/** Small badge marking a value as a list and how many items it holds. */
+function ArrayBadge({ count }: { count: number }) {
+  return (
+    <span className="inline-flex w-fit items-center gap-1.5 rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--surface-2))] px-2 py-0.5 text-[11px] font-medium text-[hsl(var(--text-muted))]">
+      <List className="size-3.5 text-[hsl(var(--text-faint))]" />
+      Array · {count} {count === 1 ? "item" : "items"}
+    </span>
+  );
+}
+
 /** A single field: leaf values sit in a row beside the label; nested values stack. */
 function Field({ keyName, value }: { keyName: string; value: unknown }) {
   if (!isLeafValue(value)) {
@@ -361,9 +372,9 @@ function Field({ keyName, value }: { keyName: string; value: unknown }) {
   }
   return (
     <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
-      <span className="flex shrink-0 items-center gap-1.5 sm:w-48">
+      <span className="flex shrink-0 items-center gap-1.5 sm:w-52">
         <KeyIcon keyName={keyName} className="size-3.5 shrink-0" />
-        <span className="break-all font-mono text-[11px] font-semibold text-[hsl(var(--text-muted))]">
+        <span className="whitespace-nowrap font-mono text-[11px] font-semibold text-[hsl(var(--text-muted))]">
           {formatKey(keyName)}
         </span>
       </span>
@@ -488,7 +499,7 @@ function BooleanValue({ value }: { value: boolean }) {
 function TimestampValue({ iso }: { iso: string }) {
   const relative = formatRelative(iso);
   return (
-    <span className="inline-flex flex-wrap items-center gap-1.5">
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
       <Clock className="size-3.5 shrink-0 text-[hsl(var(--text-faint))]" />
       <span className="font-mono text-xs text-[hsl(var(--text))]">{formatTimestamp(iso)}</span>
       {relative && <span className="text-[11px] text-[hsl(var(--text-faint))]">· {relative}</span>}
@@ -660,7 +671,7 @@ function PrettyForm({ value }: { value: unknown }) {
     const entries = Object.entries(parsed);
     if (entries.length === 0) return <EmptyValue label="(empty object)" />;
     return (
-      <div className="space-y-2.5">
+      <div className="flex flex-col gap-2">
         {entries.map(([childKey, childValue]) => (
           <Field key={childKey} keyName={childKey} value={childValue} />
         ))}
@@ -671,7 +682,8 @@ function PrettyForm({ value }: { value: unknown }) {
   if (Array.isArray(parsed)) {
     if (parsed.length === 0) return <EmptyValue label="(empty array)" />;
     return (
-      <div className="space-y-2">
+      <div className="flex flex-col gap-2">
+        <ArrayBadge count={parsed.length} />
         {(parsed as unknown[]).map((item, itemIndex) => (
           <div
             key={itemIndex}
@@ -736,13 +748,10 @@ function HeadersBlock({ value }: { value: unknown }) {
   return (
     <div className="flex flex-col gap-2 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--bg))] p-3">
       {entries.map(([headerKey, headerValue]) => (
-        <div key={headerKey} className="flex flex-col gap-1 sm:flex-row sm:items-start sm:gap-3">
-          <span className="flex shrink-0 items-center gap-1.5 sm:w-52">
-            <KeyIcon
-              keyName={headerKey}
-              className="size-3.5 shrink-0 text-[hsl(var(--text-faint))]"
-            />
-            <span className="break-all font-mono text-[11px] font-semibold text-[hsl(var(--text-muted))]">
+        <div key={headerKey} className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+          <span className="flex shrink-0 items-center gap-1.5 sm:w-64">
+            <KeyIcon keyName={headerKey} className="size-3.5 shrink-0" />
+            <span className="whitespace-nowrap font-mono text-[11px] font-semibold text-[hsl(var(--text-muted))]">
               {formatKey(headerKey)}
             </span>
           </span>
@@ -1000,11 +1009,17 @@ export function LogDetail({ entry, onClose, showBack = false }: LogDetailPropert
           <span className="ml-1.5 text-[hsl(var(--text-faint))]">· {formatRelative(entry.ts)}</span>
         )}
       </span>
-      <span className="font-semibold text-[hsl(var(--text-muted))]">Level</span>
+      <span className="flex items-center gap-1.5 font-semibold text-[hsl(var(--text-muted))]">
+        <Activity className="size-3.5 text-[hsl(var(--text-faint))]" />
+        Level
+      </span>
       <span className={levelColor}>{level.toUpperCase()}</span>
       {method && (
         <>
-          <span className="font-semibold text-[hsl(var(--text-muted))]">Method</span>
+          <span className="flex items-center gap-1.5 font-semibold text-[hsl(var(--text-muted))]">
+            <ArrowRightLeft className="size-3.5 text-[hsl(var(--text-faint))]" />
+            Method
+          </span>
           <span>
             <MethodBadge method={method} className="text-[10px]" />
           </span>
@@ -1012,7 +1027,10 @@ export function LogDetail({ entry, onClose, showBack = false }: LogDetailPropert
       )}
       {entry.source && (
         <>
-          <span className="font-semibold text-[hsl(var(--text-muted))]">Source</span>
+          <span className="flex items-center gap-1.5 font-semibold text-[hsl(var(--text-muted))]">
+            <Tag className="size-3.5 text-[hsl(var(--text-faint))]" />
+            Source
+          </span>
           <span className="text-[hsl(var(--brand-from))]">{entry.source}</span>
         </>
       )}
