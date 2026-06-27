@@ -1,19 +1,31 @@
-import { ChevronDown, ChevronRight, File, FolderOpen } from "lucide-react";
+import { ChevronDown, ChevronRight, Download, File, FolderOpen } from "lucide-react";
 import { useState } from "react";
 
 export type TreeNode = {
   name: string;
   path: string;
   isDir: boolean;
+  /** File-entry id for leaf files; undefined for directories. */
+  id?: string | undefined;
   size: number;
   mtime: string;
   children: TreeNode[];
 };
 
 export type FileEntryForTree = {
+  /** Server file-entry id, used to download the file. */
+  id?: string | undefined;
   relativePath: string;
   size: number;
   mtime: string;
+};
+
+/** Optional download actions; when provided, hover affordances are rendered. */
+export type TreeDownloadHandlers = {
+  /** Download a single file leaf. */
+  onDownloadFile?: ((node: TreeNode) => void) | undefined;
+  /** Download a directory subtree (e.g. as a zip). */
+  onDownloadFolder?: ((node: TreeNode) => void) | undefined;
 };
 
 function sortNodes(nodes: TreeNode[]): TreeNode[] {
@@ -44,6 +56,7 @@ export function buildTree(entries: FileEntryForTree[]): TreeNode[] {
               name: part,
               path: nodePath,
               isDir: false,
+              id: entry.id,
               size: entry.size,
               mtime: entry.mtime,
               children: [],
@@ -79,30 +92,66 @@ export function formatDate(iso: string): string {
   });
 }
 
-export function TreeItem({ node, depth }: { node: TreeNode; depth: number }) {
+/** Small hover-revealed download button shared by file and folder rows. */
+function DownloadButton({ title, onClick }: { title: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      title={title}
+      aria-label={title}
+      onClick={(event) => {
+        event.stopPropagation();
+        onClick();
+      }}
+      className="shrink-0 cursor-pointer rounded p-1 text-[hsl(var(--text-faint))] opacity-0 transition-opacity hover:text-[hsl(var(--text))] group-hover:opacity-100 focus-visible:opacity-100"
+    >
+      <Download className="size-3.5" />
+    </button>
+  );
+}
+
+export function TreeItem({
+  node,
+  depth,
+  onDownloadFile,
+  onDownloadFolder,
+}: { node: TreeNode; depth: number } & TreeDownloadHandlers) {
   const [isExpanded, setIsExpanded] = useState(true);
   const indent = 8 + depth * 16;
 
   if (node.isDir) {
     return (
       <div>
-        <button
-          type="button"
-          onClick={() => setIsExpanded((v) => !v)}
-          className="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1 text-left text-sm hover:bg-[hsl(var(--surface-2))]"
+        <div
+          className="group flex items-center gap-1 rounded pr-1 text-sm hover:bg-[hsl(var(--surface-2))]"
           style={{ paddingLeft: `${indent}px` }}
         >
-          {isExpanded ? (
-            <ChevronDown className="size-3.5 shrink-0 text-[hsl(var(--text-faint))]" />
-          ) : (
-            <ChevronRight className="size-3.5 shrink-0 text-[hsl(var(--text-faint))]" />
+          <button
+            type="button"
+            onClick={() => setIsExpanded((v) => !v)}
+            className="flex flex-1 cursor-pointer items-center gap-2 py-1 text-left"
+          >
+            {isExpanded ? (
+              <ChevronDown className="size-3.5 shrink-0 text-[hsl(var(--text-faint))]" />
+            ) : (
+              <ChevronRight className="size-3.5 shrink-0 text-[hsl(var(--text-faint))]" />
+            )}
+            <FolderOpen className="size-3.5 shrink-0 text-[hsl(var(--brand-from))]" />
+            <span className="font-medium text-[hsl(var(--text))]">{node.name}</span>
+          </button>
+          {onDownloadFolder && (
+            <DownloadButton title="Download as zip" onClick={() => onDownloadFolder(node)} />
           )}
-          <FolderOpen className="size-3.5 shrink-0 text-[hsl(var(--brand-from))]" />
-          <span className="font-medium text-[hsl(var(--text))]">{node.name}</span>
-        </button>
+        </div>
         {isExpanded &&
           node.children.map((child) => (
-            <TreeItem key={child.path} node={child} depth={depth + 1} />
+            <TreeItem
+              key={child.path}
+              node={child}
+              depth={depth + 1}
+              onDownloadFile={onDownloadFile}
+              onDownloadFolder={onDownloadFolder}
+            />
           ))}
       </div>
     );
@@ -110,7 +159,7 @@ export function TreeItem({ node, depth }: { node: TreeNode; depth: number }) {
 
   return (
     <div
-      className="flex items-center gap-2 rounded px-2 py-1 text-sm hover:bg-[hsl(var(--surface-2))]"
+      className="group flex items-center gap-2 rounded px-2 py-1 text-sm hover:bg-[hsl(var(--surface-2))]"
       style={{ paddingLeft: `${indent}px` }}
     >
       <div className="size-3.5 shrink-0" />
@@ -122,6 +171,9 @@ export function TreeItem({ node, depth }: { node: TreeNode; depth: number }) {
       <span className="hidden w-28 shrink-0 text-right text-xs text-[hsl(var(--text-faint))] sm:block">
         {formatDate(node.mtime)}
       </span>
+      {onDownloadFile && node.id && (
+        <DownloadButton title="Download" onClick={() => onDownloadFile(node)} />
+      )}
     </div>
   );
 }
