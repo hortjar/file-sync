@@ -14,20 +14,40 @@ import { linksStore } from "../stores/links";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 
-type CheckStatus = "ok" | "warning" | "error";
+type CheckStatus = "pending" | "ok" | "warning" | "error";
+type ResolvedStatus = Exclude<CheckStatus, "pending">;
 type Check = { id: string; label: string; status: CheckStatus; detail: string };
 
-const STATUS_ICON: Record<CheckStatus, typeof CheckCircle2> = {
+const STATUS_ICON: Record<ResolvedStatus, typeof CheckCircle2> = {
   ok: CheckCircle2,
   warning: AlertTriangle,
   error: XCircle,
 };
 
-const STATUS_COLOR: Record<CheckStatus, string> = {
+const STATUS_COLOR: Record<ResolvedStatus, string> = {
   ok: "text-[hsl(var(--success))]",
   warning: "text-amber-400",
   error: "text-[hsl(var(--danger))]",
 };
+
+const CHECK_DEFS: { id: string; labelKey: string }[] = [
+  { id: "server", labelKey: "health.serverLabel" },
+  { id: "version", labelKey: "health.versionLabel" },
+  { id: "auth", labelKey: "health.authLabel" },
+  { id: "notifications", labelKey: "health.notificationsLabel" },
+  { id: "folders", labelKey: "health.foldersLabel" },
+];
+
+/** Spinner while a check runs, otherwise the resolved status icon. */
+function StatusGlyph({ status }: { status: CheckStatus }) {
+  if (status === "pending") {
+    return (
+      <span className="mt-0.5 block size-4 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent text-[hsl(var(--text-faint))]" />
+    );
+  }
+  const Icon = STATUS_ICON[status];
+  return <Icon className={cn("mt-0.5 size-4 shrink-0", STATUS_COLOR[status])} />;
+}
 
 export function HealthCheck() {
   const { t } = useTranslation();
@@ -36,100 +56,106 @@ export function HealthCheck() {
 
   async function runChecks() {
     setIsRunning(true);
-    const results: Check[] = [];
+    // Seed every row up-front in a pending (loading) state so each check shows
+    // its own spinner and resolves independently, rather than the whole panel
+    // waiting behind a single overall loader.
+    const pending: CheckStatus = "pending";
+    setChecks(
+      CHECK_DEFS.map((definition) => ({
+        id: definition.id,
+        label: t(definition.labelKey),
+        status: pending,
+        detail: "",
+      })),
+    );
 
-    // Server reachability
-    let latestClientVersion: string | undefined;
-    try {
-      const { data, error } = await getHealth();
-      latestClientVersion = (data as { latestClientVersion?: string } | undefined)
-        ?.latestClientVersion;
-      results.push({
-        id: "server",
-        label: t("health.serverLabel"),
-        status: error ? "error" : "ok",
-        detail: t(error ? "health.serverError" : "health.serverOk"),
-      });
-    } catch {
-      results.push({
-        id: "server",
-        label: t("health.serverLabel"),
-        status: "error",
-        detail: t("health.serverError"),
-      });
-    }
+    const update = (id: string, status: ResolvedStatus, detail: string) =>
+      setChecks((previous) =>
+        previous.map((check) => (check.id === id ? { ...check, status, detail } : check)),
+      );
 
-    // Client version — informational warning when behind the server's latest.
-    try {
-      const appVersion = await getVersion();
-      const isVersionOutdated = isOutdated(appVersion, latestClientVersion);
-      results.push({
-        id: "version",
-        label: t("health.versionLabel"),
-        status: isVersionOutdated ? "warning" : "ok",
-        detail: isVersionOutdated
-          ? t("health.versionOutdated", { current: appVersion, latest: latestClientVersion ?? "?" })
-          : t("health.versionOk", { version: appVersion }),
-      });
-    } catch {
-      // Version unavailable — skip the check rather than failing the panel.
-    }
+    // Server reachability — also yields the latest client version for the
+    // version check, so the two run back-to-back within one task.
+    const serverAndVersion = (async () => {
+      let latestClientVersion: string | undefined;
+      try {
+        const { data, error } = await getHealth();
+        latestClientVersion = (data as { latestClientVersion?: string } | undefined)
+          ?.latestClientVersion;
+        update(
+          "server",
+          error ? "error" : "ok",
+          t(error ? "health.serverError" : "health.serverOk"),
+        );
+      } catch {
+        update("server", "error", t("health.serverError"));
+      }
 
-    // Authentication
+      try {
+        const appVersion = await getVersion();
+        const isVersionOutdated = isOutdated(appVersion, latestClientVersion);
+        update(
+          "version",
+          isVersionOutdated ? "warning" : "ok",
+          isVersionOutdated
+            ? t("health.versionOutdated", {
+                current: appVersion,
+                latest: latestClientVersion ?? "?",
+              })
+            : t("health.versionOk", { version: appVersion }),
+        );
+      } catch {
+        update("version", "ok", t("health.versionOk", { version: "?" }));
+      }
+    })();
+
+    // Auth is an instant, synchronous check — no need to wrap it in a task.
     const { isAuthenticated, accessToken } = authStore.state;
     const isAuthOk = isAuthenticated && Boolean(accessToken);
-    results.push({
-      id: "auth",
-      label: t("health.authLabel"),
-      status: isAuthOk ? "ok" : "error",
-      detail: t(isAuthOk ? "health.authOk" : "health.authError"),
-    });
+    update("auth", isAuthOk ? "ok" : "error", t(isAuthOk ? "health.authOk" : "health.authError"));
 
-    // Notification permission
-    let isNotifGranted = await isPermissionGranted();
-    if (!isNotifGranted) {
-      isNotifGranted = (await requestPermission()) === "granted";
-    }
-    results.push({
-      id: "notifications",
-      label: t("health.notificationsLabel"),
-      status: isNotifGranted ? "ok" : "warning",
-      detail: t(isNotifGranted ? "health.notificationsOk" : "health.notificationsDenied"),
-    });
-
-    // Folder read/write access (the macOS protected-folder permission)
-    const paths = Object.values(linksStore.state.folderPaths);
-    if (paths.length === 0) {
-      results.push({
-        id: "folders",
-        label: t("health.foldersLabel"),
-        status: "warning",
-        detail: t("health.foldersNone"),
-      });
-    } else {
-      const denied: string[] = [];
-      for (const path of paths) {
-        const { canRead, canWrite } = await requestFolderPermissions(path);
-        if (!canRead || !canWrite) {
-          const reason = t(
-            !canRead && !canWrite
-              ? "health.folderCantAccess"
-              : canRead
-                ? "health.folderCantWrite"
-                : "health.folderCantRead",
-          );
-          denied.push(t("health.folderDenied", { path, reason }));
-        }
+    const notificationsCheck = (async () => {
+      let isNotifGranted = await isPermissionGranted();
+      if (!isNotifGranted) {
+        isNotifGranted = (await requestPermission()) === "granted";
       }
-      results.push({
-        id: "folders",
-        label: t("health.foldersLabel"),
-        status: denied.length > 0 ? "error" : "ok",
-        detail: denied.length > 0 ? denied.join("\n") : t("health.foldersOk"),
-      });
-    }
+      update(
+        "notifications",
+        isNotifGranted ? "ok" : "warning",
+        t(isNotifGranted ? "health.notificationsOk" : "health.notificationsDenied"),
+      );
+    })();
 
-    setChecks(results);
+    const foldersCheck = (async () => {
+      const paths = Object.values(linksStore.state.folderPaths);
+      if (paths.length === 0) {
+        update("folders", "warning", t("health.foldersNone"));
+        return;
+      }
+      const denied: string[] = [];
+      await Promise.all(
+        paths.map(async (path) => {
+          const { canRead, canWrite } = await requestFolderPermissions(path);
+          if (!canRead || !canWrite) {
+            const reason = t(
+              !canRead && !canWrite
+                ? "health.folderCantAccess"
+                : canRead
+                  ? "health.folderCantWrite"
+                  : "health.folderCantRead",
+            );
+            denied.push(t("health.folderDenied", { path, reason }));
+          }
+        }),
+      );
+      update(
+        "folders",
+        denied.length > 0 ? "error" : "ok",
+        denied.length > 0 ? denied.join("\n") : t("health.foldersOk"),
+      );
+    })();
+
+    await Promise.all([serverAndVersion, notificationsCheck, foldersCheck]);
     setIsRunning(false);
   }
 
@@ -140,10 +166,16 @@ export function HealthCheck() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const isPending = checks.some((c) => c.status === "pending");
   const hasError = checks.some((c) => c.status === "error");
   const hasWarning = checks.some((c) => c.status === "warning");
-  const summaryStatus: CheckStatus = hasError ? "error" : hasWarning ? "warning" : "ok";
-  const SummaryIcon = STATUS_ICON[summaryStatus];
+  const summaryStatus: CheckStatus = isPending
+    ? "pending"
+    : hasError
+      ? "error"
+      : hasWarning
+        ? "warning"
+        : "ok";
 
   return (
     <Card className="lg:col-span-2">
@@ -167,38 +199,41 @@ export function HealthCheck() {
         <CardDescription>{t("health.hint")}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        {/* Overall summary — same icon/text columns as the check rows below so
-            everything lines up vertically; a divider keeps it distinct as the
-            top-line verdict. */}
+        {/* Overall summary — outlined to stand out as the top-line verdict. The
+            negative margin lets the outline overflow slightly past the rows
+            while keeping its icon aligned with the per-check icons below, and it
+            stays within the card's own padding. */}
         {checks.length > 0 && (
-          <>
-            <div className="flex items-start gap-2.5">
-              <SummaryIcon className={cn("mt-0.5 size-4 shrink-0", STATUS_COLOR[summaryStatus])} />
-              <span className="text-sm font-semibold leading-5 text-[hsl(var(--text))]">
-                {t(summaryStatus === "ok" ? "health.allGood" : "health.hasIssues")}
-              </span>
-            </div>
-            <div className="h-px bg-white/[0.06]" />
-          </>
+          <div className="-mx-3 flex items-start gap-2.5 rounded-lg border border-white/[0.08] px-3 py-2.5">
+            <StatusGlyph status={summaryStatus} />
+            <span className="text-sm font-semibold leading-5 text-[hsl(var(--text))]">
+              {t(
+                summaryStatus === "pending"
+                  ? "health.checking"
+                  : summaryStatus === "ok"
+                    ? "health.allGood"
+                    : "health.hasIssues",
+              )}
+            </span>
+          </div>
         )}
 
         <div className="flex flex-col divide-y divide-white/[0.05]">
-          {checks.map((check) => {
-            const Icon = STATUS_ICON[check.status];
-            return (
-              <div key={check.id} className="flex items-start gap-2.5 py-2.5 first:pt-0 last:pb-0">
-                <Icon className={cn("mt-0.5 size-4 shrink-0", STATUS_COLOR[check.status])} />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium leading-5 text-[hsl(var(--text))]">
-                    {check.label}
-                  </p>
+          {checks.map((check) => (
+            <div key={check.id} className="flex items-start gap-2.5 py-2.5 first:pt-0 last:pb-0">
+              <StatusGlyph status={check.status} />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium leading-5 text-[hsl(var(--text))]">
+                  {check.label}
+                </p>
+                {check.detail && (
                   <p className="mt-0.5 whitespace-pre-line text-xs leading-5 text-[hsl(var(--text-muted))]">
                     {check.detail}
                   </p>
-                </div>
+                )}
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       </CardContent>
     </Card>

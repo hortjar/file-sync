@@ -24,7 +24,7 @@ function formatDuration(ms: number): string {
 export function ConnectionStatus() {
   const { t } = useTranslation();
   const status = useSyncStatusStore((s) => s.status);
-  const isOnline = useSyncStatusStore((s) => s.connected);
+  const isConnected = useSyncStatusStore((s) => s.connected);
   const connectedAt = useSyncStatusStore((s) => s.connectedAt);
   const disconnectedAt = useSyncStatusStore((s) => s.disconnectedAt);
   const serverUrl = useAuthStore((s) => s.serverUrl);
@@ -36,15 +36,22 @@ export function ConnectionStatus() {
     staleTime: Infinity,
   });
 
-  const { data: health } = useQuery({
+  const { data: health, isError: isHealthError } = useQuery({
     queryKey: ["server-health", serverUrl],
     queryFn: async (): Promise<Health> => {
       const response = await fetch(`${serverUrl}/health`);
+      if (!response.ok) throw new Error(`Health check failed: ${response.status}`);
       return (await response.json()) as Health;
     },
-    refetchInterval: 30_000,
+    refetchInterval: 10_000,
     retry: false,
   });
+
+  // The sidebar must reflect *real* server reachability. The WebSocket `close`
+  // event can lag for many seconds when the server vanishes abruptly (TCP
+  // timeout), so a healthy-looking socket alone isn't enough — gate "online" on
+  // the fast-failing /health poll too, matching Settings and the health check.
+  const isOnline = isConnected && !isHealthError;
 
   // Tick once a second while offline so the "disconnected for" duration stays
   // live without a manual interval/useEffect. `initialData` seeds the clock
