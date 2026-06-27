@@ -130,6 +130,7 @@ export function Sidebar() {
               <span className="flex-1 truncate text-left text-[11px]">
                 {userEmail ?? t("sidebar.unknownUser")}
               </span>
+              <LogOut className="size-3.5 shrink-0" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="right" align="end" className="w-48">
