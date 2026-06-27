@@ -10,7 +10,7 @@ import { fetchWithAuth } from "../lib/fetch-with-auth";
 import { queryClient } from "../lib/query";
 import { authStore, logout } from "../stores/auth";
 import { linksStore, setFolderPaths } from "../stores/links";
-import { markConnected, setSyncStatus } from "../stores/sync-status";
+import { markConnected, markDisconnected } from "../stores/sync-status";
 
 import { downloadFile } from "./downloader";
 import { logger } from "./logger";
@@ -206,31 +206,59 @@ function connect(): void {
   }
 
   logger.info("[ws] connecting…");
-  ws.socket = new WebSocket(url);
+  // Capture this socket so its listeners can ignore events from a stale socket
+  // we've since replaced (e.g. after a manual reconnect), avoiding duplicate
+  // reconnect timers and connections.
+  const socket = new WebSocket(url);
+  ws.socket = socket;
 
-  ws.socket.addEventListener("open", () => {
+  socket.addEventListener("open", () => {
+    if (ws.socket !== socket) return;
     void onConnect().catch((error: unknown) => {
       logger.error("[ws] onConnect error", error);
     });
   });
 
-  ws.socket.addEventListener("message", (event: MessageEvent) => {
+  socket.addEventListener("message", (event: MessageEvent) => {
+    if (ws.socket !== socket) return;
     void handleMessage(event).catch((error: unknown) => {
       logger.error("[ws] message handler error", error);
     });
   });
 
-  ws.socket.addEventListener("close", (event: CloseEvent) => {
-    if (ws.isStopped) return;
-    logger.warn(`[ws] disconnected (code=${event.code}) — scheduling reconnect`);
-    setSyncStatus("error", i18n.t("sync.disconnectedReconnecting"));
+  socket.addEventListener("close", (event: CloseEvent) => {
+    if (ws.socket !== socket || ws.isStopped) return;
+    logger.warn(
+      `[ws] disconnected (code=${event.code}) at ${new Date().toISOString()} — scheduling reconnect`,
+    );
+    markDisconnected(i18n.t("sync.disconnectedReconnecting"));
     scheduleReconnect();
   });
 
-  ws.socket.addEventListener("error", () => {
+  socket.addEventListener("error", () => {
+    if (ws.socket !== socket) return;
     logger.error("[ws] WebSocket error");
-    setSyncStatus("error", i18n.t("sync.websocketError"));
+    markDisconnected(i18n.t("sync.websocketError"));
   });
+}
+
+/**
+ * Force an immediate reconnect, cancelling any pending backoff timer and
+ * resetting the delay. Safe to call from any state — a stale socket left behind
+ * is ignored by the identity guard in {@link connect}.
+ */
+export function reconnectNow(): void {
+  logger.info("[ws] manual reconnect requested");
+  clearTimeout(ws.reconnectTimer);
+  ws.reconnectTimer = undefined;
+  ws.reconnectDelay = WS_RECONNECT_MIN_MS;
+  ws.isStopped = false;
+
+  const previous = ws.socket;
+  ws.socket = undefined; // detach: previous socket's close/error becomes a no-op
+  previous?.close();
+
+  connect();
 }
 
 export function startWsClient(): () => void {
