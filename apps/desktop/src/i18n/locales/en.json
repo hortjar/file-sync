@@ -197,6 +197,10 @@
   "sync": {
     "errorCheckLogs": "Sync error — check logs",
     "disconnectedReconnecting": "Disconnected — reconnecting…",
-    "websocketError": "WebSocket error"
+    "websocketError": "WebSocket error",
+    "scanIssuesTitle": "Couldn't read everything in \"{{folder}}\"",
+    "scanIssuesDesc": "{{count}} item(s) were skipped and won't sync. {{reason}}",
+    "scanPermissionReason": "This looks like a Windows file-permissions issue — give FileSync access to the folder (or run it with sufficient rights), then re-link the folder.",
+    "scanGenericReason": "Some items couldn't be read — they may be locked, open in another program, too deeply nested, or outside FileSync's allowed locations."
   }
 }

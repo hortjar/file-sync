@@ -197,6 +197,10 @@
   "sync": {
     "errorCheckLogs": "Chyba synchronizace — zkontrolujte záznamy",
     "disconnectedReconnecting": "Odpojeno — znovu se připojuji…",
-    "websocketError": "Chyba WebSocketu"
+    "websocketError": "Chyba WebSocketu",
+    "scanIssuesTitle": "Nepodařilo se přečíst celý obsah „{{folder}}“",
+    "scanIssuesDesc": "{{count}} položek bylo přeskočeno a nebude synchronizováno. {{reason}}",
+    "scanPermissionReason": "Vypadá to na problém s oprávněními souborů ve Windows — udělte aplikaci FileSync přístup ke složce (nebo ji spusťte s dostatečnými právy) a poté složku znovu propojte.",
+    "scanGenericReason": "Některé položky se nepodařilo přečíst — mohou být uzamčené, otevřené v jiném programu, příliš hluboko vnořené nebo mimo povolená umístění aplikace FileSync."
   }
 }

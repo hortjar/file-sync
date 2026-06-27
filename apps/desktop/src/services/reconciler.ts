@@ -1,7 +1,9 @@
 import { join } from "@tauri-apps/api/path";
 import { exists, readDir, readFile } from "@tauri-apps/plugin-fs";
+import i18n from "i18next";
 
 import { fetchWithAuth } from "../lib/fetch-with-auth";
+import { toast } from "../lib/toast";
 import { authStore } from "../stores/auth";
 
 import { downloadFile } from "./downloader";
@@ -17,20 +19,66 @@ function shouldSkip(name: string): boolean {
   return SKIP_NAMES.has(name) || name.endsWith(".tmp") || name.endsWith(".part");
 }
 
-/** Recursively collect every file path under `dir`, descending into subfolders. */
-async function walkFiles(directory: string): Promise<string[]> {
-  const entries = await readDir(directory);
+type ScanFailure = { path: string; message: string };
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+/**
+ * Distinguish "can't access this path" failures (Windows ACLs, Tauri fs scope,
+ * a file held open by another process) from incidental I/O errors so the user
+ * gets an actionable message instead of a generic one.
+ */
+function isPermissionError(message: string): boolean {
+  return /denied|permission|forbidden|not allowed|os error 5/iu.test(message);
+}
+
+/**
+ * Recursively collect every file path under `directory`, descending into
+ * subfolders. A directory we can't read (forbidden path / permission denied)
+ * is recorded in `failures` and skipped rather than aborting the whole scan, so
+ * one locked subfolder never blocks the rest of the tree from syncing.
+ */
+async function walkFiles(directory: string, failures: ScanFailure[]): Promise<string[]> {
+  let entries;
+  try {
+    entries = await readDir(directory);
+  } catch (error: unknown) {
+    failures.push({ path: directory, message: errorMessage(error) });
+    logger.warn(`[reconcile] cannot read directory ${directory}: ${errorMessage(error)}`);
+    return [];
+  }
+
   const files: string[] = [];
   for (const entry of entries) {
     if (shouldSkip(entry.name)) continue;
     const fullPath = await join(directory, entry.name);
     if (entry.isDirectory) {
-      files.push(...(await walkFiles(fullPath)));
+      files.push(...(await walkFiles(fullPath, failures)));
     } else if (entry.isFile) {
       files.push(fullPath);
     }
   }
   return files;
+}
+
+/** Surface skipped-file problems to the user via toast + notification history. */
+function warnScanFailures(localBasePath: string, failures: ScanFailure[]): void {
+  if (failures.length === 0) return;
+
+  const folder = localBasePath.split(/[/\\]/u).findLast(Boolean) ?? localBasePath;
+  const isPermission = failures.some((failure) => isPermissionError(failure.message));
+  const reason = i18n.t(isPermission ? "sync.scanPermissionReason" : "sync.scanGenericReason");
+
+  logger.error(
+    `[reconcile] ${failures.length} path(s) skipped in ${localBasePath}`,
+    failures.map((failure) => `${failure.path}: ${failure.message}`).join("; "),
+  );
+
+  toast.error(i18n.t("sync.scanIssuesTitle", { folder }), {
+    description: i18n.t("sync.scanIssuesDesc", { count: failures.length, reason }),
+  });
 }
 
 type RemoteEntry = {
@@ -119,20 +167,23 @@ export async function reconcile(syncFolderId: string, localBasePath: string): Pr
   // Upload pass: walk the local tree (including subfolders) and push any files
   // that aren't current on the server. `pushLocalFile` runs `/api/sync/check`
   // first, so files already up-to-date (e.g. just downloaded) are skipped.
-  let scanned = 0;
-  try {
-    const localFiles = await walkFiles(localBasePath);
-    scanned = localFiles.length;
-    for (const filePath of localFiles) {
-      try {
-        await pushLocalFile(filePath, syncFolderId, localBasePath);
-      } catch (error: unknown) {
-        logger.error(`[reconcile] upload failed for ${filePath}`, error);
-      }
+  // Per-directory and per-file failures are collected and surfaced to the user
+  // rather than aborting the scan or hiding only in the log.
+  const failures: ScanFailure[] = [];
+  const localFiles = await walkFiles(localBasePath, failures);
+
+  for (const filePath of localFiles) {
+    try {
+      await pushLocalFile(filePath, syncFolderId, localBasePath);
+    } catch (error: unknown) {
+      failures.push({ path: filePath, message: errorMessage(error) });
+      logger.error(`[reconcile] upload failed for ${filePath}`, error);
     }
-  } catch (error: unknown) {
-    logger.error(`[reconcile] local scan failed for ${syncFolderId}`, error);
   }
 
-  logger.info(`[reconcile] upload pass for ${syncFolderId}: scanned ${scanned} local file(s)`);
+  logger.info(
+    `[reconcile] upload pass for ${syncFolderId}: scanned ${localFiles.length} local file(s), ${failures.length} failure(s)`,
+  );
+
+  warnScanFailures(localBasePath, failures);
 }
