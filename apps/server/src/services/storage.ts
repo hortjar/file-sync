@@ -50,12 +50,14 @@ export async function writeBlob(
 
   const { size } = await stat(path);
 
-  const [inserted] = await database
+  // Idempotent insert: the same content can be uploaded to multiple folders (or
+  // pushed concurrently by the reconcile scan and the live watcher) at once.
+  // `content_hash` is the primary key, so a plain insert would race to a PK
+  // violation. Folding the conflict into a no-op lets the blob be shared.
+  await database
     .insert(fileBlobs)
     .values({ contentHash, size: data.byteLength, compressed: isCompressed, refCount: 0 })
-    .returning({ contentHash: fileBlobs.contentHash });
-
-  if (!inserted) throw new Error("Failed to insert blob record");
+    .onConflictDoNothing({ target: fileBlobs.contentHash });
 
   logger.debug({ contentHash, size, compressed: isCompressed }, "blob written");
   return { size: data.byteLength, compressed: isCompressed };

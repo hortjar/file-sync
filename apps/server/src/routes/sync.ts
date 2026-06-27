@@ -1,5 +1,5 @@
 import type { WsMessage } from "@file-sync/shared";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { Elysia, t } from "elysia";
 
 import { database } from "../db";
@@ -183,11 +183,15 @@ export const syncRoutes = new Elysia({ prefix: "/api/sync" })
             version: body.version,
             updatedByDeviceId: body.deviceId,
             updatedAt: now,
-            deletedAt: undefined,
+            deletedAt: sql`null`,
           })
           .where(eq(fileEntries.id, old.id));
         entryId = old.id;
       } else {
+        // Upsert: the initial reconcile scan and the live watcher can race to
+        // push the same new file, so a plain insert would hit the
+        // (sync_folder_id, relative_path) unique constraint. Fold the conflict
+        // into an update instead of failing.
         const [newEntry] = await database
           .insert(fileEntries)
           .values({
@@ -198,6 +202,18 @@ export const syncRoutes = new Elysia({ prefix: "/api/sync" })
             mtime: new Date(body.mtime),
             version: body.version,
             updatedByDeviceId: body.deviceId,
+          })
+          .onConflictDoUpdate({
+            target: [fileEntries.syncFolderId, fileEntries.relativePath],
+            set: {
+              contentHash: computedHash,
+              size: fileBuffer.byteLength,
+              mtime: new Date(body.mtime),
+              version: body.version,
+              updatedByDeviceId: body.deviceId,
+              updatedAt: now,
+              deletedAt: sql`null`,
+            },
           })
           .returning({ id: fileEntries.id });
         if (!newEntry) throw new Error("Failed to insert file entry");
