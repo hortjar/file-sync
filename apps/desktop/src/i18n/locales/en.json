@@ -97,6 +97,7 @@
     "browse": "Browse",
     "syncThisFolder": "Sync this folder",
     "linked": "Folder linked — sync starting",
+    "syncComplete": "{{name}} is fully synced",
     "linkFailed": "Failed to link folder",
     "appearanceUpdateFailed": "Failed to update appearance"
   },
@@ -105,6 +106,9 @@
     "files_other": "{{count}} files",
     "forceSync": "Force sync",
     "refresh": "Refresh",
+    "openInFinder": "Reveal in Finder",
+    "openInExplorer": "Show in File Explorer",
+    "openInFiles": "Open folder",
     "forceSyncComplete": "Force sync complete",
     "syncFailed": "Sync failed",
     "linkedDevices": "Linked Devices",
@@ -162,7 +166,7 @@
     "lineCount_other": "{{count}} lines"
   },
   "status": {
-    "online": "Online",
+    "online": "Connected",
     "offline": "Offline",
     "connectedSince": "Connected since",
     "server": "Server",

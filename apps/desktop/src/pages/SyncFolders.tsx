@@ -117,12 +117,13 @@ function FolderCard({
     >
       <CardContent className="flex items-center gap-4 p-4">
         <button
+          type="button"
           onClick={(event) => {
             event.stopPropagation();
             onPickAppearance(folder);
           }}
           title={t("folders.changeIconColor")}
-          className="flex size-10 shrink-0 items-center justify-center rounded-xl border transition-all"
+          className="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border transition-all"
           style={{
             backgroundColor: iconBg(folder.iconColor),
             borderColor: iconBorder(folder.iconColor),
@@ -246,12 +247,15 @@ export function SyncFoldersPage() {
       void queryClient.invalidateQueries({ queryKey: getApiSyncFoldersQueryKey() });
       const syncFolderId = variables.path.id;
       const localPath = variables.body.localPath;
+      const folderName = linkingFolder?.name ?? "";
       setFolderPath(syncFolderId, localPath);
       void invoke("start_watching", { syncFolderId, localPath });
-      void reconcile(syncFolderId, localPath);
       setLinkingFolder(undefined);
       setSelectedPath(undefined);
-      toast.success(t("folders.linked"));
+      toast.info(t("folders.linked"));
+      void reconcile(syncFolderId, localPath).then(() => {
+        toast.success(t("folders.syncComplete", { name: folderName }));
+      });
     },
     onError: (thrown) => {
       toast.error(t("folders.linkFailed"), { description: toMessage(thrown) });
@@ -501,9 +505,9 @@ export function SyncFoldersPage() {
               <span className="mb-1.5 block text-sm font-medium text-[hsl(var(--text))]">
                 {t("folders.localPath")}
               </span>
-              <div className="flex h-9 items-center truncate rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--surface))] px-3.5 text-sm text-[hsl(var(--text))]">
+              <div className="flex h-9 items-center overflow-x-auto whitespace-nowrap rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--surface))] px-3.5 text-sm text-[hsl(var(--text))]">
                 {selectedPath ? (
-                  <span className="truncate">{selectedPath}</span>
+                  <span className="whitespace-nowrap">{selectedPath}</span>
                 ) : (
                   <span className="text-[hsl(var(--text-faint))]">
                     {t("folders.noFolderSelected")}

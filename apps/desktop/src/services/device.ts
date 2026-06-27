@@ -8,7 +8,7 @@ import { logger } from "./logger";
 
 type RegisteredDevice = { id: string; name: string; platform: string };
 
-function detectPlatform(): "windows" | "macos" | "linux" {
+export function detectPlatform(): "windows" | "macos" | "linux" {
   const ua = navigator.userAgent.toLowerCase();
   if (ua.includes("win")) return "windows";
   if (ua.includes("mac")) return "macos";

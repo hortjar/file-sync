@@ -97,6 +97,7 @@
     "browse": "Procházet",
     "syncThisFolder": "Synchronizovat tuto složku",
     "linked": "Složka propojena — spouštím synchronizaci",
+    "syncComplete": "{{name}} je plně synchronizována",
     "linkFailed": "Propojení složky se nezdařilo",
     "appearanceUpdateFailed": "Aktualizace vzhledu se nezdařila"
   },
@@ -105,6 +106,9 @@
     "files_other": "{{count}} souborů",
     "forceSync": "Vynutit synchronizaci",
     "refresh": "Obnovit",
+    "openInFinder": "Zobrazit ve Finderu",
+    "openInExplorer": "Zobrazit v Průzkumníku",
+    "openInFiles": "Otevřít složku",
     "forceSyncComplete": "Vynucená synchronizace dokončena",
     "syncFailed": "Synchronizace selhala",
     "linkedDevices": "Propojená zařízení",
@@ -163,7 +167,7 @@
     "lineCount_other": "{{count}} řádků"
   },
   "status": {
-    "online": "Online",
+    "online": "Připojeno",
     "offline": "Offline",
     "connectedSince": "Připojeno od",
     "server": "Server",

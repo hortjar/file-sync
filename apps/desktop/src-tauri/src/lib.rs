@@ -95,6 +95,18 @@ fn open_log_file(app: tauri::AppHandle) {
     let _ = std::process::Command::new("xdg-open").arg(&target).spawn();
 }
 
+#[tauri::command]
+fn reveal_in_file_manager(path: String) {
+    #[cfg(target_os = "windows")]
+    let _ = std::process::Command::new("explorer").arg(&path).spawn();
+
+    #[cfg(target_os = "macos")]
+    let _ = std::process::Command::new("open").arg(&path).spawn();
+
+    #[cfg(target_os = "linux")]
+    let _ = std::process::Command::new("xdg-open").arg(&path).spawn();
+}
+
 pub fn run() {
     // Generate a timestamp for this run so each session gets its own log file.
     let run_ts = chrono::Local::now().format("%Y-%m-%dT%H-%M-%S").to_string();
@@ -135,7 +147,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             start_watching,
             get_hostname,
-            open_log_file
+            open_log_file,
+            reveal_in_file_manager
         ])
         .setup(|app| {
             tray::setup_tray(&app.handle())?;

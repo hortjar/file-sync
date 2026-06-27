@@ -1,10 +1,12 @@
 import { FolderIcon, TreeItem, buildTree, iconBg, iconBorder } from "@file-sync/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
+import { invoke } from "@tauri-apps/api/core";
 import {
   ArrowLeft,
   CheckCircle2,
   ChevronDown,
+  FolderOpen,
   HardDrive,
   Monitor,
   RefreshCw,
@@ -23,6 +25,7 @@ import {
   getApiSyncStateBySyncFolderIdQueryKey,
 } from "../generated/@tanstack/react-query.gen";
 import { toast } from "../lib/toast";
+import { detectPlatform } from "../services/device";
 import { reconcile } from "../services/reconciler";
 import { useAuthStore } from "../stores/auth";
 import { useLinksStore } from "../stores/links";
@@ -98,6 +101,19 @@ export function FolderDetailPage() {
     });
   }
 
+  const platform = detectPlatform();
+  const revealLabelKey =
+    platform === "windows"
+      ? "folderDetail.openInExplorer"
+      : platform === "macos"
+        ? "folderDetail.openInFinder"
+        : "folderDetail.openInFiles";
+
+  function handleReveal() {
+    if (!localPathInStore) return;
+    void invoke("reveal_in_file_manager", { path: localPathInStore });
+  }
+
   async function handleForceSync() {
     if (!localPathInStore || isSyncing) return;
     setIsSyncing(true);
@@ -151,6 +167,18 @@ export function FolderDetailPage() {
           </span>
           {localPathInStore && (
             <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleReveal}
+              title={t(revealLabelKey)}
+              className="gap-1.5"
+            >
+              <FolderOpen className="size-3.5" />
+              {t(revealLabelKey)}
+            </Button>
+          )}
+          {localPathInStore && (
+            <Button
               variant="ghost"
               size="icon"
               onClick={() => void handleForceSync()}
@@ -174,7 +202,7 @@ export function FolderDetailPage() {
       {/* Server-confirmed sync status */}
       <div className="mb-4 rounded-lg border border-white/[0.07] bg-white/[0.03]">
         <button
-          className="flex w-full items-center justify-between border-b border-white/[0.05] px-4 py-3"
+          className="flex w-full cursor-pointer items-center justify-between border-b border-white/[0.05] px-4 py-3"
           onClick={() => setIsDevicesExpanded((v) => !v)}
         >
           <span className="text-xs font-semibold uppercase tracking-wider text-[hsl(var(--text-faint))]">
