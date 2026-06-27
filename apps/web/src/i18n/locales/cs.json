@@ -17,7 +17,7 @@
     "title": "Přehled",
     "subtitle": "Přehled vašeho FileSync serveru",
     "serverStatus": "Stav serveru",
-    "online": "Online",
+    "online": "Připojeno",
     "offline": "Offline",
     "totalFolders": "Synchronizované složky",
     "totalDevices": "Zařízení",
@@ -89,7 +89,7 @@
     "tabErrors": "Chyby"
   },
   "status": {
-    "online": "Online",
+    "online": "Připojeno",
     "offline": "Offline",
     "connectedSince": "Připojeno od",
     "server": "Server",

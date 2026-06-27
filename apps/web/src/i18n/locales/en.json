@@ -17,7 +17,7 @@
     "title": "Dashboard",
     "subtitle": "Overview of your FileSync server",
     "serverStatus": "Server status",
-    "online": "Online",
+    "online": "Connected",
     "offline": "Offline",
     "totalFolders": "Sync Folders",
     "totalDevices": "Devices",
@@ -88,7 +88,7 @@
     "tabErrors": "Errors"
   },
   "status": {
-    "online": "Online",
+    "online": "Connected",
     "offline": "Offline",
     "connectedSince": "Connected since",
     "server": "Server",
