@@ -1,5 +1,5 @@
 import type { WsMessage } from "@file-sync/shared";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, like, sql } from "drizzle-orm";
 import { Elysia, t } from "elysia";
 import { zip } from "fflate";
 
@@ -28,6 +28,11 @@ function buildZip(files: Record<string, Uint8Array>): Promise<Uint8Array> {
       else resolve(data);
     });
   });
+}
+
+/** Escape LIKE wildcards so a literal path is matched as a prefix, not a pattern. */
+function escapeLikePattern(value: string): string {
+  return value.replaceAll(/[\\%_]/gu, (char) => `\\${char}`);
 }
 
 function ownsFolder(userId: string, syncFolderId: string) {
@@ -415,18 +420,38 @@ export const syncRoutes = new Elysia({ prefix: "/api/sync" })
         )
         .limit(1);
 
-      if (!entry) {
+      // No exact file match → treat the path as a folder and delete everything
+      // beneath it. Folders aren't tracked as their own entries, so a folder
+      // delete is the soft-deletion of every file whose path is under it.
+      const folderPrefix = `${escapeLikePattern(safePath)}/%`;
+      const entries = entry
+        ? [entry]
+        : await database
+            .select()
+            .from(fileEntries)
+            .where(
+              and(
+                eq(fileEntries.syncFolderId, body.syncFolderId),
+                like(fileEntries.relativePath, folderPrefix),
+                isNull(fileEntries.deletedAt),
+              ),
+            );
+
+      if (entries.length === 0) {
         set.status = 404;
         return { message: "File not found" };
       }
 
+      const entryIds = entries.map((item) => item.id);
       await database
         .update(fileEntries)
         .set({ deletedAt: new Date() })
-        .where(eq(fileEntries.id, entry.id));
+        .where(inArray(fileEntries.id, entryIds));
 
-      if (entry.contentHash) {
-        await removeBlobReference(entry.contentHash);
+      for (const item of entries) {
+        if (item.contentHash) {
+          await removeBlobReference(item.contentHash);
+        }
       }
 
       broadcast(userId, body.deviceId, {

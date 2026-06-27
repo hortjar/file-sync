@@ -160,9 +160,10 @@ async function handleMessage(event: MessageEvent): Promise<void> {
     // (backslash path) still resolves to the right nested file on this OS.
     const segments = relativePath.split(/[/\\]/u).filter((segment) => segment.length > 0);
     const localPath = await join(localBase, ...segments);
-    logger.info(`[ws] deleting local file: ${relativePath}`);
+    logger.info(`[ws] deleting local path: ${relativePath}`);
     try {
-      await remove(localPath);
+      // recursive so a folder deletion reported by a peer removes the whole tree.
+      await remove(localPath, { recursive: true });
       logger.debug(`[ws] deleted: ${localPath}`);
     } catch (error: unknown) {
       logger.error(`[ws] failed to remove ${relativePath}`, error);
