@@ -76,7 +76,9 @@
     "noEvents": "Z tohoto zařízení nebyly hlášeny žádné chyby",
     "lineCount_one": "{{count}} řádek",
     "lineCount_few": "{{count}} řádky",
-    "lineCount_other": "{{count}} řádků"
+    "lineCount_other": "{{count}} řádků",
+    "selectAll": "Vybrat vše",
+    "deselectAll": "Zrušit výběr"
   },
   "deviceLogs": {
     "title": "Záznamy zařízení",

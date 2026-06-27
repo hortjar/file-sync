@@ -75,7 +75,9 @@
     "noUploads": "No uploaded logs for this device yet",
     "noEvents": "No errors reported from this device",
     "lineCount_one": "{{count}} line",
-    "lineCount_other": "{{count}} lines"
+    "lineCount_other": "{{count}} lines",
+    "selectAll": "Select all",
+    "deselectAll": "Deselect all"
   },
   "deviceLogs": {
     "title": "Device Logs",

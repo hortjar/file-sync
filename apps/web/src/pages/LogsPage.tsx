@@ -32,8 +32,11 @@ function enrichEntries(raw: LogEntry[]): LogEntry[] {
   });
 }
 
-async function fetchLogs(viewLevel: LogLevel): Promise<LogEntry[]> {
-  const response = await client.get({ url: "/api/logs", query: { level: viewLevel } });
+// Fetch every buffered entry (no server-side level threshold) so the view-level
+// toggles can show any arbitrary combination of levels — e.g. debug + warn but
+// not info — by filtering client-side.
+async function fetchLogs(): Promise<LogEntry[]> {
+  const response = await client.get({ url: "/api/logs" });
   const entries = enrichEntries((response.data as LogEntry[]) ?? []);
   cacheLogEntries(entries);
   return entries;
@@ -49,24 +52,42 @@ async function patchServerLevel(level: LogLevel): Promise<LevelResponse> {
   return response.data as LevelResponse;
 }
 
-const LOGS_QUERY_KEY = (level: LogLevel) => ["logs", level] as const;
+const LOGS_QUERY_KEY = ["logs", "all"] as const;
 const SERVER_LEVEL_QUERY_KEY = ["logs", "level"] as const;
 
 export function LogsPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const [viewLevel, setViewLevel] = useState<LogLevel>("warn");
+  // Which levels are shown. Each toggles independently; an empty set shows
+  // nothing. Defaults to all levels visible.
+  const [selectedLevels, setSelectedLevels] = useState<Set<LogLevel>>(() => new Set(LEVELS));
 
   const {
     data: logs = [],
     isLoading,
     refetch,
   } = useQuery<LogEntry[]>({
-    queryKey: LOGS_QUERY_KEY(viewLevel),
-    queryFn: () => fetchLogs(viewLevel),
+    queryKey: LOGS_QUERY_KEY,
+    queryFn: fetchLogs,
     refetchInterval: 5000,
   });
+
+  const visibleLogs = logs.filter((entry) => selectedLevels.has(entry.level as LogLevel));
+  const isAllSelected = selectedLevels.size === LEVELS.length;
+
+  function toggleLevel(level: LogLevel): void {
+    setSelectedLevels((previous) => {
+      const next = new Set(previous);
+      if (next.has(level)) next.delete(level);
+      else next.add(level);
+      return next;
+    });
+  }
+
+  function toggleAllLevels(): void {
+    setSelectedLevels(isAllSelected ? new Set() : new Set(LEVELS));
+  }
 
   const { data: levelData } = useQuery<LevelResponse>({
     queryKey: SERVER_LEVEL_QUERY_KEY,
@@ -108,20 +129,35 @@ export function LogsPage() {
         <div className="flex flex-col gap-1.5">
           <p className="text-xs font-medium text-[hsl(var(--text-muted))]">{t("logs.viewLevel")}</p>
           <div className="flex gap-1">
-            {LEVELS.map((level) => (
-              <button
-                key={level}
-                type="button"
-                onClick={() => setViewLevel(level)}
-                className={`rounded-lg border px-3 py-1.5 text-xs font-medium capitalize transition-all ${
-                  viewLevel === level
-                    ? "border-[hsl(var(--text-muted)/.4)] bg-[hsl(var(--surface-2))] text-[hsl(var(--text))]"
-                    : "border-[hsl(var(--border))] text-[hsl(var(--text-muted))] hover:text-[hsl(var(--text))]"
-                }`}
-              >
-                {level}
-              </button>
-            ))}
+            <button
+              type="button"
+              onClick={toggleAllLevels}
+              className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${
+                isAllSelected
+                  ? "border-[hsl(var(--text-muted)/.4)] bg-[hsl(var(--surface-2))] text-[hsl(var(--text))]"
+                  : "border-[hsl(var(--border))] text-[hsl(var(--text-muted))] hover:text-[hsl(var(--text))]"
+              }`}
+            >
+              {t(isAllSelected ? "logs.deselectAll" : "logs.selectAll")}
+            </button>
+            {LEVELS.map((level) => {
+              const isSelected = selectedLevels.has(level);
+              return (
+                <button
+                  key={level}
+                  type="button"
+                  aria-pressed={isSelected}
+                  onClick={() => toggleLevel(level)}
+                  className={`rounded-lg border px-3 py-1.5 text-xs font-medium capitalize transition-all ${
+                    isSelected
+                      ? "border-[hsl(var(--text-muted)/.4)] bg-[hsl(var(--surface-2))] text-[hsl(var(--text))]"
+                      : "border-[hsl(var(--border))] text-[hsl(var(--text-muted))] hover:text-[hsl(var(--text))]"
+                  }`}
+                >
+                  {level}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -151,12 +187,12 @@ export function LogsPage() {
       <Card className="min-h-0 flex-1 overflow-hidden">
         <CardHeader className="border-b border-[hsl(var(--border))] py-3">
           <CardTitle className="font-mono text-sm">
-            {logs.length} {logs.length === 1 ? "entry" : "entries"}
+            {visibleLogs.length} {visibleLogs.length === 1 ? "entry" : "entries"}
           </CardTitle>
         </CardHeader>
         <CardContent className="h-full p-0">
           <LogViewer
-            entries={logs}
+            entries={visibleLogs}
             className="h-full overflow-y-auto"
             onViewDetail={handleViewDetail}
           />
