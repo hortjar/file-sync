@@ -1,7 +1,41 @@
-import { ChevronDown, ChevronLeft, ChevronRight, ExternalLink, Search, X } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowRightLeft,
+  Braces,
+  Cable,
+  Calendar,
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  ExternalLink,
+  FileText,
+  Fingerprint,
+  Gauge,
+  Globe,
+  Hash,
+  Languages,
+  Link2,
+  List,
+  Lock,
+  Mail,
+  Monitor,
+  Package,
+  Search,
+  Server,
+  ShieldCheck,
+  Tag,
+  Timer,
+  X,
+  XCircle,
+} from "lucide-react";
 import { useState } from "react";
 
 import { cn } from "../lib/cn";
+
+import { PlatformIcon, formatPlatform } from "./platform";
 
 export type LogLevel = "debug" | "info" | "warn" | "error" | "trace";
 
@@ -153,11 +187,280 @@ function MethodBadge({ method, className }: { method: string; className?: string
 
 // ── Pretty (structured form) renderer ─────────────────────────────────────────
 
-function FieldLabel({ children }: { children: React.ReactNode }) {
+// ── Key labels + icons ────────────────────────────────────────────────────────
+
+const KEY_LABELS: Record<string, string> = {
+  id: "ID",
+  ms: "Duration",
+  ts: "Time",
+  url: "URL",
+  status: "Status",
+  method: "Method",
+  name: "Name",
+  email: "Email",
+  platform: "Platform",
+  appVersion: "App version",
+  version: "Version",
+  clientVersion: "Client version",
+  serverVersion: "Server version",
+  lastSeenAt: "Last seen",
+  createdAt: "Created",
+  updatedAt: "Updated",
+  deletedAt: "Deleted",
+  deviceId: "Device",
+  syncFolderId: "Sync folder",
+  userId: "User",
+  relativePath: "Path",
+  localPath: "Local path",
+  contentHash: "Hash",
+  size: "Size",
+};
+
+const KEY_ICON: Record<
+  string,
+  (properties: { className?: string | undefined }) => React.ReactNode
+> = {
+  authorization: Lock,
+  cookie: Lock,
+  "set-cookie": Lock,
+  host: Server,
+  origin: Globe,
+  referer: Globe,
+  "user-agent": Monitor,
+  "content-type": FileText,
+  "content-length": FileText,
+  accept: ArrowRightLeft,
+  "accept-encoding": Package,
+  "accept-language": Languages,
+  connection: Cable,
+  vary: ArrowRightLeft,
+  "access-control-allow-credentials": ShieldCheck,
+  "access-control-allow-origin": Globe,
+  "access-control-allow-methods": ArrowRightLeft,
+  "access-control-allow-headers": List,
+  "access-control-expose-headers": List,
+  id: Hash,
+  name: Tag,
+  email: Mail,
+  url: Link2,
+  status: Gauge,
+  ms: Timer,
+  ts: Clock,
+  lastSeenAt: Clock,
+  createdAt: Calendar,
+  updatedAt: Calendar,
+  deletedAt: Calendar,
+  appVersion: Package,
+  version: Package,
+  clientVersion: Package,
+  serverVersion: Package,
+  platform: Monitor,
+  deviceId: Fingerprint,
+  contentHash: Fingerprint,
+  relativePath: FileText,
+  localPath: FileText,
+  size: FileText,
+};
+
+function capitalizeWord(word: string): string {
+  return word.length === 0 ? word : word.charAt(0).toUpperCase() + word.slice(1);
+}
+
+/** Human label for a data key: known names, HTTP Header-Case, or sentence case. */
+function formatKey(key: string): string {
+  const known = KEY_LABELS[key];
+  if (known) return known;
+  if (key.includes("-"))
+    return key
+      .split("-")
+      .map((word) => capitalizeWord(word))
+      .join("-");
+  const spaced = key
+    .replaceAll("_", " ")
+    .replaceAll(/([a-z0-9])([A-Z])/gu, "$1 $2")
+    .toLowerCase()
+    .trim();
+  return capitalizeWord(spaced);
+}
+
+function KeyIcon({ keyName, className }: { keyName: string; className?: string }) {
+  const Icon = KEY_ICON[keyName] ?? Braces;
+  return <Icon className={className} />;
+}
+
+/** Label row for a field: a meaning-hinting icon plus the formatted key. */
+function FieldLabel({ keyName }: { keyName: string }) {
   return (
-    <p className="mb-1 break-all font-mono text-[11px] font-semibold text-[hsl(var(--text-muted))]">
+    <span className="mb-1 flex items-center gap-1.5">
+      <KeyIcon keyName={keyName} className="size-3.5 shrink-0 text-[hsl(var(--text-faint))]" />
+      <span className="break-all font-mono text-[11px] font-semibold text-[hsl(var(--text-muted))]">
+        {formatKey(keyName)}
+      </span>
+    </span>
+  );
+}
+
+/** Numeric index label for array items. */
+function IndexLabel({ index }: { index: number }) {
+  return (
+    <span className="mb-1 flex items-center gap-1.5">
+      <Hash className="size-3.5 shrink-0 text-[hsl(var(--text-faint))]" />
+      <span className="font-mono text-[11px] font-semibold text-[hsl(var(--text-muted))]">
+        {index}
+      </span>
+    </span>
+  );
+}
+
+// ── Value detection + formatting ──────────────────────────────────────────────
+
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/u;
+const VERSION_KEYS = new Set(["appVersion", "version", "clientVersion", "serverVersion"]);
+
+function asBoolean(value: unknown): boolean | undefined {
+  if (typeof value === "boolean") return value;
+  if (value === "true") return true;
+  if (value === "false") return false;
+  return undefined;
+}
+
+function isIsoDate(value: unknown): value is string {
+  return typeof value === "string" && ISO_DATE_RE.test(value);
+}
+
+function formatTimestamp(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return date.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
+function formatRelative(iso: string): string {
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "";
+  const deltaSeconds = Math.round((Date.now() - then) / 1000);
+  const magnitude = Math.abs(deltaSeconds);
+  const suffix = deltaSeconds >= 0 ? "ago" : "from now";
+  if (magnitude < 60) return `${magnitude}s ${suffix}`;
+  const minutes = Math.round(magnitude / 60);
+  if (minutes < 60) return `${minutes}m ${suffix}`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours}h ${suffix}`;
+  return `${Math.round(hours / 24)}d ${suffix}`;
+}
+
+function statusTone(code: number): string {
+  if (code >= 200 && code < 300) {
+    return "border-[hsl(var(--success)/.4)] bg-[hsl(var(--success)/.1)] text-[hsl(var(--success))]";
+  }
+  if (code >= 300 && code < 400) return "border-amber-500/40 bg-amber-500/10 text-amber-400";
+  return "border-[hsl(var(--danger)/.4)] bg-[hsl(var(--danger)/.1)] text-[hsl(var(--danger))]";
+}
+
+/** Status-code glyph: success tick, redirect alert, or error cross. */
+function StatusGlyph({ code, className }: { code: number; className?: string }) {
+  if (code >= 200 && code < 300) return <CheckCircle2 className={className} />;
+  if (code >= 300 && code < 400) return <AlertCircle className={className} />;
+  return <XCircle className={className} />;
+}
+
+// ── Value chips/boxes ─────────────────────────────────────────────────────────
+
+function Chip({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex max-w-full items-center gap-1 break-all rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--surface-2))] px-1.5 py-0.5 font-mono text-[11px] text-[hsl(var(--text-muted))]",
+        className,
+      )}
+    >
       {children}
-    </p>
+    </span>
+  );
+}
+
+/** A boolean rendered as a labelled checkbox. */
+function BooleanValue({ value }: { value: boolean }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium",
+        value
+          ? "border-[hsl(var(--success)/.4)] bg-[hsl(var(--success)/.1)] text-[hsl(var(--success))]"
+          : "border-[hsl(var(--border))] bg-[hsl(var(--surface-2))] text-[hsl(var(--text-faint))]",
+      )}
+    >
+      <span
+        className={cn(
+          "flex size-3.5 items-center justify-center rounded-[3px] border",
+          value
+            ? "border-[hsl(var(--success))] bg-[hsl(var(--success))]"
+            : "border-[hsl(var(--text-faint))]",
+        )}
+      >
+        {value && <Check className="size-2.5 text-white" />}
+      </span>
+      {value ? "True" : "False"}
+    </span>
+  );
+}
+
+function TimestampValue({ iso }: { iso: string }) {
+  const relative = formatRelative(iso);
+  return (
+    <span className="inline-flex flex-wrap items-center gap-1.5">
+      <Clock className="size-3.5 shrink-0 text-[hsl(var(--text-faint))]" />
+      <span className="font-mono text-xs text-[hsl(var(--text))]">{formatTimestamp(iso)}</span>
+      {relative && <span className="text-[11px] text-[hsl(var(--text-faint))]">· {relative}</span>}
+    </span>
+  );
+}
+
+function StatusValue({ code }: { code: number }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-semibold",
+        statusTone(code),
+      )}
+    >
+      <StatusGlyph code={code} className="size-3.5" />
+      {code}
+    </span>
+  );
+}
+
+function DurationValue({ durationMs }: { durationMs: number }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--surface-2))] px-2 py-1 text-xs text-[hsl(var(--text-muted))]">
+      <Timer className="size-3.5 text-[hsl(var(--text-faint))]" />
+      {durationMs} ms
+    </span>
+  );
+}
+
+function VersionValue({ value }: { value: string | number }) {
+  const text = String(value);
+  return (
+    <Chip>
+      <Package className="size-3 text-[hsl(var(--text-faint))]" />
+      {text.startsWith("v") ? text : `v${text}`}
+    </Chip>
+  );
+}
+
+function PlatformValue({ platform }: { platform: string }) {
+  return (
+    <Chip>
+      <PlatformIcon platform={platform} className="size-3 text-[hsl(var(--text-muted))]" />
+      {formatPlatform(platform)}
+    </Chip>
   );
 }
 
@@ -203,12 +506,51 @@ function ScalarValue({ value }: { value: string | number | boolean | null | unde
   );
 }
 
-/** Renders any value: scalars as read-only fields, objects/arrays as nested field groups. */
-function PrettyValue({ value }: { value: unknown }): React.ReactNode {
+/** Key-aware leaf rendering: timestamps, booleans, status, version, platform, etc. */
+function LeafValue({
+  keyName,
+  value,
+}: {
+  keyName?: string | undefined;
+  value: unknown;
+}): React.ReactNode {
+  if (keyName === "platform" && typeof value === "string") {
+    return <PlatformValue platform={value} />;
+  }
+  if (keyName === "status" && typeof value === "number") return <StatusValue code={value} />;
+  if ((keyName === "ms" || keyName === "duration") && typeof value === "number") {
+    return <DurationValue durationMs={value} />;
+  }
+  if (keyName === "method" && typeof value === "string") {
+    return <MethodBadge method={value.toUpperCase()} className="px-2 py-0.5 text-xs" />;
+  }
+  if (
+    keyName !== undefined &&
+    VERSION_KEYS.has(keyName) &&
+    (typeof value === "string" || typeof value === "number")
+  ) {
+    return <VersionValue value={value} />;
+  }
+
+  const boolean = asBoolean(value);
+  if (boolean !== undefined) return <BooleanValue value={boolean} />;
+  if (isIsoDate(value)) return <TimestampValue iso={value} />;
+
+  return <ScalarValue value={value as string | number | boolean | null | undefined} />;
+}
+
+/** Renders any value: smart leaves as chips/boxes, objects/arrays as nested groups. */
+function PrettyValue({
+  keyName,
+  value,
+}: {
+  keyName?: string | undefined;
+  value: unknown;
+}): React.ReactNode {
   const parsed = tryParseJsonString(value);
 
   if (parsed === null || parsed === undefined || typeof parsed !== "object") {
-    return <ScalarValue value={parsed as string | number | boolean | null | undefined} />;
+    return <LeafValue keyName={keyName} value={parsed} />;
   }
 
   if (Array.isArray(parsed)) {
@@ -217,7 +559,7 @@ function PrettyValue({ value }: { value: unknown }): React.ReactNode {
       <div className="space-y-2 border-l-2 border-[hsl(var(--border))] pl-3">
         {(parsed as unknown[]).map((item, itemIndex) => (
           <div key={itemIndex}>
-            <FieldLabel>[{itemIndex}]</FieldLabel>
+            <IndexLabel index={itemIndex} />
             <PrettyValue value={item} />
           </div>
         ))}
@@ -229,10 +571,10 @@ function PrettyValue({ value }: { value: unknown }): React.ReactNode {
   if (entries.length === 0) return <EmptyValue label="(empty object)" />;
   return (
     <div className="space-y-2 border-l-2 border-[hsl(var(--border))] pl-3">
-      {entries.map(([entryKey, entryValue]) => (
-        <div key={entryKey}>
-          <FieldLabel>{entryKey}</FieldLabel>
-          <PrettyValue value={entryValue} />
+      {entries.map(([childKey, childValue]) => (
+        <div key={childKey}>
+          <FieldLabel keyName={childKey} />
+          <PrettyValue keyName={childKey} value={childValue} />
         </div>
       ))}
     </div>
@@ -248,10 +590,10 @@ function PrettyForm({ value }: { value: unknown }) {
     if (entries.length === 0) return <EmptyValue label="(empty object)" />;
     return (
       <div className="space-y-3">
-        {entries.map(([entryKey, entryValue]) => (
-          <div key={entryKey}>
-            <FieldLabel>{entryKey}</FieldLabel>
-            <PrettyValue value={entryValue} />
+        {entries.map(([childKey, childValue]) => (
+          <div key={childKey}>
+            <FieldLabel keyName={childKey} />
+            <PrettyValue keyName={childKey} value={childValue} />
           </div>
         ))}
       </div>
@@ -261,10 +603,13 @@ function PrettyForm({ value }: { value: unknown }) {
   if (Array.isArray(parsed)) {
     if (parsed.length === 0) return <EmptyValue label="(empty array)" />;
     return (
-      <div className="space-y-3">
+      <div className="space-y-2">
         {(parsed as unknown[]).map((item, itemIndex) => (
-          <div key={itemIndex}>
-            <FieldLabel>[{itemIndex}]</FieldLabel>
+          <div
+            key={itemIndex}
+            className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--surface-2))] p-3"
+          >
+            <IndexLabel index={itemIndex} />
             <PrettyValue value={item} />
           </div>
         ))}
@@ -273,6 +618,91 @@ function PrettyForm({ value }: { value: unknown }) {
   }
 
   return <PrettyValue value={parsed} />;
+}
+
+// ── Header + URL specialised renderers ─────────────────────────────────────────
+
+/** Render a header value as chips (comma-split), a checkbox, a timestamp, or method badges. */
+function HeaderValue({ keyName, value }: { keyName: string; value: unknown }) {
+  const boolean = asBoolean(value);
+  if (boolean !== undefined) return <BooleanValue value={boolean} />;
+  if (isIsoDate(value)) return <TimestampValue iso={value} />;
+  if (typeof value !== "string") return <PrettyValue keyName={keyName} value={value} />;
+
+  const items = value
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (items.length === 0) return <EmptyValue label="(empty)" />;
+
+  if (keyName === "access-control-allow-methods") {
+    return (
+      <>
+        {items.map((method) => (
+          <MethodBadge
+            key={method}
+            method={method.toUpperCase()}
+            className="px-1.5 py-0.5 text-[10px]"
+          />
+        ))}
+      </>
+    );
+  }
+
+  return (
+    <>
+      {items.map((item, itemIndex) => (
+        <Chip key={`${item}-${itemIndex}`}>{item}</Chip>
+      ))}
+    </>
+  );
+}
+
+/** A header object rendered as label/value rows. */
+function HeadersBlock({ value }: { value: unknown }) {
+  if (!isPlainObject(value)) return <PrettyForm value={value} />;
+  const entries = Object.entries(value);
+  if (entries.length === 0) return <EmptyValue label="(no headers)" />;
+
+  return (
+    <div className="flex flex-col gap-2 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--bg))] p-3">
+      {entries.map(([headerKey, headerValue]) => (
+        <div key={headerKey} className="flex flex-col gap-1 sm:flex-row sm:items-start sm:gap-3">
+          <span className="flex shrink-0 items-center gap-1.5 sm:w-52">
+            <KeyIcon
+              keyName={headerKey}
+              className="size-3.5 shrink-0 text-[hsl(var(--text-faint))]"
+            />
+            <span className="break-all font-mono text-[11px] font-semibold text-[hsl(var(--text-muted))]">
+              {formatKey(headerKey)}
+            </span>
+          </span>
+          <span className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
+            <HeaderValue keyName={headerKey} value={headerValue} />
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function UrlValue({ value }: { value: unknown }) {
+  if (typeof value !== "string") return <PrettyForm value={value} />;
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--bg))] px-3 py-1.5">
+      <Link2 className="size-3.5 shrink-0 text-[hsl(var(--text-faint))]" />
+      <span className="break-all font-mono text-xs text-[hsl(var(--text))]">{value}</span>
+    </div>
+  );
+}
+
+type DataKind = "headers" | "url" | "form";
+
+function PrettyBody({ kind, value }: { kind: DataKind; value: unknown }) {
+  if (kind === "headers") return <HeadersBlock value={value} />;
+  if (kind === "url") return <UrlValue value={value} />;
+  return <PrettyForm value={value} />;
 }
 
 // ── Data block (labelled, switches between pretty form and raw JSON) ───────────
@@ -286,16 +716,16 @@ function BlockLabel({ children, className }: { children: React.ReactNode; classN
   );
 }
 
-type DataBlockProperties = { label: string; value: unknown; pretty: boolean };
+type DataBlockProperties = { label: string; value: unknown; pretty: boolean; kind?: DataKind };
 
-function DataBlock({ label, value, pretty }: DataBlockProperties) {
+function DataBlock({ label, value, pretty, kind = "form" }: DataBlockProperties) {
   const parsed = tryParseJsonString(value);
 
   return (
     <div>
       <BlockLabel className="mb-1.5">{label}</BlockLabel>
       {pretty ? (
-        <PrettyForm value={parsed} />
+        <PrettyBody kind={kind} value={parsed} />
       ) : (
         <div className="overflow-x-auto rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--bg))] p-4 font-mono text-xs leading-relaxed">
           <pre className="whitespace-pre-wrap break-all">
@@ -320,20 +750,32 @@ function hasAnyKey(data: unknown, keys: string[]): boolean {
 const REQUEST_KEYS = ["requestHeaders", "requestBody", "method", "url"];
 const RESPONSE_KEYS = ["responseHeaders", "responseBody", "status", "ms"];
 
-function StatusGrid({ data }: { data: Record<string, unknown> }) {
-  const rows: [string, string][] = [];
-  if ("status" in data) rows.push(["Status", String(data["status"])]);
-  if ("ms" in data) rows.push(["Duration", `${String(data["ms"])}ms`]);
-  if (rows.length === 0) return <></>;
+/** Status code + duration shown side by side, each with an icon. */
+function ResponseMeta({ data }: { data: Record<string, unknown> }) {
+  const hasStatus = data["status"] !== undefined && data["status"] !== null;
+  const hasDuration = data["ms"] !== undefined && data["ms"] !== null;
+  if (!hasStatus && !hasDuration) return <></>;
 
   return (
-    <div className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--surface-2))] p-4 font-mono text-xs">
-      {rows.map(([key, value]) => (
-        <span key={key} className="contents">
-          <span className="font-semibold text-[hsl(var(--text-muted))]">{key}</span>
-          <span className="text-[hsl(var(--text))]">{value}</span>
-        </span>
-      ))}
+    <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+      {hasStatus && (
+        <div className="flex items-center gap-2">
+          <span className="flex items-center gap-1 text-[11px] font-semibold text-[hsl(var(--text-muted))]">
+            <Gauge className="size-3.5 text-[hsl(var(--text-faint))]" />
+            Status
+          </span>
+          <StatusValue code={Number(data["status"])} />
+        </div>
+      )}
+      {hasDuration && (
+        <div className="flex items-center gap-2">
+          <span className="flex items-center gap-1 text-[11px] font-semibold text-[hsl(var(--text-muted))]">
+            <Timer className="size-3.5 text-[hsl(var(--text-faint))]" />
+            Duration
+          </span>
+          <DurationValue durationMs={Number(data["ms"])} />
+        </div>
+      )}
     </div>
   );
 }
@@ -370,9 +812,16 @@ function DetailDataSection({ data, pretty }: { data: unknown; pretty: boolean })
                 />
               </div>
             )}
-            {"url" in data && <DataBlock label="URL" value={data["url"]} pretty={pretty} />}
+            {"url" in data && (
+              <DataBlock label="URL" value={data["url"]} pretty={pretty} kind="url" />
+            )}
             {"requestHeaders" in data && (
-              <DataBlock label="Request Headers" value={data["requestHeaders"]} pretty={pretty} />
+              <DataBlock
+                label="Request Headers"
+                value={data["requestHeaders"]}
+                pretty={pretty}
+                kind="headers"
+              />
             )}
             {"requestBody" in data && (
               <DataBlock label="Request Body" value={data["requestBody"]} pretty={pretty} />
@@ -382,9 +831,14 @@ function DetailDataSection({ data, pretty }: { data: unknown; pretty: boolean })
 
         {hasResponse && (
           <Section title="Response">
-            <StatusGrid data={data} />
+            <ResponseMeta data={data} />
             {"responseHeaders" in data && (
-              <DataBlock label="Response Headers" value={data["responseHeaders"]} pretty={pretty} />
+              <DataBlock
+                label="Response Headers"
+                value={data["responseHeaders"]}
+                pretty={pretty}
+                kind="headers"
+              />
             )}
             {"responseBody" in data && (
               <DataBlock label="Response Body" value={data["responseBody"]} pretty={pretty} />
@@ -468,8 +922,16 @@ export function LogDetail({ entry, onClose, showBack = false }: LogDetailPropert
 
   const metaGrid = (
     <div className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--surface-2))] p-4 font-mono text-xs">
-      <span className="font-semibold text-[hsl(var(--text-muted))]">Time</span>
-      <span className="text-[hsl(var(--text))]">{entry.ts}</span>
+      <span className="flex items-center gap-1.5 font-semibold text-[hsl(var(--text-muted))]">
+        <Clock className="size-3.5 text-[hsl(var(--text-faint))]" />
+        Time
+      </span>
+      <span className="text-[hsl(var(--text))]">
+        {formatTimestamp(entry.ts)}
+        {formatRelative(entry.ts) && (
+          <span className="ml-1.5 text-[hsl(var(--text-faint))]">· {formatRelative(entry.ts)}</span>
+        )}
+      </span>
       <span className="font-semibold text-[hsl(var(--text-muted))]">Level</span>
       <span className={levelColor}>{level.toUpperCase()}</span>
       {method && (
