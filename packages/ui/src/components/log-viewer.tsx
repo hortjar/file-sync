@@ -262,6 +262,49 @@ const KEY_ICON: Record<
   size: FileText,
 };
 
+/** Subtle per-key icon colours so meaning reads at a glance. */
+const KEY_ICON_TONE: Record<string, string> = {
+  authorization: "text-amber-400",
+  cookie: "text-amber-400",
+  "set-cookie": "text-amber-400",
+  host: "text-blue-400",
+  origin: "text-blue-400",
+  referer: "text-blue-400",
+  "access-control-allow-origin": "text-blue-400",
+  url: "text-blue-400",
+  name: "text-blue-400",
+  email: "text-blue-400",
+  platform: "text-blue-400",
+  "user-agent": "text-violet-400",
+  id: "text-violet-400",
+  deviceId: "text-violet-400",
+  contentHash: "text-violet-400",
+  "access-control-allow-methods": "text-violet-400",
+  "content-type": "text-teal-400",
+  "content-length": "text-teal-400",
+  relativePath: "text-teal-400",
+  localPath: "text-teal-400",
+  accept: "text-cyan-400",
+  "accept-encoding": "text-cyan-400",
+  "accept-language": "text-cyan-400",
+  "access-control-allow-headers": "text-cyan-400",
+  "access-control-expose-headers": "text-cyan-400",
+  vary: "text-cyan-400",
+  "access-control-allow-credentials": "text-[hsl(var(--success))]",
+  status: "text-[hsl(var(--success))]",
+  ms: "text-amber-400",
+  ts: "text-amber-400",
+  lastSeenAt: "text-amber-400",
+  createdAt: "text-amber-400",
+  updatedAt: "text-amber-400",
+  deletedAt: "text-amber-400",
+  appVersion: "text-emerald-400",
+  version: "text-emerald-400",
+  clientVersion: "text-emerald-400",
+  serverVersion: "text-emerald-400",
+  size: "text-orange-400",
+};
+
 function capitalizeWord(word: string): string {
   return word.length === 0 ? word : word.charAt(0).toUpperCase() + word.slice(1);
 }
@@ -285,18 +328,49 @@ function formatKey(key: string): string {
 
 function KeyIcon({ keyName, className }: { keyName: string; className?: string }) {
   const Icon = KEY_ICON[keyName] ?? Braces;
-  return <Icon className={className} />;
+  const tone = KEY_ICON_TONE[keyName] ?? "text-[hsl(var(--text-faint))]";
+  return <Icon className={cn(tone, className)} />;
 }
 
 /** Label row for a field: a meaning-hinting icon plus the formatted key. */
 function FieldLabel({ keyName }: { keyName: string }) {
   return (
     <span className="mb-1 flex items-center gap-1.5">
-      <KeyIcon keyName={keyName} className="size-3.5 shrink-0 text-[hsl(var(--text-faint))]" />
+      <KeyIcon keyName={keyName} className="size-3.5 shrink-0" />
       <span className="break-all font-mono text-[11px] font-semibold text-[hsl(var(--text-muted))]">
         {formatKey(keyName)}
       </span>
     </span>
+  );
+}
+
+function isLeafValue(value: unknown): boolean {
+  const parsed = tryParseJsonString(value);
+  return parsed === null || parsed === undefined || typeof parsed !== "object";
+}
+
+/** A single field: leaf values sit in a row beside the label; nested values stack. */
+function Field({ keyName, value }: { keyName: string; value: unknown }) {
+  if (!isLeafValue(value)) {
+    return (
+      <div>
+        <FieldLabel keyName={keyName} />
+        <PrettyValue keyName={keyName} value={value} />
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+      <span className="flex shrink-0 items-center gap-1.5 sm:w-48">
+        <KeyIcon keyName={keyName} className="size-3.5 shrink-0" />
+        <span className="break-all font-mono text-[11px] font-semibold text-[hsl(var(--text-muted))]">
+          {formatKey(keyName)}
+        </span>
+      </span>
+      <span className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
+        <PrettyValue keyName={keyName} value={value} />
+      </span>
+    </div>
   );
 }
 
@@ -467,9 +541,9 @@ function PlatformValue({ platform }: { platform: string }) {
 /** A read-only field box showing an italic placeholder for empty/absent values. */
 function EmptyValue({ label }: { label: string }) {
   return (
-    <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--bg))] px-3 py-1.5 font-mono text-xs italic text-[hsl(var(--text-faint))]">
+    <span className="inline-block rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--bg))] px-2 py-0.5 font-mono text-xs italic text-[hsl(var(--text-faint))]">
       {label}
-    </div>
+    </span>
   );
 }
 
@@ -495,14 +569,14 @@ function ScalarValue({ value }: { value: string | number | boolean | null | unde
   }
 
   return (
-    <div
+    <span
       className={cn(
-        "whitespace-pre-wrap break-all rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--bg))] px-3 py-1.5 font-mono text-xs",
+        "inline-block max-w-full whitespace-pre-wrap break-all rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--bg))] px-2 py-0.5 font-mono text-xs",
         tone,
       )}
     >
       {display}
-    </div>
+    </span>
   );
 }
 
@@ -572,10 +646,7 @@ function PrettyValue({
   return (
     <div className="space-y-2 border-l-2 border-[hsl(var(--border))] pl-3">
       {entries.map(([childKey, childValue]) => (
-        <div key={childKey}>
-          <FieldLabel keyName={childKey} />
-          <PrettyValue keyName={childKey} value={childValue} />
-        </div>
+        <Field key={childKey} keyName={childKey} value={childValue} />
       ))}
     </div>
   );
@@ -589,12 +660,9 @@ function PrettyForm({ value }: { value: unknown }) {
     const entries = Object.entries(parsed);
     if (entries.length === 0) return <EmptyValue label="(empty object)" />;
     return (
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         {entries.map(([childKey, childValue]) => (
-          <div key={childKey}>
-            <FieldLabel keyName={childKey} />
-            <PrettyValue keyName={childKey} value={childValue} />
-          </div>
+          <Field key={childKey} keyName={childKey} value={childValue} />
         ))}
       </div>
     );
