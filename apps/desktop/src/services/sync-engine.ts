@@ -1,6 +1,7 @@
 import { listen } from "@tauri-apps/api/event";
 import i18n from "i18next";
 
+import { getApiSyncStateBySyncFolderIdQueryKey } from "../generated/@tanstack/react-query.gen";
 import { getApiConflictsQueryKey } from "../hooks/use-conflict-count";
 import { fetchWithAuth } from "../lib/fetch-with-auth";
 import { queryClient } from "../lib/query";
@@ -57,10 +58,24 @@ async function handleFileChange(
       body: JSON.stringify({ syncFolderId, relativePath, deviceId }),
     });
     logger.debug(`[sync] delete reported: ${relativePath}`);
+    invalidateFolderState(syncFolderId);
     return;
   }
 
   await pushLocalFile(localPath, syncFolderId, localBase);
+  invalidateFolderState(syncFolderId);
+}
+
+/**
+ * Refresh the open folder view after a local change. The server broadcast that
+ * notifies *other* devices deliberately excludes the originating device, so the
+ * device that made the change must invalidate its own file-state query here or
+ * the folder view would only update on a manual refresh.
+ */
+function invalidateFolderState(syncFolderId: string): void {
+  void queryClient.invalidateQueries({
+    queryKey: getApiSyncStateBySyncFolderIdQueryKey({ path: { syncFolderId } }),
+  });
 }
 
 /**

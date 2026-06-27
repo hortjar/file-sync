@@ -5,7 +5,10 @@ import { join } from "@tauri-apps/api/path";
 import { remove } from "@tauri-apps/plugin-fs";
 import i18n from "i18next";
 
-import { getApiSyncFoldersQueryKey } from "../generated/@tanstack/react-query.gen";
+import {
+  getApiSyncFoldersQueryKey,
+  getApiSyncStateBySyncFolderIdQueryKey,
+} from "../generated/@tanstack/react-query.gen";
 import { fetchWithAuth } from "../lib/fetch-with-auth";
 import { queryClient } from "../lib/query";
 import { authStore, logout } from "../stores/auth";
@@ -145,6 +148,9 @@ async function handleMessage(event: MessageEvent): Promise<void> {
       logger.error(`[ws] download failed for ${relativePath}`, error);
     }
 
+    void queryClient.invalidateQueries({
+      queryKey: getApiSyncStateBySyncFolderIdQueryKey({ path: { syncFolderId } }),
+    });
     return;
   }
 
@@ -168,6 +174,9 @@ async function handleMessage(event: MessageEvent): Promise<void> {
     } catch (error: unknown) {
       logger.error(`[ws] failed to remove ${relativePath}`, error);
     }
+    void queryClient.invalidateQueries({
+      queryKey: getApiSyncStateBySyncFolderIdQueryKey({ path: { syncFolderId } }),
+    });
     return;
   }
 
