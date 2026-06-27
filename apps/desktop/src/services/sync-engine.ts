@@ -160,7 +160,16 @@ export async function startSyncEngine(): Promise<() => void> {
           debounceTimers.delete(key);
           void handleFileChange(filePath, syncFolderId, localBase, isDelete).catch(
             (syncError: unknown) => {
-              logger.error(`[sync] unhandled error for ${filePath}`, syncError);
+              const message = syncError instanceof Error ? syncError.message : String(syncError);
+              const tag = /denied|permission|forbidden|not allowed|os error 5/iu.test(message)
+                ? " [permission/forbidden-path]"
+                : "";
+              // Wrap non-Error throws so the logger always has a stack to print.
+              const wrapped = syncError instanceof Error ? syncError : new Error(message);
+              logger.error(
+                `[sync] unhandled error — op=${isDelete ? "delete" : "upload"} path=${filePath}${tag} — ${message}`,
+                wrapped,
+              );
               setSyncStatus("error", i18n.t("sync.errorCheckLogs"));
             },
           );

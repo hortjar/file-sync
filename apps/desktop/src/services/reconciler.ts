@@ -35,6 +35,20 @@ function isPermissionError(message: string): boolean {
 }
 
 /**
+ * Log a reconcile failure verbosely: which operation failed, the exact path,
+ * whether it looks like a permission/forbidden-path problem, and a full stack
+ * trace (the logger serialises Error stacks). Tauri fs errors surface as plain
+ * strings with no stack, so we wrap them to synthesise one and pin down where
+ * in the reconcile pipeline the failure originated.
+ */
+function logReconcileError(operation: string, path: string, error: unknown): void {
+  const message = errorMessage(error);
+  const tag = isPermissionError(message) ? " [permission/forbidden-path]" : "";
+  const wrapped = error instanceof Error ? error : new Error(message);
+  logger.error(`[reconcile] ${operation} failed — path=${path}${tag} — ${message}`, wrapped);
+}
+
+/**
  * Recursively collect every file path under `directory`, descending into
  * subfolders. A directory we can't read (forbidden path / permission denied)
  * is recorded in `failures` and skipped rather than aborting the whole scan, so
@@ -46,7 +60,7 @@ async function walkFiles(directory: string, failures: ScanFailure[]): Promise<st
     entries = await readDir(directory);
   } catch (error: unknown) {
     failures.push({ path: directory, message: errorMessage(error) });
-    logger.warn(`[reconcile] cannot read directory ${directory}: ${errorMessage(error)}`);
+    logReconcileError("readDir", directory, error);
     return [];
   }
 
@@ -71,9 +85,12 @@ function warnScanFailures(localBasePath: string, failures: ScanFailure[]): void 
   const isPermission = failures.some((failure) => isPermissionError(failure.message));
   const reason = i18n.t(isPermission ? "sync.scanPermissionReason" : "sync.scanGenericReason");
 
+  // Verbose summary — each failure was already logged with its own stack trace
+  // at the point it happened; this collects them in one place alongside the
+  // user-facing toast so the full picture is together in the log.
   logger.error(
-    `[reconcile] ${failures.length} path(s) skipped in ${localBasePath}`,
-    failures.map((failure) => `${failure.path}: ${failure.message}`).join("; "),
+    `[reconcile] ${failures.length} path(s) skipped in ${localBasePath} (permission=${isPermission})`,
+    failures.map((failure) => `  • ${failure.path}: ${failure.message}`).join("\n"),
   );
 
   toast.error(i18n.t("sync.scanIssuesTitle", { folder }), {
@@ -99,10 +116,18 @@ export async function reconcile(syncFolderId: string, localBasePath: string): Pr
 
   logger.info(`[reconcile] starting for folder ${syncFolderId} at ${localBasePath}`);
 
-  const response = await fetchWithAuth(`${serverUrl}/api/sync/state/${syncFolderId}`);
+  let response: Response;
+  try {
+    response = await fetchWithAuth(`${serverUrl}/api/sync/state/${syncFolderId}`);
+  } catch (error: unknown) {
+    logReconcileError("fetch sync state", `${serverUrl}/api/sync/state/${syncFolderId}`, error);
+    return;
+  }
 
   if (!response.ok) {
-    logger.error(`[reconcile] failed to fetch sync state: ${response.status}`);
+    logger.error(
+      `[reconcile] failed to fetch sync state for ${syncFolderId}: HTTP ${response.status} ${response.statusText}`,
+    );
     return;
   }
 
@@ -114,7 +139,14 @@ export async function reconcile(syncFolderId: string, localBasePath: string): Pr
 
   for (const entry of remoteEntries) {
     const localPath = await join(localBasePath, entry.relativePath);
-    const isFilePresent = await exists(localPath);
+
+    let isFilePresent: boolean;
+    try {
+      isFilePresent = await exists(localPath);
+    } catch (error: unknown) {
+      logReconcileError("exists", localPath, error);
+      continue;
+    }
 
     if (!isFilePresent) {
       logger.info(`[reconcile] missing locally, downloading: ${entry.relativePath}`);
@@ -130,14 +162,20 @@ export async function reconcile(syncFolderId: string, localBasePath: string): Pr
         );
         downloaded++;
       } catch (error: unknown) {
-        logger.error(`[reconcile] download failed for ${entry.relativePath}`, error);
+        logReconcileError("download (missing file)", localPath, error);
       }
       continue;
     }
 
-    const rawData = await readFile(localPath);
-    const fileData = new Uint8Array(rawData instanceof Uint8Array ? rawData.buffer : rawData);
-    const localHash = await computeHash(fileData);
+    let localHash: string;
+    try {
+      const rawData = await readFile(localPath);
+      const fileData = new Uint8Array(rawData instanceof Uint8Array ? rawData.buffer : rawData);
+      localHash = await computeHash(fileData);
+    } catch (error: unknown) {
+      logReconcileError("readFile/hash", localPath, error);
+      continue;
+    }
 
     if (localHash === entry.contentHash) {
       skipped++;
@@ -155,7 +193,7 @@ export async function reconcile(syncFolderId: string, localBasePath: string): Pr
         );
         downloaded++;
       } catch (error: unknown) {
-        logger.error(`[reconcile] download failed for ${entry.relativePath}`, error);
+        logReconcileError("download (hash mismatch)", localPath, error);
       }
     }
   }
@@ -170,14 +208,16 @@ export async function reconcile(syncFolderId: string, localBasePath: string): Pr
   // Per-directory and per-file failures are collected and surfaced to the user
   // rather than aborting the scan or hiding only in the log.
   const failures: ScanFailure[] = [];
+  logger.debug(`[reconcile] walking local tree for ${syncFolderId} at ${localBasePath}`);
   const localFiles = await walkFiles(localBasePath, failures);
+  logger.debug(`[reconcile] walk found ${localFiles.length} local file(s) for ${syncFolderId}`);
 
   for (const filePath of localFiles) {
     try {
       await pushLocalFile(filePath, syncFolderId, localBasePath);
     } catch (error: unknown) {
       failures.push({ path: filePath, message: errorMessage(error) });
-      logger.error(`[reconcile] upload failed for ${filePath}`, error);
+      logReconcileError("upload (pushLocalFile)", filePath, error);
     }
   }
 
