@@ -1,6 +1,8 @@
-import { FolderSync } from "lucide-react";
-import { Link } from "react-router-dom";
+import { FolderSync, Settings } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { Link, NavLink } from "react-router-dom";
 
+import { cn } from "../../lib/cn";
 import { Separator } from "../ui/separator";
 
 import { LanguageToggle } from "./LanguageToggle";
@@ -10,6 +12,7 @@ import { SidebarNav } from "./SidebarNav";
 import { UserMenu } from "./UserMenu";
 
 export function Sidebar() {
+  const { t } = useTranslation();
   const appVersion = import.meta.env.VITE_APP_VERSION;
 
   return (
@@ -51,6 +54,20 @@ export function Sidebar() {
         <ServerStatus />
         <NotificationBell />
         <LanguageToggle />
+        <NavLink
+          to="/settings"
+          className={({ isActive }) =>
+            cn(
+              "flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] transition-all duration-150",
+              isActive
+                ? "bg-white/[0.08] font-medium text-white shadow-[inset_0_1px_0_hsl(0,0%,100%/.06)]"
+                : "text-[hsl(var(--text-muted))] hover:bg-white/[0.06] hover:text-[hsl(var(--text))]",
+            )
+          }
+        >
+          <Settings className="size-4 shrink-0" />
+          {t("nav.settings")}
+        </NavLink>
         <UserMenu />
       </div>
     </aside>
