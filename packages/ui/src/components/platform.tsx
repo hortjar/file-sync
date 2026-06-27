@@ -1,5 +1,7 @@
 import { Apple, Grid2x2, type LucideProps, Monitor, Terminal } from "lucide-react";
 
+import { cn } from "../lib/cn";
+
 /** Map a raw platform string (e.g. "macos", "windows") to its display label. */
 export function formatPlatform(platform: string): string {
   switch (platform.toLowerCase()) {
@@ -28,8 +30,23 @@ const PLATFORM_ICON: Record<string, (properties: LucideProps) => React.ReactNode
   linux: Terminal,
 };
 
-/** Recognisable per-OS icon. Falls back to a generic monitor for unknown platforms. */
-export function PlatformIcon({ platform, ...properties }: { platform: string } & LucideProps) {
-  const Icon = PLATFORM_ICON[platform.toLowerCase()] ?? Monitor;
-  return <Icon {...properties} />;
+/** Brand-ish tint per OS so each platform is recognisable at a glance. */
+const PLATFORM_TONE: Record<string, string> = {
+  macos: "text-rose-300",
+  darwin: "text-rose-300",
+  windows: "text-sky-400",
+  win32: "text-sky-400",
+  linux: "text-yellow-400",
+};
+
+/** Recognisable, colour-coded per-OS icon. Falls back to a generic monitor. */
+export function PlatformIcon({
+  platform,
+  className,
+  ...properties
+}: { platform: string } & LucideProps) {
+  const key = platform.toLowerCase();
+  const Icon = PLATFORM_ICON[key] ?? Monitor;
+  const tone = PLATFORM_TONE[key] ?? "text-[hsl(var(--text-muted))]";
+  return <Icon className={cn(className, tone)} {...properties} />;
 }
