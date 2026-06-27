@@ -147,19 +147,20 @@ export function SettingsPage() {
               }}
               className="flex gap-2"
             >
-              <serverForm.Field name="serverUrl">
-                {(field) => (
-                  <Input
-                    name={field.name}
-                    type="url"
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(event) => field.handleChange(event.target.value)}
-                    placeholder="http://localhost:3001"
-                    className="flex-1"
-                  />
-                )}
-              </serverForm.Field>
+              <div className="min-w-0 flex-1">
+                <serverForm.Field name="serverUrl">
+                  {(field) => (
+                    <Input
+                      name={field.name}
+                      type="url"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(event) => field.handleChange(event.target.value)}
+                      placeholder="http://localhost:3001"
+                    />
+                  )}
+                </serverForm.Field>
+              </div>
               <Button type="submit" variant="secondary" className="shrink-0">
                 {t("settings.save")}
               </Button>
