@@ -1,4 +1,4 @@
-import { Download, Star } from "lucide-react";
+import { Download, Rocket, Star } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { GITHUB_URL } from "../../lib/landing";
@@ -61,6 +61,14 @@ export function OpenSourceSection() {
                 </Link>
               </Button>
             </div>
+
+            <Link
+              to="/quick-start"
+              className="mt-4 inline-flex items-center gap-1.5 text-sm text-[hsl(var(--text-muted))] underline-offset-4 transition-colors hover:text-[hsl(var(--text))] hover:underline"
+            >
+              <Rocket className="size-4 text-[hsl(var(--brand-to))]" />
+              Read the quick start guide →
+            </Link>
 
             <dl className="mt-9 grid grid-cols-4 gap-4">
               {STATS.map((stat) => (

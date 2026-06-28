@@ -1,15 +1,36 @@
-import { ArrowUpRight, Container, Globe, type LucideIcon, MonitorDown, Server } from "lucide-react";
+import {
+  ArrowUpRight,
+  ChevronDown,
+  Container,
+  Globe,
+  type LucideIcon,
+  MonitorDown,
+  Server,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { CodeBlock } from "../../components/landing/CodeBlock";
 import { LandingFooter } from "../../components/landing/LandingFooter";
 import { LandingNav } from "../../components/landing/LandingNav";
 import { Button } from "../../components/ui/button";
-import { APP_NAME, GITHUB_URL } from "../../lib/landing";
+import { APP_NAME, detectOs, GITHUB_URL } from "../../lib/landing";
 
 const RAW_BASE = `${GITHUB_URL.replace("github.com", "raw.githubusercontent.com")}/main/scripts`;
 const UNIX_INSTALL = `curl -fsSL ${RAW_BASE}/setup.sh | sh`;
 const WINDOWS_INSTALL = `irm ${RAW_BASE}/setup.ps1 | iex`;
+
+type InstallCommand = { label: string; code: string };
+
+const UNIX_COMMAND: InstallCommand = { label: "Linux & macOS", code: UNIX_INSTALL };
+const WINDOWS_COMMAND: InstallCommand = { label: "Windows · PowerShell", code: WINDOWS_INSTALL };
+
+/** The installer for the visitor's OS first, with the rest tucked behind a toggle. */
+function installCommandsForVisitor(): { primary: InstallCommand; others: InstallCommand[] } {
+  if (detectOs() === "windows") {
+    return { primary: WINDOWS_COMMAND, others: [UNIX_COMMAND] };
+  }
+  return { primary: UNIX_COMMAND, others: [WINDOWS_COMMAND] };
+}
 
 const PREREQS: { icon: LucideIcon; title: string; description: string }[] = [
   {
@@ -50,6 +71,8 @@ const CONNECT_STEPS: { step: string; title: string; description: string }[] = [
 ];
 
 export function QuickStartPage() {
+  const { primary, others } = installCommandsForVisitor();
+
   return (
     <div className="relative min-h-screen overflow-x-clip bg-[hsl(var(--bg))] text-[hsl(var(--text))]">
       {/* Decorative background */}
@@ -77,7 +100,7 @@ export function QuickStartPage() {
               className="lp-enter mt-4 max-w-lg text-lg text-[hsl(var(--text-muted))]"
               style={{ animationDelay: "160ms" }}
             >
-              One interactive command stands up your own {APP_NAME} server. Then connect as many
+              One interactive command starts your own {APP_NAME} server. Then connect as many
               devices as you like — your files, your infrastructure.
             </p>
           </header>
@@ -108,7 +131,7 @@ export function QuickStartPage() {
               <span className="flex size-9 items-center justify-center rounded-xl gradient-brand font-mono text-sm font-semibold text-white shadow-lg">
                 1
               </span>
-              <h2 className="text-2xl font-bold tracking-tight">Stand up your server</h2>
+              <h2 className="text-2xl font-bold tracking-tight">Start your server</h2>
             </div>
             <p className="lp-reveal mt-3 text-[hsl(var(--text-muted))]">
               Run the installer on your host. It checks prerequisites, clones the repo, asks for
@@ -116,9 +139,20 @@ export function QuickStartPage() {
               and prints the URLs when it's done.
             </p>
 
-            <div className="lp-reveal mt-6 space-y-4">
-              <CodeBlock label="Linux & macOS" code={UNIX_INSTALL} />
-              <CodeBlock label="Windows · PowerShell" code={WINDOWS_INSTALL} />
+            <div className="lp-reveal mt-6">
+              <CodeBlock label={primary.label} code={primary.code} />
+
+              <details className="group mt-3">
+                <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-lg px-1 py-1 text-sm text-[hsl(var(--text-muted))] transition-colors hover:text-[hsl(var(--text))] [&::-webkit-details-marker]:hidden">
+                  <ChevronDown className="size-4 transition-transform group-open:rotate-180" />
+                  On a different platform? Show the other commands
+                </summary>
+                <div className="mt-3 space-y-4">
+                  {others.map((command) => (
+                    <CodeBlock key={command.label} label={command.label} code={command.code} />
+                  ))}
+                </div>
+              </details>
             </div>
 
             <p className="lp-reveal mt-4 text-sm text-[hsl(var(--text-faint))]">

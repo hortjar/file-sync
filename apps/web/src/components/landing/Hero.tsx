@@ -90,13 +90,24 @@ export function Hero() {
           <DownloadCta />
         </div>
 
-        <Link
-          to="/admin"
-          className="lp-enter mt-5 text-sm text-[hsl(var(--text-faint))] underline-offset-4 transition-colors hover:text-[hsl(var(--text-muted))] hover:underline"
+        <div
+          className="lp-enter mt-5 flex items-center gap-4 text-sm text-[hsl(var(--text-faint))]"
           style={{ animationDelay: "480ms" }}
         >
-          or open the dashboard →
-        </Link>
+          <Link
+            to="/quick-start"
+            className="underline-offset-4 transition-colors hover:text-[hsl(var(--text-muted))] hover:underline"
+          >
+            self-host in minutes →
+          </Link>
+          <span className="text-[hsl(var(--border))]">·</span>
+          <Link
+            to="/admin"
+            className="underline-offset-4 transition-colors hover:text-[hsl(var(--text-muted))] hover:underline"
+          >
+            open the dashboard →
+          </Link>
+        </div>
       </div>
     </section>
   );

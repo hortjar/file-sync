@@ -3,6 +3,7 @@ import {
   Bell,
   Boxes,
   Database,
+  DownloadCloud,
   FolderSync,
   GitMerge,
   LayoutDashboard,
@@ -51,6 +52,13 @@ export const FEATURES: Feature[] = [
     description:
       "Lightweight Tauri clients for macOS and Windows — a real native binary with a system-tray presence, not a memory-hungry browser wrapper.",
     hue: 245,
+  },
+  {
+    icon: DownloadCloud,
+    title: "Automatic updates",
+    description:
+      "The desktop app polls GitHub for new signed releases and updates itself in place. Opt into the beta channel for early builds, and install on your own schedule.",
+    hue: 190,
   },
   {
     icon: Server,

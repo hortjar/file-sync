@@ -44,6 +44,7 @@ Keep your folders perfectly in sync across every machine — **in real time**, o
 | 🔀 **Conflict resolution**         | Per-file version tracking with **Keep Mine / Keep Theirs / Keep Both** — never a silent overwrite. |
 | 🗜️ **Content-addressable storage** | Files stored by SHA-256 hash, gzip-compressed, deduplicated, and ref-counted.                      |
 | 🖥️ **Native desktop apps**         | Lightweight Tauri clients for macOS & Windows with system-tray integration.                        |
+| ⬇️ **Automatic updates**           | The desktop app polls GitHub for signed releases and updates in place — stable & beta channels.    |
 | 🏠 **Self-hosted**                 | One Docker Compose command brings up the whole stack with automatic HTTPS.                         |
 | 🔒 **Private by design**           | JWT auth with short-lived access + rotating refresh tokens; per-user file isolation.               |
 | 🧩 **Multi-device linking**        | Connect as many machines as you like — each registers and links to the folders you pick.           |
@@ -123,9 +124,9 @@ flowchart LR
 
 ### One-line installer (recommended)
 
-The interactive setup script clones the repo, asks for your domain / secrets / data
-locations, writes `.env.prod`, and brings the stack up — verifying prerequisites and
-generating strong secrets along the way.
+The interactive setup script ([`scripts/setup.sh`](scripts/setup.sh) for Linux/macOS,
+[`scripts/setup.ps1`](scripts/setup.ps1) for Windows) is the fastest way to self-host.
+Run it straight from GitHub:
 
 ```bash
 # Linux & macOS
@@ -136,6 +137,29 @@ curl -fsSL https://raw.githubusercontent.com/hortjar/file-sync/main/scripts/setu
 # Windows (PowerShell, Docker Desktop)
 irm https://raw.githubusercontent.com/hortjar/file-sync/main/scripts/setup.ps1 | iex
 ```
+
+The same guide is published in-app at **`https://your-domain/quick-start`** (and linked
+from the landing page).
+
+**What it does, start to finish:**
+
+1. **Verifies prerequisites** — Git, Docker, the Docker daemon, and Compose v2. Missing
+   tools abort with a clear, colorized list instead of a half-finished install.
+2. **Clones (or updates) the repo** into a directory you choose — re-running is safe.
+3. **Prompts in sections:**
+   - _Domain & access_ — your public domain and the dashboard URL (sensible defaults).
+   - _Data storage_ — keep Docker-managed named volumes, or bind blobs / database / TLS
+     certs to a host directory you pick.
+   - _Secrets_ — press Enter to auto-generate strong `POSTGRES_PASSWORD`, `JWT_SECRET`,
+     and `JWT_REFRESH_SECRET`, or paste your own.
+   - _Advanced (optional)_ — CORS origins, port, storage path, `NODE_ENV` — each with a
+     default you can Enter straight through.
+4. **Writes `.env.prod`** (and, for custom storage, a `docker-compose.binds.yml` override).
+5. **Builds and launches** the full stack with `docker compose … up -d --build`.
+6. **Offers to seed** the default admin account, then **prints your URLs**.
+
+Everything is logged to a timestamped file, and the script reports success/error states
+as it goes. Re-run it any time to update configuration or pull a newer build.
 
 ### Manual setup
 
@@ -296,8 +320,27 @@ bun run build:mac
 **🤖 CI / GitHub Actions** — push a `v*` tag to trigger the build workflow, which attaches macOS `.dmg` and Windows `.exe` installers to a draft GitHub Release:
 
 ```bash
-git tag v1.0.0 && git push origin v1.0.0
+git tag v1.0.0 && git push origin v1.0.0      # stable release
+git tag v1.1.0-beta && git push origin v1.1.0-beta   # auto-published as a prerelease
 ```
+
+### ⬇️ Automatic updates
+
+The desktop client keeps itself current — there's nothing to reinstall:
+
+- **Self-updating.** On startup (and every 6 hours) the app polls the GitHub releases
+  API for a newer build and surfaces it in the sidebar.
+- **Signed manifests.** Updates are verified against the app's public key before they're
+  applied, so only releases you signed can install.
+- **Stable & beta channels.** Users on the **stable** channel only see `v*` releases;
+  the **beta** channel also picks up `-beta` prereleases for early access. Switch
+  channels in the desktop app's settings.
+- **Install on your terms.** The app never restarts on its own — it downloads in the
+  background and waits for you to click **Download & install**, then relaunches into the
+  new version. A desktop notification lets you know when one is ready.
+
+> Releases are built and published by GitHub Actions; tagging `v*` cuts a stable release
+> and `*-beta` an automatic prerelease for the beta channel.
 
 ---
 
