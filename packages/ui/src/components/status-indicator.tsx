@@ -67,7 +67,7 @@ export function StatusIndicator({
 
   return (
     <div className="relative" onMouseEnter={open} onMouseLeave={scheduleClose}>
-      <div className="flex items-center px-3 py-1.5">
+      <div className="flex cursor-pointer items-center rounded-xl px-3 py-1.5 transition-colors hover:bg-white/[0.06]">
         {/* Dot centered in a size-4 box so it lines up with the nav row icons. */}
         <div className="mr-2.5 flex size-4 shrink-0 items-center justify-center">
           <div
@@ -88,7 +88,7 @@ export function StatusIndicator({
           or copy. */}
       <div
         className={cn(
-          "absolute bottom-full left-2 z-50 w-max max-w-[80vw] pb-2 transition-opacity duration-150",
+          "absolute bottom-full -left-1 z-50 w-max max-w-[80vw] pb-2 transition-opacity duration-150",
           isOpen ? "opacity-100" : "pointer-events-none opacity-0",
         )}
       >
