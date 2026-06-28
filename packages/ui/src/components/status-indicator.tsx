@@ -1,5 +1,5 @@
 import { ArrowUpCircle, RefreshCw, Wifi, WifiOff } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { cn } from "../lib/cn";
 
@@ -53,21 +53,28 @@ export function StatusIndicator({
   reconnectLabel,
 }: StatusIndicatorProperties) {
   const [isOpen, setIsOpen] = useState(false);
-  const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const containerReference = useRef<HTMLDivElement>(null);
 
-  function open() {
-    if (closeTimer.current) clearTimeout(closeTimer.current);
-    setIsOpen(true);
-  }
-
-  function scheduleClose() {
-    if (closeTimer.current) clearTimeout(closeTimer.current);
-    closeTimer.current = setTimeout(() => setIsOpen(false), 150);
-  }
+  // Close when clicking outside the indicator. The popover lives inside the
+  // container, so clicks within it (reconnect, selecting text) don't dismiss it.
+  // A document listener avoids a fixed click-away backdrop, which the sidebar's
+  // backdrop-filter would clip.
+  useEffect(() => {
+    if (!isOpen) return;
+    function handlePointerDown(event: PointerEvent) {
+      if (!containerReference.current?.contains(event.target as Node)) setIsOpen(false);
+    }
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [isOpen]);
 
   return (
-    <div className="relative" onMouseEnter={open} onMouseLeave={scheduleClose}>
-      <div className="flex cursor-pointer items-center rounded-xl px-3 py-1.5 transition-colors hover:bg-white/[0.06]">
+    <div ref={containerReference} className="relative">
+      <button
+        type="button"
+        onClick={() => setIsOpen((open) => !open)}
+        className="flex w-full cursor-pointer items-center rounded-xl px-3 py-1.5 text-left transition-colors hover:bg-white/[0.06]"
+      >
         {/* Dot centered in a size-4 box so it lines up with the nav row icons. */}
         <div className="mr-2.5 flex size-4 shrink-0 items-center justify-center">
           <div
@@ -80,7 +87,7 @@ export function StatusIndicator({
         <span className="flex-1 text-xs text-[hsl(var(--text-faint))]">{rowLabel}</span>
         {!online && <WifiOff className="size-3 text-[hsl(var(--danger))]" />}
         {online && !syncing && <Wifi className="size-3 text-[hsl(var(--success))] opacity-50" />}
-      </div>
+      </button>
 
       {/* Detailed status card. The bottom padding (instead of a margin) keeps the
           gap between the row and the card inside the hover area; combined with
