@@ -92,7 +92,12 @@
     "updateStatusDownloading": "Downloading update…",
     "updateStatusError": "Update check failed — see logs.",
     "updateStatusAvailable": "Version {{version}} is available.",
-    "updateStatusReady": "Version {{version}} is ready — restart to apply."
+    "updateStatusReady": "Version {{version}} is ready — restart to apply.",
+    "channel": "Release channel",
+    "channelStable": "Stable",
+    "channelStableHint": "Only official releases. Recommended for most people.",
+    "channelBeta": "Beta",
+    "channelBetaHint": "Get -beta prereleases early. May be less stable."
   },
   "updates": {
     "checkFailed": "Could not check for updates",

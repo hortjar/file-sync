@@ -79,7 +79,10 @@ jobs:
           args: "--target aarch64-apple-darwin --bundles dmg,updater"
           tagName: ${{ github.ref_name }}
           releaseName: "FileSync ${{ github.ref_name }}"
-          releaseDraft: true
+          # -beta tags publish immediately as prereleases (so the beta channel
+          # can find them); stable tags stay drafts for manual review.
+          releaseDraft: ${{ !contains(github.ref_name, '-beta') }}
+          prerelease: ${{ contains(github.ref_name, '-beta') }}
 
       - name: 🔨 Build (main branch)
         id: tauri-build
@@ -144,7 +147,10 @@ jobs:
           args: "--target x86_64-pc-windows-msvc --bundles nsis,updater"
           tagName: ${{ github.ref_name }}
           releaseName: "FileSync ${{ github.ref_name }}"
-          releaseDraft: true
+          # -beta tags publish immediately as prereleases (so the beta channel
+          # can find them); stable tags stay drafts for manual review.
+          releaseDraft: ${{ !contains(github.ref_name, '-beta') }}
+          prerelease: ${{ contains(github.ref_name, '-beta') }}
 
       - name: 🔨 Build (main branch)
         id: tauri-build

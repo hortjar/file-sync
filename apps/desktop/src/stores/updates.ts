@@ -7,6 +7,13 @@ import { persistStore } from "../lib/persist-store";
 export type UpdateMode = "auto" | "manual";
 
 /**
+ * Release channel to track:
+ * - `stable` only updates to normal (non-prerelease) GitHub releases
+ * - `beta`   also updates to `-beta` prerelease tags as soon as they ship
+ */
+export type UpdateChannel = "stable" | "beta";
+
+/**
  * Lifecycle of an update check/install:
  * - `idle`      nothing has happened yet this session
  * - `checking`  a check against the GitHub release endpoint is in flight
@@ -27,6 +34,7 @@ export type UpdateStatus =
 
 type UpdatePrefsState = {
   mode: UpdateMode;
+  channel: UpdateChannel;
 };
 
 type UpdateRuntimeState = {
@@ -42,9 +50,10 @@ type UpdateRuntimeState = {
   error: string | undefined;
 };
 
-/** Persisted: the user's auto-vs-manual preference. Defaults to automatic. */
+/** Persisted: auto-vs-manual preference + release channel. Defaults: auto, stable. */
 export const updatePrefsStore = persistStore<UpdatePrefsState>("filesync-update-mode", {
   mode: "auto",
+  channel: "stable",
 });
 
 /** Transient: live status of the current check/download. Not persisted. */
@@ -59,6 +68,10 @@ export const updateRuntimeStore = new Store<UpdateRuntimeState>({
 
 export function setUpdateMode(mode: UpdateMode): void {
   updatePrefsStore.setState((s) => ({ ...s, mode }));
+}
+
+export function setUpdateChannel(channel: UpdateChannel): void {
+  updatePrefsStore.setState((s) => ({ ...s, channel }));
 }
 
 export function setUpdateStatus(status: UpdateStatus): void {

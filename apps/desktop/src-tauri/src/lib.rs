@@ -107,6 +107,92 @@ fn reveal_in_file_manager(path: String) {
     let _ = std::process::Command::new("xdg-open").arg(&path).spawn();
 }
 
+/// Metadata about an available update, returned to the frontend.
+#[cfg(desktop)]
+#[derive(serde::Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct UpdateInfo {
+    version: String,
+    notes: Option<String>,
+}
+
+/// Download progress, emitted on the `updater://progress` event during install.
+#[cfg(desktop)]
+#[derive(serde::Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct DownloadProgress {
+    chunk_length: usize,
+    content_length: Option<u64>,
+}
+
+/// Build a Tauri updater pointed at a specific manifest URL. The endpoint is
+/// resolved on the JS side (per release channel), since the JS `check()` API
+/// can't override endpoints and GitHub has no stable "latest prerelease" URL.
+/// Signature verification still uses the `pubkey` from tauri.conf.json.
+#[cfg(desktop)]
+fn build_updater(
+    app: &tauri::AppHandle,
+    endpoint: &str,
+) -> Result<tauri_plugin_updater::Updater, String> {
+    use tauri_plugin_updater::UpdaterExt;
+    app.updater_builder()
+        .endpoints(vec![endpoint
+            .parse()
+            .map_err(|error| format!("invalid update endpoint: {error}"))?])
+        .map_err(|error| error.to_string())?
+        .build()
+        .map_err(|error| error.to_string())
+}
+
+/// Check the given channel manifest for a newer signed release.
+#[cfg(desktop)]
+#[tauri::command]
+async fn check_for_update(
+    app: tauri::AppHandle,
+    endpoint: String,
+) -> Result<Option<UpdateInfo>, String> {
+    let updater = build_updater(&app, &endpoint)?;
+    match updater.check().await.map_err(|error| error.to_string())? {
+        Some(update) => Ok(Some(UpdateInfo {
+            version: update.version.clone(),
+            notes: update.body.clone(),
+        })),
+        None => Ok(None),
+    }
+}
+
+/// Download + install the newest release from the given manifest, emitting
+/// `updater://progress` as bytes arrive. The frontend relaunches afterwards.
+#[cfg(desktop)]
+#[tauri::command]
+async fn install_update(app: tauri::AppHandle, endpoint: String) -> Result<(), String> {
+    use tauri::Emitter;
+
+    let updater = build_updater(&app, &endpoint)?;
+    let Some(update) = updater.check().await.map_err(|error| error.to_string())? else {
+        return Err("no update available".to_string());
+    };
+
+    let progress_app = app.clone();
+    update
+        .download_and_install(
+            move |chunk_length, content_length| {
+                let _ = progress_app.emit(
+                    "updater://progress",
+                    DownloadProgress {
+                        chunk_length,
+                        content_length,
+                    },
+                );
+            },
+            || {},
+        )
+        .await
+        .map_err(|error| error.to_string())?;
+
+    Ok(())
+}
+
 pub fn run() {
     // Generate a timestamp for this run so each session gets its own log file.
     let run_ts = chrono::Local::now().format("%Y-%m-%dT%H-%M-%S").to_string();
@@ -153,13 +239,25 @@ pub fn run() {
         builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
     }
 
+    // The updater commands only exist on desktop, so the handler list differs.
+    #[cfg(desktop)]
+    let builder = builder.invoke_handler(tauri::generate_handler![
+        start_watching,
+        get_hostname,
+        open_log_file,
+        reveal_in_file_manager,
+        check_for_update,
+        install_update
+    ]);
+    #[cfg(not(desktop))]
+    let builder = builder.invoke_handler(tauri::generate_handler![
+        start_watching,
+        get_hostname,
+        open_log_file,
+        reveal_in_file_manager
+    ]);
+
     builder
-        .invoke_handler(tauri::generate_handler![
-            start_watching,
-            get_hostname,
-            open_log_file,
-            reveal_in_file_manager
-        ])
         .setup(|app| {
             tray::setup_tray(&app.handle())?;
             Ok(())

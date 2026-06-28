@@ -33,8 +33,13 @@ import { setServerUrl, useAuthStore } from "../stores/auth";
 import type { LogLevel } from "../stores/log-level";
 import { setLogLevel, useLogLevelStore } from "../stores/log-level";
 import { setCustomColor, setTheme, useThemeStore } from "../stores/theme";
-import type { UpdateMode } from "../stores/updates";
-import { setUpdateMode, useUpdatePrefsStore, useUpdateRuntimeStore } from "../stores/updates";
+import type { UpdateChannel, UpdateMode } from "../stores/updates";
+import {
+  setUpdateChannel,
+  setUpdateMode,
+  useUpdatePrefsStore,
+  useUpdateRuntimeStore,
+} from "../stores/updates";
 
 const LOG_LEVEL_OPTIONS: { value: LogLevel; labelKey: string; descriptionKey: string }[] = [
   { value: "debug", labelKey: "settings.logDebug", descriptionKey: "settings.logDebugDescription" },
@@ -70,6 +75,16 @@ const UPDATE_MODE_OPTIONS: { value: UpdateMode; labelKey: string; descriptionKey
   },
 ];
 
+const UPDATE_CHANNEL_OPTIONS: { value: UpdateChannel; labelKey: string; descriptionKey: string }[] =
+  [
+    {
+      value: "stable",
+      labelKey: "settings.channelStable",
+      descriptionKey: "settings.channelStableHint",
+    },
+    { value: "beta", labelKey: "settings.channelBeta", descriptionKey: "settings.channelBetaHint" },
+  ];
+
 const UPDATE_STATUS_KEY: Record<string, string> = {
   idle: "settings.updateStatusIdle",
   checking: "settings.updateStatusChecking",
@@ -86,8 +101,10 @@ export function SettingsPage() {
   const colorInputReference = useRef<HTMLInputElement>(null);
   const logLevel = useLogLevelStore((s) => s.logLevel);
   const updateMode = useUpdatePrefsStore((s) => s.mode);
+  const updateChannel = useUpdatePrefsStore((s) => s.channel);
   const updateStatus = useUpdateRuntimeStore((s) => s.status);
   const availableVersion = useUpdateRuntimeStore((s) => s.availableVersion);
+  const updateError = useUpdateRuntimeStore((s) => s.error);
 
   const { data: appVersion } = useQuery({
     queryKey: ["app-version"],
@@ -111,7 +128,9 @@ export function SettingsPage() {
       ? t("settings.updateStatusAvailable", { version: availableVersion ?? "" })
       : updateStatus === "ready"
         ? t("settings.updateStatusReady", { version: availableVersion ?? "" })
-        : t(UPDATE_STATUS_KEY[updateStatus] ?? "settings.updateStatusIdle");
+        : updateStatus === "error"
+          ? (updateError ?? t("settings.updateStatusError"))
+          : t(UPDATE_STATUS_KEY[updateStatus] ?? "settings.updateStatusIdle");
 
   return (
     <div>
@@ -315,6 +334,43 @@ export function SettingsPage() {
                 </button>
               ))}
             </div>
+
+            {/* Release channel */}
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-medium text-[hsl(var(--text-muted))]">
+                {t("settings.channel")}
+              </span>
+              <div className="grid grid-cols-2 gap-2">
+                {UPDATE_CHANNEL_OPTIONS.map(({ value, labelKey, descriptionKey }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setUpdateChannel(value)}
+                    className={cn(
+                      "flex cursor-pointer flex-col items-start gap-1 rounded-xl border p-4 text-left transition-all",
+                      updateChannel === value
+                        ? "border-[hsl(var(--text-muted)/.4)] bg-[hsl(var(--surface-2))] shadow-[var(--shadow-xs)]"
+                        : "border-[hsl(var(--border))] hover:border-[hsl(var(--text-muted)/.3)]",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "text-sm font-medium",
+                        updateChannel === value
+                          ? "text-[hsl(var(--text))]"
+                          : "text-[hsl(var(--text-muted))]",
+                      )}
+                    >
+                      {t(labelKey)}
+                    </span>
+                    <span className="text-xs text-[hsl(var(--text-faint))]">
+                      {t(descriptionKey)}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="flex items-center justify-between gap-3">
               <p className="text-xs text-[hsl(var(--text-faint))]">{updateStatusText}</p>
               <div className="flex shrink-0 gap-2">

@@ -92,7 +92,12 @@
     "updateStatusDownloading": "Stahuji aktualizaci…",
     "updateStatusError": "Kontrola aktualizací selhala — viz záznamy.",
     "updateStatusAvailable": "Verze {{version}} je dostupná.",
-    "updateStatusReady": "Verze {{version}} je připravena — restartujte pro dokončení."
+    "updateStatusReady": "Verze {{version}} je připravena — restartujte pro dokončení.",
+    "channel": "Kanál vydání",
+    "channelStable": "Stabilní",
+    "channelStableHint": "Pouze oficiální vydání. Doporučeno pro většinu uživatelů.",
+    "channelBeta": "Beta",
+    "channelBetaHint": "Získejte -beta předběžná vydání dříve. Může být méně stabilní."
   },
   "updates": {
     "checkFailed": "Nepodařilo se zkontrolovat aktualizace",
