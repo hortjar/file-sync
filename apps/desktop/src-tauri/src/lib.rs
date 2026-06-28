@@ -116,7 +116,7 @@ struct UpdateInfo {
     notes: Option<String>,
 }
 
-/// Download progress, emitted on the `updater://progress` event during install.
+/// Download progress, emitted on the `updater://progress` event during download.
 #[cfg(desktop)]
 #[derive(serde::Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -124,6 +124,14 @@ struct DownloadProgress {
     chunk_length: usize,
     content_length: Option<u64>,
 }
+
+/// Holds the bytes of an update that's been downloaded but not yet installed, so
+/// downloading and installing are separate steps. This lets the app download in
+/// the background (even on the auto channel) and only install — which on Windows
+/// restarts the app — when the user explicitly asks to.
+#[cfg(desktop)]
+#[derive(Default)]
+struct DownloadedUpdate(std::sync::Mutex<Option<Vec<u8>>>);
 
 /// Build a Tauri updater pointed at a specific manifest URL. The endpoint is
 /// resolved on the JS side (per release channel), since the JS `check()` API
@@ -161,11 +169,16 @@ async fn check_for_update(
     }
 }
 
-/// Download + install the newest release from the given manifest, emitting
-/// `updater://progress` as bytes arrive. The frontend relaunches afterwards.
+/// Download (but do not install) the newest release from the given manifest,
+/// emitting `updater://progress` as bytes arrive. The bytes are stashed so a
+/// later `install_update` can apply them — installing is never automatic.
 #[cfg(desktop)]
 #[tauri::command]
-async fn install_update(app: tauri::AppHandle, endpoint: String) -> Result<(), String> {
+async fn download_update(
+    app: tauri::AppHandle,
+    endpoint: String,
+    state: tauri::State<'_, DownloadedUpdate>,
+) -> Result<(), String> {
     use tauri::Emitter;
 
     let updater = build_updater(&app, &endpoint)?;
@@ -174,8 +187,8 @@ async fn install_update(app: tauri::AppHandle, endpoint: String) -> Result<(), S
     };
 
     let progress_app = app.clone();
-    update
-        .download_and_install(
+    let bytes = update
+        .download(
             move |chunk_length, content_length| {
                 let _ = progress_app.emit(
                     "updater://progress",
@@ -190,6 +203,32 @@ async fn install_update(app: tauri::AppHandle, endpoint: String) -> Result<(), S
         .await
         .map_err(|error| error.to_string())?;
 
+    *state.0.lock().map_err(|_| "update state poisoned".to_string())? = Some(bytes);
+    Ok(())
+}
+
+/// Install a previously downloaded update. On Windows this runs the installer and
+/// restarts the app; on macOS the frontend relaunches afterwards. Only ever
+/// called from an explicit user action.
+#[cfg(desktop)]
+#[tauri::command]
+async fn install_update(
+    app: tauri::AppHandle,
+    endpoint: String,
+    state: tauri::State<'_, DownloadedUpdate>,
+) -> Result<(), String> {
+    let bytes = state
+        .0
+        .lock()
+        .map_err(|_| "update state poisoned".to_string())?
+        .take()
+        .ok_or_else(|| "no downloaded update to install".to_string())?;
+
+    let updater = build_updater(&app, &endpoint)?;
+    let Some(update) = updater.check().await.map_err(|error| error.to_string())? else {
+        return Err("no update available".to_string());
+    };
+    update.install(bytes).map_err(|error| error.to_string())?;
     Ok(())
 }
 
@@ -236,7 +275,9 @@ pub fn run() {
     // The self-updater is desktop-only (the crate isn't built for mobile targets).
     #[cfg(desktop)]
     {
-        builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+        builder = builder
+            .plugin(tauri_plugin_updater::Builder::new().build())
+            .manage(DownloadedUpdate::default());
     }
 
     // The updater commands only exist on desktop, so the handler list differs.
@@ -247,6 +288,7 @@ pub fn run() {
         open_log_file,
         reveal_in_file_manager,
         check_for_update,
+        download_update,
         install_update
     ]);
     #[cfg(not(desktop))]

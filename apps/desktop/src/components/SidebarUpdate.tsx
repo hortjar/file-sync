@@ -2,7 +2,7 @@ import { ArrowUpCircle, RotateCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { cn } from "../lib/cn";
-import { downloadAndInstallUpdate, restartToApply } from "../services/updater";
+import { downloadUpdate, installAndRestart } from "../services/updater";
 import { useUpdateRuntimeStore } from "../stores/updates";
 
 /**
@@ -33,8 +33,8 @@ export function SidebarUpdate() {
   const Icon = status === "ready" ? RotateCw : ArrowUpCircle;
 
   const handleClick = () => {
-    if (status === "available") void downloadAndInstallUpdate();
-    else if (status === "ready") void restartToApply();
+    if (status === "available") void downloadUpdate();
+    else if (status === "ready") void installAndRestart();
   };
 
   return (

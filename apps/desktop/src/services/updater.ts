@@ -147,8 +147,9 @@ export async function checkForUpdates({
   logger.info(`[updater] update available: v${info.version}`);
 
   if (updatePrefsStore.state.mode === "auto") {
-    // Automatic mode: fetch + stage the install now, then ask to restart.
-    await downloadAndInstallUpdate();
+    // Automatic mode: download in the background, but never install/restart on
+    // our own — the user triggers that from the sidebar when they're ready.
+    await downloadUpdate();
   } else {
     const message = i18n.t("updates.availableToast", { version: info.version });
     toast.info(message);
@@ -156,11 +157,11 @@ export async function checkForUpdates({
   }
 }
 
-/** Download the pending update and stage it for install, tracking progress. */
-export async function downloadAndInstallUpdate(): Promise<void> {
+/** Download the pending update and stage it (without installing), with progress. */
+export async function downloadUpdate(): Promise<void> {
   const endpoint = pending.endpoint;
   if (!endpoint) {
-    logger.warn("[updater] downloadAndInstallUpdate called with no pending update");
+    logger.warn("[updater] downloadUpdate called with no pending update");
     return;
   }
 
@@ -176,10 +177,10 @@ export async function downloadAndInstallUpdate(): Promise<void> {
   });
 
   try {
-    await invoke("install_update", { endpoint });
+    await invoke("download_update", { endpoint });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    logger.error("[updater] download/install failed", error);
+    logger.error("[updater] download failed", error);
     setUpdateError(message);
     toast.error(i18n.t("updates.installFailed"), { description: message });
     return;
@@ -189,15 +190,35 @@ export async function downloadAndInstallUpdate(): Promise<void> {
 
   const version = updateRuntimeStore.state.availableVersion ?? "";
   setUpdateStatus("ready");
-  logger.info(`[updater] v${version} installed — pending restart`);
+  logger.info(`[updater] v${version} downloaded — pending install`);
   const message = i18n.t("updates.readyToast", { version });
   toast.success(message);
   void showDesktopNotification(message);
 }
 
-/** Relaunch the app so a staged update takes effect. */
-export async function restartToApply(): Promise<void> {
-  logger.info("[updater] relaunching to apply update");
+/**
+ * Install the downloaded update and restart. This is the only place an install
+ * (and the resulting restart) happens — always from an explicit user action.
+ */
+export async function installAndRestart(): Promise<void> {
+  const endpoint = pending.endpoint;
+  if (!endpoint) {
+    logger.warn("[updater] installAndRestart called with no pending update");
+    return;
+  }
+
+  logger.info("[updater] installing update and restarting");
+  try {
+    await invoke("install_update", { endpoint });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error("[updater] install failed", error);
+    setUpdateError(message);
+    toast.error(i18n.t("updates.installFailed"), { description: message });
+    return;
+  }
+
+  // On Windows the installer already restarts the app; on macOS we relaunch.
   await relaunch();
 }
 

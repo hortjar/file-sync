@@ -29,7 +29,7 @@ import { configureApiClient } from "../lib/api-client";
 import { cn } from "../lib/cn";
 import { toast } from "../lib/toast";
 import { enableDesktopNotifications } from "../services/desktop-notifications";
-import { checkForUpdates, downloadAndInstallUpdate, restartToApply } from "../services/updater";
+import { checkForUpdates, downloadUpdate, installAndRestart } from "../services/updater";
 import { reconnectNow } from "../services/ws-client";
 import { setServerUrl, useAuthStore } from "../stores/auth";
 import type { LogLevel } from "../stores/log-level";
@@ -392,14 +392,14 @@ export function SettingsPage() {
                     variant="secondary"
                     size="sm"
                     className="gap-1.5"
-                    onClick={() => void downloadAndInstallUpdate()}
+                    onClick={() => void downloadUpdate()}
                   >
                     <Download className="size-3.5" />
                     {t("updates.downloadInstall")}
                   </Button>
                 )}
                 {updateStatus === "ready" && (
-                  <Button size="sm" className="gap-1.5" onClick={() => void restartToApply()}>
+                  <Button size="sm" className="gap-1.5" onClick={() => void installAndRestart()}>
                     <RotateCw className="size-3.5" />
                     {t("updates.restartNow")}
                   </Button>
