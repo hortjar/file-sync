@@ -110,10 +110,11 @@ export function Sidebar() {
 
       {/* Bottom — Connected → Settings → User (sign-out in dropdown) */}
       <div className="flex flex-col gap-0.5 p-2 pb-3">
-        <Separator className="mb-2 bg-white/[0.06]" />
-
-        {/* Update available/downloaded — only renders when there's an update */}
+        {/* Update available/downloaded — above the separator so it's set apart
+            from the connection status cluster (only renders when there's one) */}
         <SidebarUpdate />
+
+        <Separator className="my-2 bg-white/[0.06]" />
 
         {/* Connection status (hover for details) */}
         <ConnectionStatus />
