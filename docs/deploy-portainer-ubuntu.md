@@ -109,9 +109,9 @@ environment.
 
 ## 4. Deploy the stack from the Git repository (recommended)
 
-The server and web images are **built from source**, so Portainer needs the repo
-contents. The cleanest way is to let Portainer clone the Git repository and build
-the images itself.
+The server, web, and Caddy images are **built from source** (the Caddyfile is baked
+into the Caddy image rather than bind-mounted), so Portainer needs the repo contents.
+The cleanest way is to let Portainer clone the Git repository and build the images itself.
 
 1. In Portainer go to **Stacks → Add stack**.
 2. Name it `filesync`.
@@ -124,8 +124,8 @@ the images itself.
 5. Under **Environment variables**, add the values from the table below
    (click _Add an environment variable_ for each). These feed the `${VAR}`
    placeholders in the compose file.
-6. Click **Deploy the stack**. Portainer clones the repo, builds the server and
-   web images, and starts all four services.
+6. Click **Deploy the stack**. Portainer clones the repo, builds the server, web,
+   and Caddy images, and starts all four services.
 
 ### Required / useful environment variables
 

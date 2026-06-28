@@ -79,11 +79,14 @@ services:
       - filesync
 
   caddy:
-    image: caddy:2-alpine
+    # Built from apps/caddy/Dockerfile, which bakes the Caddyfile into the image — this
+    # avoids the fragile single-file bind mount that breaks Portainer/git deployments.
+    # Caddy still substitutes {$FILESYNC_DOMAIN} / {$BACKEND_PORT} / {$FRONTEND_PORT} from
+    # the environment at load time, so everything stays configurable via the stack env.
+    build:
+      context: .
+      dockerfile: apps/caddy/Dockerfile
     restart: unless-stopped
-    # Caddy substitutes {$FILESYNC_DOMAIN} / {$BACKEND_PORT} / {$FRONTEND_PORT} in the
-    # Caddyfile at load time, so the domain and upstream ports are configurable without
-    # editing the repo (set them in the stack env).
     environment:
       # Default ':80' = serve plain HTTP for any host (no auto-HTTPS) — ideal behind a
       # reverse proxy / cloudflared tunnel that terminates TLS. Set it to a real domain
@@ -98,7 +101,6 @@ services:
       - "${CADDY_HTTPS_PORT:-443}:443"
       - "${CADDY_HTTPS_PORT:-443}:443/udp"
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ${STORAGE_PATH:-/storage/filesync}/caddy/data:/data
       - ${STORAGE_PATH:-/storage/filesync}/caddy/config:/config
     networks:
