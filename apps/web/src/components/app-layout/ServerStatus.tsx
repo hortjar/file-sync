@@ -2,7 +2,7 @@ import { type StatusDetail, StatusIndicator } from "@file-sync/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
-import { authStore, useAuthStore } from "../../stores/auth";
+import { SERVER_URL } from "../../lib/server-url";
 
 type HealthResponse = { status: string; version?: string };
 
@@ -12,9 +12,8 @@ type HealthResponse = { status: string; version?: string };
 const connection = { since: undefined as number | undefined };
 
 async function fetchHealth(): Promise<HealthResponse> {
-  const { serverUrl } = authStore.state;
   try {
-    const response = await fetch(`${serverUrl}/health`);
+    const response = await fetch(`${SERVER_URL}/health`);
     const data = (await response.json()) as HealthResponse;
     if (data.status === "ok") connection.since ??= Date.now();
     return data;
@@ -26,10 +25,9 @@ async function fetchHealth(): Promise<HealthResponse> {
 
 export function ServerStatus() {
   const { t } = useTranslation();
-  const serverUrl = useAuthStore((s) => s.serverUrl);
 
   const { data: health, isError: healthError } = useQuery({
-    queryKey: ["server-health", serverUrl],
+    queryKey: ["server-health"],
     queryFn: fetchHealth,
     refetchInterval: 30_000,
     retry: false,
@@ -46,7 +44,7 @@ export function ServerStatus() {
     });
   }
   details.push(
-    { label: t("status.server"), value: serverUrl },
+    { label: t("status.server"), value: SERVER_URL },
     { label: t("status.clientVersion"), value: clientVersion ? `v${clientVersion}` : "—" },
     { label: t("status.serverVersion"), value: health?.version ? `v${health.version}` : "—" },
   );

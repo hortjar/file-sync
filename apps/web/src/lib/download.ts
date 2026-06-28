@@ -1,5 +1,7 @@
 import { authStore } from "../stores/auth";
 
+import { SERVER_URL } from "./server-url";
+
 // Browser-viewable types open in a new tab and render natively; everything else
 // is saved to disk. The server sends the correct Content-Type, which the fetched
 // Blob inherits, so we classify off the blob's own type.
@@ -14,8 +16,8 @@ function isViewable(type: string): boolean {
 }
 
 async function fetchBlob(path: string): Promise<Blob> {
-  const { serverUrl, accessToken } = authStore.state;
-  const response = await fetch(`${serverUrl}${path}`, {
+  const { accessToken } = authStore.state;
+  const response = await fetch(`${SERVER_URL}${path}`, {
     headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
   });
   if (!response.ok) {

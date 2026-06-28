@@ -1,10 +1,11 @@
 import { client } from "../generated/client.gen";
 import { authStore, logout } from "../stores/auth";
 
+import { SERVER_URL } from "./server-url";
 import { tryRefreshToken } from "./token-refresh";
 
-export function initApiClient(serverUrl: string): void {
-  client.setConfig({ baseUrl: serverUrl });
+export function initApiClient(): void {
+  client.setConfig({ baseUrl: SERVER_URL });
 
   // Clear before re-adding to prevent duplicate interceptors on re-login.
   client.interceptors.request.clear();

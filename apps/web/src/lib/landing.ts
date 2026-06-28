@@ -12,13 +12,9 @@ export const GITHUB_URL = "https://github.com/hortjar/file-sync";
 /** Latest GitHub release — hosts the desktop installers. */
 export const RELEASES_URL = `${GITHUB_URL}/releases/latest`;
 
-/**
- * Base URL the public pages hit for the live `/health` check. In production the
- * web app is served from the same origin as the API (Caddy), so a relative URL
- * works; in dev we fall back to the local server.
- */
-export const SERVER_URL =
-  import.meta.env.VITE_SERVER_URL ?? (import.meta.env.DEV ? "http://localhost:3001" : "");
+/** Base URL the public pages hit for the live `/health` check — the current origin
+ * in production, a dev fallback otherwise. See {@link ./server-url}. */
+export { SERVER_URL } from "./server-url";
 
 export type DesktopOs = "mac" | "windows" | "linux";
 

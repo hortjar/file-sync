@@ -35,9 +35,9 @@ import { SettingsPage } from "./routes/settings/SettingsPage";
 import { authStore } from "./stores/auth";
 import { initTheme } from "./stores/theme";
 
-// Bootstrap the API client with persisted auth state.
-const { serverUrl, accessToken } = authStore.state;
-initApiClient(serverUrl);
+// Bootstrap the API client (base URL = current origin) with persisted auth state.
+const { accessToken } = authStore.state;
+initApiClient();
 if (accessToken) setAuthHeader(accessToken);
 initTheme();
 const appName = import.meta.env.VITE_APP_NAME ?? DEFAULT_APP_NAME;

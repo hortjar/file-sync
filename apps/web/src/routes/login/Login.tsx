@@ -6,9 +6,9 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { postApiAuthLogin } from "../../generated/sdk.gen";
-import { initApiClient, setAuthHeader } from "../../lib/api-client";
+import { setAuthHeader } from "../../lib/api-client";
 import { toast } from "../../lib/toast";
-import { setServerUrl, setTokens, setUserEmail, setUserId, useAuthStore } from "../../stores/auth";
+import { setTokens, setUserEmail, setUserId, useAuthStore } from "../../stores/auth";
 
 type LoginResponse = {
   accessToken: string;
@@ -20,15 +20,12 @@ export function Login() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const storedUrl = useAuthStore((s) => s.serverUrl);
 
   const form = useForm({
-    defaultValues: { serverUrl: storedUrl, email: "", password: "" },
+    defaultValues: { email: "", password: "" },
     onSubmit: async ({ value }) => {
-      const serverUrl = value.serverUrl.trim();
       const email = value.email.trim();
       try {
-        initApiClient(serverUrl);
         const { data, error } = await postApiAuthLogin({
           body: { email, password: value.password },
         });
@@ -39,7 +36,6 @@ export function Login() {
         }
 
         const response = data as LoginResponse;
-        setServerUrl(serverUrl);
         setTokens(response.accessToken, response.refreshToken);
         setUserId(response.user.id);
         setUserEmail(response.user.email);
@@ -73,20 +69,6 @@ export function Login() {
           }}
           className="flex flex-col gap-4"
         >
-          <form.Field name="serverUrl">
-            {(field) => (
-              <Input
-                name={field.name}
-                type="url"
-                label={t("auth.serverUrl")}
-                value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={(event) => field.handleChange(event.target.value)}
-                placeholder="http://localhost:3001"
-                required
-              />
-            )}
-          </form.Field>
           <form.Field name="email">
             {(field) => (
               <Input
