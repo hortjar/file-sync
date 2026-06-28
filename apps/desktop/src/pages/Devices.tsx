@@ -92,25 +92,31 @@ export function DevicesPage() {
               const isThis = device.id === deviceId;
               const isOnline = isDeviceOnline(device.lastSeenAt);
               return (
-                <div key={device.id} className="flex items-center gap-4 px-5 py-4">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[hsl(var(--surface-2))]">
+                <div
+                  key={device.id}
+                  className="grid grid-cols-[auto_minmax(0,1fr)_7rem_2rem] items-center gap-4 px-5 py-4"
+                >
+                  {/* Platform icon */}
+                  <div className="flex size-10 items-center justify-center rounded-xl bg-[hsl(var(--surface-2))]">
                     <PlatformIcon
                       platform={device.platform}
                       className="size-5 text-[hsl(var(--text-muted))]"
                     />
                   </div>
-                  <div className="min-w-0 flex-1">
+
+                  {/* Name + platform */}
+                  <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-[hsl(var(--text))]">
+                      <span className="truncate text-sm font-medium text-[hsl(var(--text))]">
                         {device.name}
                       </span>
                       {isThis && (
-                        <span className="rounded-full bg-[hsl(var(--brand-from)/.15)] px-2 py-0.5 text-[10px] font-medium text-[hsl(var(--brand-from))]">
+                        <span className="shrink-0 rounded-full bg-[hsl(var(--brand-from)/.15)] px-2 py-0.5 text-[10px] font-medium text-[hsl(var(--brand-from))]">
                           {t("devices.thisDevice")}
                         </span>
                       )}
                       {device.appVersion && (
-                        <span className="rounded-full bg-[hsl(var(--surface-2))] px-1.5 py-0.5 text-[10px] text-[hsl(var(--text-faint))]">
+                        <span className="shrink-0 rounded-full bg-[hsl(var(--surface-2))] px-1.5 py-0.5 text-[10px] text-[hsl(var(--text-faint))]">
                           v{device.appVersion}
                         </span>
                       )}
@@ -120,22 +126,26 @@ export function DevicesPage() {
                       {formatPlatform(device.platform)}
                     </p>
                   </div>
-                  <div className="flex shrink-0 items-center gap-3">
-                    <div className="text-right">
-                      <div className="flex items-center gap-1.5">
-                        <span
-                          className={`size-1.5 rounded-full ${isOnline ? "bg-green-500" : "bg-[hsl(var(--text-faint))]"}`}
-                        />
-                        <span className="text-xs text-[hsl(var(--text-faint))]">
-                          {t(isOnline ? "devices.isOnline" : "devices.offline")}
-                        </span>
-                      </div>
-                      <p
-                        className={`mt-0.5 text-[10px] text-[hsl(var(--text-faint))] ${isOnline ? "invisible" : ""}`}
-                      >
-                        {new Date(device.lastSeenAt).toLocaleString()}
-                      </p>
+
+                  {/* Online status — fixed-width column so dots line up across rows */}
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className={`size-1.5 shrink-0 rounded-full ${isOnline ? "bg-green-500" : "bg-[hsl(var(--text-faint))]"}`}
+                      />
+                      <span className="text-xs text-[hsl(var(--text-faint))]">
+                        {t(isOnline ? "devices.isOnline" : "devices.offline")}
+                      </span>
                     </div>
+                    <p
+                      className={`mt-0.5 text-[10px] text-[hsl(var(--text-faint))] ${isOnline ? "invisible" : ""}`}
+                    >
+                      {new Date(device.lastSeenAt).toLocaleString()}
+                    </p>
+                  </div>
+
+                  {/* Action — always reserves the column so the status stays aligned */}
+                  <div className="flex justify-end">
                     {!isThis && (
                       <Button
                         variant="ghost"
