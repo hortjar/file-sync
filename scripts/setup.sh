@@ -244,6 +244,7 @@ clone_repo() {
 # Values collected here:
 FILESYNC_DOMAIN="" VITE_SERVER_URL="" CORS_ORIGIN="*" NODE_ENV="production"
 STORAGE_PATH="/storage/filesync" BACKEND_PORT="3001" FRONTEND_PORT="8080"
+CADDY_HTTP_PORT="80" CADDY_HTTPS_PORT="443"
 POSTGRES_PASSWORD="" JWT_SECRET="" JWT_REFRESH_SECRET=""
 ADMIN_EMAIL="admin@email.com" ADMIN_PASSWORD=""
 
@@ -303,6 +304,10 @@ collect_config() {
   BACKEND_PORT="$REPLY_VALUE"
   ask "Frontend (web) port (published on the host)" "8080" optional
   FRONTEND_PORT="$REPLY_VALUE"
+  ask "Caddy HTTP port (proxy entry; e.g. for a cloudflared tunnel)" "80" optional
+  CADDY_HTTP_PORT="$REPLY_VALUE"
+  ask "Caddy HTTPS port" "443" optional
+  CADDY_HTTPS_PORT="$REPLY_VALUE"
   ask "NODE_ENV" "production" optional
   NODE_ENV="$REPLY_VALUE"
 }
@@ -333,6 +338,8 @@ STORAGE_PATH=$STORAGE_PATH
 # --- Ports ---
 BACKEND_PORT=$BACKEND_PORT
 FRONTEND_PORT=$FRONTEND_PORT
+CADDY_HTTP_PORT=$CADDY_HTTP_PORT
+CADDY_HTTPS_PORT=$CADDY_HTTPS_PORT
 
 # --- Secrets ---
 POSTGRES_PASSWORD=$POSTGRES_PASSWORD

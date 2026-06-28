@@ -141,6 +141,8 @@ the images itself.
 | `ADMIN_PASSWORD`     | No       | `password`                     | Default admin password — **set your own.** Applied only when the user is created.   |
 | `BACKEND_PORT`       | No       | `3001`                         | API port: listened on + published to the host.                                      |
 | `FRONTEND_PORT`      | No       | `8080`                         | Web port: listened on + published to the host (kept off 80 so Caddy can use it).    |
+| `CADDY_HTTP_PORT`    | No       | `80`                           | Host port for Caddy's HTTP entry. Override when 80 is taken (e.g. cloudflared).     |
+| `CADDY_HTTPS_PORT`   | No       | `443`                          | Host port for Caddy's HTTPS entry. Override when 443 is taken.                      |
 | `CORS_ORIGIN`        | No       | `*`                            | Allowed origins; `*` is fine for a self-hosted setup.                               |
 | `NODE_ENV`           | No       | `production`                   | Leave as `production`.                                                              |
 

@@ -183,13 +183,16 @@ function Read-Config {
     Step "Advanced (optional)"
     Write-Host "    Sensible defaults - press Enter through these unless you need to change them." -ForegroundColor DarkGray
     $cors     = Ask "CORS allowed origins (comma-separated, * = any)" "*" -Optional
-    $backend  = Ask "Backend (API) port (published on the host)" "3001" -Optional
-    $frontend = Ask "Frontend (web) port (published on the host)" "8080" -Optional
-    $nodeEnv  = Ask "NODE_ENV" "production" -Optional
+    $backend   = Ask "Backend (API) port (published on the host)" "3001" -Optional
+    $frontend  = Ask "Frontend (web) port (published on the host)" "8080" -Optional
+    $caddyHttp = Ask "Caddy HTTP port (proxy entry; e.g. for a cloudflared tunnel)" "80" -Optional
+    $caddyHttps= Ask "Caddy HTTPS port" "443" -Optional
+    $nodeEnv   = Ask "NODE_ENV" "production" -Optional
 
     $script:Cfg = @{
         Domain = $domain; ServerUrl = $serverUrl; Cors = $cors
         BackendPort = $backend; FrontendPort = $frontend
+        CaddyHttpPort = $caddyHttp; CaddyHttpsPort = $caddyHttps
         NodeEnv = $nodeEnv; Storage = $storage
         AdminEmail = $adminEmail; AdminPassword = $adminPassword
         PgPass = $pgPass; Jwt = $jwt; JwtRefresh = $jwtRefresh
@@ -223,6 +226,8 @@ STORAGE_PATH=$($c.Storage)
 # --- Ports ---
 BACKEND_PORT=$($c.BackendPort)
 FRONTEND_PORT=$($c.FrontendPort)
+CADDY_HTTP_PORT=$($c.CaddyHttpPort)
+CADDY_HTTPS_PORT=$($c.CaddyHttpsPort)
 
 # --- Secrets ---
 POSTGRES_PASSWORD=$($c.PgPass)

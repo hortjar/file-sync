@@ -88,10 +88,12 @@ services:
       FILESYNC_DOMAIN: ${FILESYNC_DOMAIN:-localhost}
       BACKEND_PORT: ${BACKEND_PORT:-3001}
       FRONTEND_PORT: ${FRONTEND_PORT:-8080}
+    # Host ports Caddy is published on. Defaults are 80/443; override when those are
+    # taken on the host (e.g. behind a cloudflared tunnel point it at CADDY_HTTP_PORT).
     ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
+      - "${CADDY_HTTP_PORT:-80}:80"
+      - "${CADDY_HTTPS_PORT:-443}:443"
+      - "${CADDY_HTTPS_PORT:-443}:443/udp"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ${STORAGE_PATH:-/storage/filesync}/caddy/data:/data

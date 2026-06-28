@@ -356,6 +356,8 @@ docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build  # 
 | `ADMIN_PASSWORD`     | ⬜ No    | Default admin password, applied only when the user is created (default: `password`)         |
 | `BACKEND_PORT`       | ⬜ No    | API port — listened on + published to the host (default: `3001`)                            |
 | `FRONTEND_PORT`      | ⬜ No    | Web port — listened on + published to the host (default: `8080`)                            |
+| `CADDY_HTTP_PORT`    | ⬜ No    | Host port for Caddy's HTTP entry (default: `80`; point cloudflared/tunnels here)            |
+| `CADDY_HTTPS_PORT`   | ⬜ No    | Host port for Caddy's HTTPS entry (default: `443`)                                          |
 | `CORS_ORIGIN`        | ⬜ No    | Allowed origins (default: `*`)                                                              |
 | `PORT`               | ⬜ No    | Local-dev server port (default: `3001`; Docker uses `BACKEND_PORT`)                         |
 | `NODE_ENV`           | ⬜ No    | `development` or `production`                                                               |
