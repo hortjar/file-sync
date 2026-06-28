@@ -11,7 +11,7 @@ Keep your folders perfectly in sync across every machine — **in real time**, o
 <br />
 
 [![CI](https://github.com/hortjar/file-sync/actions/workflows/ci.yml/badge.svg)](https://github.com/hortjar/file-sync/actions/workflows/ci.yml)
-[![Version](https://img.shields.io/badge/version-1.0.0-8b5cf6)](https://github.com/hortjar/file-sync/releases)
+[![Version](https://img.shields.io/badge/version-1.2.0-8b5cf6)](https://github.com/hortjar/file-sync/releases)
 [![License](https://img.shields.io/badge/license-open%20source-c026d3)](#-license)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-22c55e.svg)](#-contributing)
 [![Self-hosted](https://img.shields.io/badge/%F0%9F%8F%A0-self--hosted-0ea5e9)](#-quick-start-production)
