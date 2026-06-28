@@ -18,6 +18,7 @@ import { logout, useAuthStore } from "../stores/auth";
 
 import { ConnectionStatus } from "./ConnectionStatus";
 import { NotificationBell } from "./NotificationBell";
+import { SidebarUpdate } from "./SidebarUpdate";
 import { Badge } from "./ui/badge";
 import {
   DropdownMenu,
@@ -110,6 +111,9 @@ export function Sidebar() {
       {/* Bottom — Connected → Settings → User (sign-out in dropdown) */}
       <div className="flex flex-col gap-0.5 p-2 pb-3">
         <Separator className="mb-2 bg-white/[0.06]" />
+
+        {/* Update available/downloaded — only renders when there's an update */}
+        <SidebarUpdate />
 
         {/* Connection status (hover for details) */}
         <ConnectionStatus />
