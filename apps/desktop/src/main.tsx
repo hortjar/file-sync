@@ -13,6 +13,7 @@ import { queryClient } from "./lib/query";
 import { router } from "./lib/router";
 import { loadDeviceInfo, registerDevice, startHeartbeat } from "./services/device";
 import { startDeviceReporting } from "./services/device-reporting";
+import { startReconnectRefetch } from "./services/reconnect-refetch";
 import { startSyncEngine } from "./services/sync-engine";
 import { scheduleTokenRefresh, stopTokenRefresh } from "./services/token-refresh";
 import { startUpdateChecker } from "./services/updater";
@@ -34,6 +35,8 @@ void loadDeviceInfo();
 // even on the login screen. The returned stop fn is unused — checks run for
 // the app's whole lifetime.
 startUpdateChecker();
+// Reload active queries whenever the app comes back online.
+startReconnectRefetch();
 
 type AuthState = typeof authStore.state;
 
