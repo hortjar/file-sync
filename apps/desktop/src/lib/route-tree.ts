@@ -1,15 +1,15 @@
 import { createRootRoute, createRoute } from "@tanstack/react-router";
 
 import { App } from "../App";
-import { ConflictsPage } from "../pages/Conflicts";
-import { DevicesPage } from "../pages/Devices";
-import { FolderDetailPage } from "../pages/FolderDetail";
-import { LogDetailPage } from "../pages/LogDetailPage";
-import { LoginPage } from "../pages/Login";
-import { LogsPage } from "../pages/LogsPage";
-import { NotificationsPage } from "../pages/NotificationsPage";
-import { SettingsPage } from "../pages/Settings";
-import { SyncFoldersPage } from "../pages/SyncFolders";
+import { ConflictsPage } from "../routes/conflicts/Conflicts";
+import { DevicesPage } from "../routes/devices/Devices";
+import { FolderDetailPage } from "../routes/folders/FolderDetail";
+import { LoginPage } from "../routes/login/Login";
+import { LogDetailPage } from "../routes/logs/LogDetailPage";
+import { LogsPage } from "../routes/logs/LogsPage";
+import { NotificationsPage } from "../routes/notifications/NotificationsPage";
+import { SettingsPage } from "../routes/settings/Settings";
+import { SyncFoldersPage } from "../routes/sync-folders/SyncFolders";
 
 const rootRoute = createRootRoute({ component: App });
 

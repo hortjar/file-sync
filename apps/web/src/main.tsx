@@ -19,18 +19,19 @@ import { AppLayout } from "./components/AppLayout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { initApiClient, setAuthHeader } from "./lib/api-client";
 import { queryClient } from "./lib/query";
-import { Dashboard } from "./pages/Dashboard";
-import { DeviceLogsPage } from "./pages/DeviceLogsPage";
-import { DevicesPage } from "./pages/DevicesPage";
-import { DownloadsPage } from "./pages/DownloadsPage";
-import { FolderDetailPage } from "./pages/FolderDetailPage";
-import { FoldersPage } from "./pages/FoldersPage";
-import { LandingPage } from "./pages/LandingPage";
-import { LogDetailPage } from "./pages/LogDetailPage";
-import { Login } from "./pages/Login";
-import { LogsPage } from "./pages/LogsPage";
-import { NotificationsPage } from "./pages/NotificationsPage";
-import { SettingsPage } from "./pages/SettingsPage";
+import { Dashboard } from "./routes/dashboard/Dashboard";
+import { DeviceLogsPage } from "./routes/device-logs/DeviceLogsPage";
+import { DevicesPage } from "./routes/devices/DevicesPage";
+import { DownloadsPage } from "./routes/downloads/DownloadsPage";
+import { FolderDetailPage } from "./routes/folders/FolderDetailPage";
+import { FoldersPage } from "./routes/folders/FoldersPage";
+import { LandingPage } from "./routes/landing/LandingPage";
+import { Login } from "./routes/login/Login";
+import { LogDetailPage } from "./routes/logs/LogDetailPage";
+import { LogsPage } from "./routes/logs/LogsPage";
+import { NotificationsPage } from "./routes/notifications/NotificationsPage";
+import { QuickStartPage } from "./routes/quick-start/QuickStartPage";
+import { SettingsPage } from "./routes/settings/SettingsPage";
 import { authStore } from "./stores/auth";
 import { initTheme } from "./stores/theme";
 
@@ -60,6 +61,7 @@ const router = createBrowserRouter([
     children: [
       { path: "/", element: <LandingPage /> },
       { path: "/downloads", element: <DownloadsPage /> },
+      { path: "/quick-start", element: <QuickStartPage /> },
       { path: "/admin/login", element: <Login /> },
       {
         path: "/admin",

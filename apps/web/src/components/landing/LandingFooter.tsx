@@ -33,6 +33,9 @@ export function LandingFooter() {
             <a href="/#features" className={LINK_CLASS}>
               Features
             </a>
+            <Link to="/quick-start" className={LINK_CLASS}>
+              Quick start
+            </Link>
             <Link to="/downloads" className={LINK_CLASS}>
               Downloads
             </Link>

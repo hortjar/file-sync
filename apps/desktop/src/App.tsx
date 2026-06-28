@@ -3,7 +3,7 @@ import { Toaster } from "sonner";
 
 import { Sidebar } from "./components/Sidebar";
 import { TooltipProvider } from "./components/ui/tooltip";
-import { LoginPage } from "./pages/Login";
+import { LoginPage } from "./routes/login/Login";
 import { useAuthStore } from "./stores/auth";
 
 export function App() {
