@@ -3,7 +3,9 @@ import { useNavigate, useParams } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import { RemoteReleaseDetail } from "../components/RemoteReleaseDetail";
 import { getCachedLogEntry } from "../lib/log-entry-cache";
+import { parseRemoteRelease } from "../lib/parse-remote-release";
 
 export function LogDetailPage() {
   const { t } = useTranslation();
@@ -32,6 +34,10 @@ export function LogDetailPage() {
       </div>
     );
   }
+
+  // Updater release dumps are noisy Rust Debug output — render them prettily.
+  const release = parseRemoteRelease(entry.msg);
+  if (release) return <RemoteReleaseDetail release={release} onClose={handleClose} />;
 
   return <LogDetail entry={entry} onClose={handleClose} showBack />;
 }

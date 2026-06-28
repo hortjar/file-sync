@@ -225,7 +225,13 @@
     "noUploads": "Zatím žádné nahrané záznamy",
     "lineCount_one": "{{count}} řádek",
     "lineCount_few": "{{count}} řádky",
-    "lineCount_other": "{{count}} řádků"
+    "lineCount_other": "{{count}} řádků",
+    "releaseTitle": "Vydání aktualizace {{version}}",
+    "releasePublished": "Publikováno",
+    "releaseNotes": "Poznámky k vydání",
+    "releaseNoNotes": "Nejsou k dispozici žádné poznámky.",
+    "releasePlatforms": "Platformy",
+    "releaseSignature": "Podpis"
   },
   "status": {
     "online": "Připojeno",

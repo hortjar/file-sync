@@ -224,7 +224,13 @@
     "backToList": "Back to list",
     "noUploads": "No uploaded logs yet",
     "lineCount_one": "{{count}} line",
-    "lineCount_other": "{{count}} lines"
+    "lineCount_other": "{{count}} lines",
+    "releaseTitle": "Update release {{version}}",
+    "releasePublished": "Published",
+    "releaseNotes": "Release notes",
+    "releaseNoNotes": "No release notes provided.",
+    "releasePlatforms": "Platforms",
+    "releaseSignature": "Signature"
   },
   "status": {
     "online": "Connected",
