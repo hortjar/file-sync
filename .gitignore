@@ -22,9 +22,6 @@ data/
 apps/desktop/src-tauri/target/
 
 
-# Bun
-bun.lock
-
 # Package manager locks (keep only bun.lock)
 package-lock.json
 yarn.lock
