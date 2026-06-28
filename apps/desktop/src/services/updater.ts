@@ -87,19 +87,6 @@ async function resolveManifestUrl(channel: UpdateChannel): Promise<string | unde
 }
 
 /**
- * Resolve whether a newer release is available on the active channel, with no
- * side effects (no store writes, toasts, or downloads). Returns the available
- * version, or `undefined` when up to date. Used by the health check.
- */
-export async function fetchAvailableUpdateVersion(): Promise<string | undefined> {
-  const endpoint = await resolveManifestUrl(updatePrefsStore.state.channel);
-  if (!endpoint) return undefined;
-  const info =
-    (await invoke<UpdateInfo | undefined>("check_for_update", { endpoint })) ?? undefined;
-  return info?.version;
-}
-
-/**
  * Check GitHub for a newer signed release on the active channel.
  *
  * `silent` (the scheduled background check) swallows failures quietly. A

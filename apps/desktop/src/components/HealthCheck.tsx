@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { getVersion } from "@tauri-apps/api/app";
 import { isPermissionGranted, requestPermission } from "@tauri-apps/plugin-notification";
 import { AlertTriangle, CheckCircle2, HeartPulse, RefreshCw, XCircle } from "lucide-react";
@@ -7,9 +8,11 @@ import { useTranslation } from "react-i18next";
 import { getHealth } from "../generated/sdk.gen";
 import { cn } from "../lib/cn";
 import { requestFolderPermissions } from "../services/permission-check";
-import { fetchAvailableUpdateVersion } from "../services/updater";
+import { checkForUpdates } from "../services/updater";
 import { authStore } from "../stores/auth";
 import { linksStore } from "../stores/links";
+import type { UpdateStatus } from "../stores/updates";
+import { useUpdateRuntimeStore } from "../stores/updates";
 
 import { Button } from "./ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
@@ -29,6 +32,9 @@ const STATUS_COLOR: Record<ResolvedStatus, string> = {
   warning: "text-amber-400",
   error: "text-[hsl(var(--danger))]",
 };
+
+/** Updater states that mean an update is available (and the version row warns). */
+const UPDATE_AVAILABLE_STATES = new Set<UpdateStatus>(["available", "downloading", "ready"]);
 
 const CHECK_DEFS: { id: string; labelKey: string }[] = [
   { id: "server", labelKey: "health.serverLabel" },
@@ -53,8 +59,18 @@ export function HealthCheck() {
   const { t } = useTranslation();
   const [checks, setChecks] = useState<Check[]>([]);
   const [isRunning, setIsRunning] = useState(false);
+  // The version row is derived from the updater store, so it stays in sync with
+  // the sidebar badge and the "check for updates" button no matter what ran the
+  // check.
+  const updateStatus = useUpdateRuntimeStore((s) => s.status);
+  const availableVersion = useUpdateRuntimeStore((s) => s.availableVersion);
+  const { data: appVersion = "?" } = useQuery({
+    queryKey: ["app-version"],
+    queryFn: () => getVersion(),
+    staleTime: Infinity,
+  });
 
-  async function runChecks() {
+  async function runChecks({ silentUpdateCheck = false }: { silentUpdateCheck?: boolean } = {}) {
     setIsRunning(true);
     // Seed every row up-front in a pending (loading) state so each check shows
     // its own spinner and resolves independently, rather than the whole panel
@@ -88,30 +104,11 @@ export function HealthCheck() {
       }
     })();
 
-    // Version — ask the GitHub updater (the actual update source) whether a
-    // newer release exists on the active channel, rather than trusting a
-    // server-reported number that may lag behind real releases.
-    const versionCheck = (async () => {
-      let appVersion = "?";
-      try {
-        appVersion = await getVersion();
-      } catch {
-        // Fall back to "?" if the app version can't be read.
-      }
-      try {
-        const latest = await fetchAvailableUpdateVersion();
-        update(
-          "version",
-          latest ? "warning" : "ok",
-          latest
-            ? t("health.versionOutdated", { current: appVersion, latest })
-            : t("health.versionOk", { version: appVersion }),
-        );
-      } catch {
-        // Couldn't reach GitHub (offline / private repo) — don't fail the row.
-        update("version", "ok", t("health.versionOk", { version: appVersion }));
-      }
-    })();
+    // Version — reuse the exact same update-check flow as the manual "check for
+    // updates" button and the sidebar badge. This drives the badge, downloads in
+    // auto mode, toasts in manual mode, and fires the desktop notification. The
+    // version row itself is rendered from the updater store below.
+    void checkForUpdates({ silent: silentUpdateCheck });
 
     // Auth is an instant, synchronous check — no need to wrap it in a task.
     const { isAuthenticated, accessToken } = authStore.state;
@@ -159,20 +156,38 @@ export function HealthCheck() {
       );
     })();
 
-    await Promise.all([serverCheck, versionCheck, notificationsCheck, foldersCheck]);
+    await Promise.all([serverCheck, notificationsCheck, foldersCheck]);
     setIsRunning(false);
   }
 
   useEffect(() => {
+    // Mount runs silently so opening Settings doesn't toast "up to date" each
+    // time; the Re-check button runs a full (non-silent) check.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    void runChecks();
-    // Run once on mount; subsequent runs are triggered by the Re-check button.
+    void runChecks({ silentUpdateCheck: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const isPending = checks.some((c) => c.status === "pending");
-  const hasError = checks.some((c) => c.status === "error");
-  const hasWarning = checks.some((c) => c.status === "warning");
+  // Map the updater store onto the version row so it reflects the live badge.
+  const versionStatus: CheckStatus =
+    updateStatus === "checking"
+      ? "pending"
+      : UPDATE_AVAILABLE_STATES.has(updateStatus)
+        ? "warning"
+        : "ok";
+  const versionDetail =
+    versionStatus === "warning"
+      ? t("health.versionOutdated", { current: appVersion, latest: availableVersion ?? "?" })
+      : versionStatus === "pending"
+        ? ""
+        : t("health.versionOk", { version: appVersion });
+  const displayChecks = checks.map((check) =>
+    check.id === "version" ? { ...check, status: versionStatus, detail: versionDetail } : check,
+  );
+
+  const isPending = displayChecks.some((c) => c.status === "pending");
+  const hasError = displayChecks.some((c) => c.status === "error");
+  const hasWarning = displayChecks.some((c) => c.status === "warning");
   const summaryStatus: CheckStatus = isPending
     ? "pending"
     : hasError
@@ -207,7 +222,7 @@ export function HealthCheck() {
             negative margin lets the outline overflow slightly past the rows
             while keeping its icon aligned with the per-check icons below, and it
             stays within the card's own padding. */}
-        {checks.length > 0 && (
+        {displayChecks.length > 0 && (
           <div className="-mx-3 flex items-start gap-2.5 rounded-lg border border-white/[0.08] px-3 py-2.5">
             <StatusGlyph status={summaryStatus} />
             <span className="text-sm font-semibold leading-5 text-[hsl(var(--text))]">
@@ -223,7 +238,7 @@ export function HealthCheck() {
         )}
 
         <div className="flex flex-col divide-y divide-white/[0.05]">
-          {checks.map((check) => (
+          {displayChecks.map((check) => (
             <div key={check.id} className="flex items-start gap-2.5 py-2.5 first:pt-0 last:pb-0">
               <StatusGlyph status={check.status} />
               <div className="min-w-0 flex-1">

@@ -14,6 +14,7 @@ import {
   Palette,
   RefreshCw,
   RotateCw,
+  Search,
   Server,
   Sun,
   SunMoon,
@@ -415,7 +416,7 @@ export function SettingsPage() {
                     (updateStatus === "uptodate" ? (
                       <Check className="size-3.5" />
                     ) : (
-                      <RefreshCw className="size-3.5" />
+                      <Search className="size-3.5" />
                     ))}
                   {t("settings.checkForUpdates")}
                 </Button>
