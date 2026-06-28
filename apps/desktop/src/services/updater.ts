@@ -50,7 +50,13 @@ const timers = {
  */
 async function resolveManifestUrl(channel: UpdateChannel): Promise<string | undefined> {
   const url = `https://api.github.com/repos/${REPO}/releases?per_page=30`;
-  const response = await fetch(url, { headers: { Accept: "application/vnd.github+json" } });
+  // `no-store` is essential: GitHub serves the release list with `max-age=60`,
+  // so without it a check shortly after another one reuses a stale cached list
+  // and misses a freshly published release.
+  const response = await fetch(url, {
+    cache: "no-store",
+    headers: { Accept: "application/vnd.github+json" },
+  });
   if (!response.ok) {
     // Surface GitHub's own message (e.g. "Not Found") — a 404 here almost
     // always means the repo is private, so anonymous release listing fails.
@@ -78,6 +84,19 @@ async function resolveManifestUrl(channel: UpdateChannel): Promise<string | unde
   );
   if (!match) return undefined;
   return `https://github.com/${REPO}/releases/download/${match.tag_name}/latest.json`;
+}
+
+/**
+ * Resolve whether a newer release is available on the active channel, with no
+ * side effects (no store writes, toasts, or downloads). Returns the available
+ * version, or `undefined` when up to date. Used by the health check.
+ */
+export async function fetchAvailableUpdateVersion(): Promise<string | undefined> {
+  const endpoint = await resolveManifestUrl(updatePrefsStore.state.channel);
+  if (!endpoint) return undefined;
+  const info =
+    (await invoke<UpdateInfo | undefined>("check_for_update", { endpoint })) ?? undefined;
+  return info?.version;
 }
 
 /**

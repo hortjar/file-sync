@@ -6,8 +6,8 @@ import { useTranslation } from "react-i18next";
 
 import { getHealth } from "../generated/sdk.gen";
 import { cn } from "../lib/cn";
-import { isOutdated } from "../lib/version";
 import { requestFolderPermissions } from "../services/permission-check";
+import { fetchAvailableUpdateVersion } from "../services/updater";
 import { authStore } from "../stores/auth";
 import { linksStore } from "../stores/links";
 
@@ -74,14 +74,10 @@ export function HealthCheck() {
         previous.map((check) => (check.id === id ? { ...check, status, detail } : check)),
       );
 
-    // Server reachability — also yields the latest client version for the
-    // version check, so the two run back-to-back within one task.
-    const serverAndVersion = (async () => {
-      let latestClientVersion: string | undefined;
+    // Server reachability.
+    const serverCheck = (async () => {
       try {
-        const { data, error } = await getHealth();
-        latestClientVersion = (data as { latestClientVersion?: string } | undefined)
-          ?.latestClientVersion;
+        const { error } = await getHealth();
         update(
           "server",
           error ? "error" : "ok",
@@ -90,22 +86,30 @@ export function HealthCheck() {
       } catch {
         update("server", "error", t("health.serverError"));
       }
+    })();
 
+    // Version — ask the GitHub updater (the actual update source) whether a
+    // newer release exists on the active channel, rather than trusting a
+    // server-reported number that may lag behind real releases.
+    const versionCheck = (async () => {
+      let appVersion = "?";
       try {
-        const appVersion = await getVersion();
-        const isVersionOutdated = isOutdated(appVersion, latestClientVersion);
+        appVersion = await getVersion();
+      } catch {
+        // Fall back to "?" if the app version can't be read.
+      }
+      try {
+        const latest = await fetchAvailableUpdateVersion();
         update(
           "version",
-          isVersionOutdated ? "warning" : "ok",
-          isVersionOutdated
-            ? t("health.versionOutdated", {
-                current: appVersion,
-                latest: latestClientVersion ?? "?",
-              })
+          latest ? "warning" : "ok",
+          latest
+            ? t("health.versionOutdated", { current: appVersion, latest })
             : t("health.versionOk", { version: appVersion }),
         );
       } catch {
-        update("version", "ok", t("health.versionOk", { version: "?" }));
+        // Couldn't reach GitHub (offline / private repo) — don't fail the row.
+        update("version", "ok", t("health.versionOk", { version: appVersion }));
       }
     })();
 
@@ -155,7 +159,7 @@ export function HealthCheck() {
       );
     })();
 
-    await Promise.all([serverAndVersion, notificationsCheck, foldersCheck]);
+    await Promise.all([serverCheck, versionCheck, notificationsCheck, foldersCheck]);
     setIsRunning(false);
   }
 
