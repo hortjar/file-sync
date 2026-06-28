@@ -1,6 +1,6 @@
 import { client } from "../generated/client.gen";
 import { tryRefreshToken } from "../services/token-refresh";
-import { authStore } from "../stores/auth";
+import { authStore, normalizeServerUrl } from "../stores/auth";
 
 import { deviceHeaders } from "./device-info";
 
@@ -40,7 +40,7 @@ export function initApiClient(): void {
 }
 
 export function configureApiClient(serverUrl: string): void {
-  client.setConfig({ baseUrl: serverUrl });
+  client.setConfig({ baseUrl: normalizeServerUrl(serverUrl) });
 }
 
 export function setAuthHeader(accessToken: string): void {

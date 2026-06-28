@@ -24,12 +24,27 @@ const initialState: AuthState = {
 
 export const authStore = persistStore("filesync-auth", initialState);
 
+/**
+ * Normalize a server URL so request building never produces a double slash. Every
+ * call site appends `/health`, `/api/...`, or `/ws`, so a trailing slash on the
+ * stored value yields `https://host//health`, which the server 404s. Strips
+ * surrounding whitespace and any trailing slashes.
+ */
+export function normalizeServerUrl(serverUrl: string): string {
+  return serverUrl.trim().replace(/\/+$/, "");
+}
+
+// Heal a previously persisted value that still carries a trailing slash.
+if (authStore.state.serverUrl !== normalizeServerUrl(authStore.state.serverUrl)) {
+  authStore.setState((s) => ({ ...s, serverUrl: normalizeServerUrl(s.serverUrl) }));
+}
+
 export function setTokens(accessToken: string, refreshToken: string): void {
   authStore.setState((s) => ({ ...s, accessToken, refreshToken, isAuthenticated: true }));
 }
 
 export function setServerUrl(serverUrl: string): void {
-  authStore.setState((s) => ({ ...s, serverUrl }));
+  authStore.setState((s) => ({ ...s, serverUrl: normalizeServerUrl(serverUrl) }));
 }
 
 export function setDeviceId(deviceId: string): void {
