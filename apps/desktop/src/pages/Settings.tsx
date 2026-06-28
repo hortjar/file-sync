@@ -445,7 +445,7 @@ export function SettingsPage() {
                 aria-label={t("settings.desktopNotifications")}
                 onClick={() => void toggleDesktopNotifications()}
                 className={cn(
-                  "relative h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors",
+                  "inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors",
                   isDesktopNotificationsEnabled
                     ? "bg-[hsl(var(--brand-from))]"
                     : "bg-[hsl(var(--border))]",
@@ -453,8 +453,8 @@ export function SettingsPage() {
               >
                 <span
                   className={cn(
-                    "absolute top-0.5 size-5 rounded-full bg-white shadow-sm transition-transform",
-                    isDesktopNotificationsEnabled ? "translate-x-[22px]" : "translate-x-0.5",
+                    "inline-block size-5 rounded-full bg-white shadow-sm transition-transform",
+                    isDesktopNotificationsEnabled ? "translate-x-[1.375rem]" : "translate-x-0.5",
                   )}
                 />
               </button>
