@@ -97,7 +97,11 @@
     "channelStable": "Stabilní",
     "channelStableHint": "Pouze oficiální vydání. Doporučeno pro většinu uživatelů.",
     "channelBeta": "Beta",
-    "channelBetaHint": "Získejte -beta předběžná vydání dříve. Může být méně stabilní."
+    "channelBetaHint": "Získejte -beta předběžná vydání dříve. Může být méně stabilní.",
+    "notifications": "Oznámení",
+    "notificationsHint": "Zobrazovat oznámení na ploše pro chyby a aktualizace, když aplikace není aktivní.",
+    "desktopNotifications": "Oznámení na ploše",
+    "notificationsDenied": "Oprávnění pro oznámení zamítnuto — povolte je pro FileSync v Nastavení systému."
   },
   "updates": {
     "checkFailed": "Nepodařilo se zkontrolovat aktualizace",
@@ -110,7 +114,10 @@
     "bannerAvailable": "Je dostupná nová verze (v{{version}}).",
     "bannerDownloading": "Stahuji aktualizaci… {{percent}} % ({{downloaded}} / {{total}})",
     "bannerDownloadingNoSize": "Stahuji aktualizaci…",
-    "bannerReady": "Verze v{{version}} je připravena. Restartujte pro dokončení aktualizace."
+    "bannerReady": "Verze v{{version}} je připravena. Restartujte pro dokončení aktualizace.",
+    "sidebarAvailable": "Dostupná aktualizace",
+    "sidebarDownloading": "Stahuji… {{percent}} %",
+    "sidebarReady": "Restartovat a aktualizovat"
   },
   "folders": {
     "noFoldersYet": "Zatím žádné složky",

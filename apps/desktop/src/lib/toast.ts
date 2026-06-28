@@ -1,5 +1,6 @@
 import { toast as sonnerToast } from "sonner";
 
+import { showDesktopNotification } from "../services/desktop-notifications";
 import { type NotificationType, recordNotification } from "../stores/notifications";
 
 type ToastFunction = (message: unknown, options?: { description?: unknown }) => string | number;
@@ -15,11 +16,12 @@ function asDescription(value: unknown): string | undefined {
 /** Wrap a sonner toast fn so every call is also recorded in the notification history. */
 function wrap(type: NotificationType, function_: ToastFunction): ToastFunction {
   return (message, options) => {
-    recordNotification({
-      type,
-      title: asText(message),
-      description: asDescription(options?.description),
-    });
+    const title = asText(message);
+    const description = asDescription(options?.description);
+    recordNotification({ type, title, description });
+    // Mirror errors to the OS when the window isn't focused; update events are
+    // notified explicitly from the updater service.
+    if (type === "error") void showDesktopNotification(title, description);
     return function_(message, options);
   };
 }

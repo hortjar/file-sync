@@ -97,7 +97,11 @@
     "channelStable": "Stable",
     "channelStableHint": "Only official releases. Recommended for most people.",
     "channelBeta": "Beta",
-    "channelBetaHint": "Get -beta prereleases early. May be less stable."
+    "channelBetaHint": "Get -beta prereleases early. May be less stable.",
+    "notifications": "Notifications",
+    "notificationsHint": "Show desktop notifications for errors and updates when the app isn't focused.",
+    "desktopNotifications": "Desktop notifications",
+    "notificationsDenied": "Notification permission denied — enable it for FileSync in System Settings."
   },
   "updates": {
     "checkFailed": "Could not check for updates",
@@ -110,7 +114,10 @@
     "bannerAvailable": "A new version (v{{version}}) is available.",
     "bannerDownloading": "Downloading update… {{percent}}% ({{downloaded}} / {{total}})",
     "bannerDownloadingNoSize": "Downloading update…",
-    "bannerReady": "Version v{{version}} is ready. Restart to finish updating."
+    "bannerReady": "Version v{{version}} is ready. Restart to finish updating.",
+    "sidebarAvailable": "Update available",
+    "sidebarDownloading": "Downloading… {{percent}}%",
+    "sidebarReady": "Restart to update"
   },
   "folders": {
     "noFoldersYet": "No folders yet",

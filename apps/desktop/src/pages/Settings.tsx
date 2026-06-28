@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getVersion } from "@tauri-apps/api/app";
 import { invoke } from "@tauri-apps/api/core";
 import {
+  Bell,
   Check,
   Download,
   DownloadCloud,
@@ -27,11 +28,13 @@ import { Input } from "../components/ui/input";
 import { configureApiClient } from "../lib/api-client";
 import { cn } from "../lib/cn";
 import { toast } from "../lib/toast";
+import { enableDesktopNotifications } from "../services/desktop-notifications";
 import { checkForUpdates, downloadAndInstallUpdate, restartToApply } from "../services/updater";
 import { reconnectNow } from "../services/ws-client";
 import { setServerUrl, useAuthStore } from "../stores/auth";
 import type { LogLevel } from "../stores/log-level";
 import { setLogLevel, useLogLevelStore } from "../stores/log-level";
+import { setDesktopNotifications, useNotificationPrefsStore } from "../stores/notification-prefs";
 import { setCustomColor, setTheme, useThemeStore } from "../stores/theme";
 import type { UpdateChannel, UpdateMode } from "../stores/updates";
 import {
@@ -105,6 +108,7 @@ export function SettingsPage() {
   const updateStatus = useUpdateRuntimeStore((s) => s.status);
   const availableVersion = useUpdateRuntimeStore((s) => s.availableVersion);
   const updateError = useUpdateRuntimeStore((s) => s.error);
+  const isDesktopNotificationsEnabled = useNotificationPrefsStore((s) => s.desktopNotifications);
 
   const { data: appVersion } = useQuery({
     queryKey: ["app-version"],
@@ -131,6 +135,15 @@ export function SettingsPage() {
         : updateStatus === "error"
           ? (updateError ?? t("settings.updateStatusError"))
           : t(UPDATE_STATUS_KEY[updateStatus] ?? "settings.updateStatusIdle");
+
+  const toggleDesktopNotifications = async (): Promise<void> => {
+    if (isDesktopNotificationsEnabled) {
+      setDesktopNotifications(false);
+      return;
+    }
+    const isGranted = await enableDesktopNotifications();
+    if (!isGranted) toast.error(t("settings.notificationsDenied"));
+  };
 
   return (
     <div>
@@ -407,6 +420,44 @@ export function SettingsPage() {
                   {t("settings.checkForUpdates")}
                 </Button>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Notifications */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Bell className="size-4 text-[hsl(var(--text-muted))]" />
+              <CardTitle>{t("settings.notifications")}</CardTitle>
+            </div>
+            <CardDescription>{t("settings.notificationsHint")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm text-[hsl(var(--text))]">
+                {t("settings.desktopNotifications")}
+              </p>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={isDesktopNotificationsEnabled}
+                aria-label={t("settings.desktopNotifications")}
+                onClick={() => void toggleDesktopNotifications()}
+                className={cn(
+                  "relative h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors",
+                  isDesktopNotificationsEnabled
+                    ? "bg-[hsl(var(--brand-from))]"
+                    : "bg-[hsl(var(--border))]",
+                )}
+              >
+                <span
+                  className={cn(
+                    "absolute top-0.5 size-5 rounded-full bg-white shadow-sm transition-transform",
+                    isDesktopNotificationsEnabled ? "translate-x-[22px]" : "translate-x-0.5",
+                  )}
+                />
+              </button>
             </div>
           </CardContent>
         </Card>

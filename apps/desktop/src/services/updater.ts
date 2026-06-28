@@ -14,6 +14,7 @@ import {
   updateRuntimeStore,
 } from "../stores/updates";
 
+import { showDesktopNotification } from "./desktop-notifications";
 import { logger } from "./logger";
 
 /** GitHub repo that hosts the releases + signed updater manifests. */
@@ -130,7 +131,9 @@ export async function checkForUpdates({
     // Automatic mode: fetch + stage the install now, then ask to restart.
     await downloadAndInstallUpdate();
   } else {
-    toast.info(i18n.t("updates.availableToast", { version: info.version }));
+    const message = i18n.t("updates.availableToast", { version: info.version });
+    toast.info(message);
+    void showDesktopNotification(message);
   }
 }
 
@@ -168,7 +171,9 @@ export async function downloadAndInstallUpdate(): Promise<void> {
   const version = updateRuntimeStore.state.availableVersion ?? "";
   setUpdateStatus("ready");
   logger.info(`[updater] v${version} installed — pending restart`);
-  toast.success(i18n.t("updates.readyToast", { version }));
+  const message = i18n.t("updates.readyToast", { version });
+  toast.success(message);
+  void showDesktopNotification(message);
 }
 
 /** Relaunch the app so a staged update takes effect. */
