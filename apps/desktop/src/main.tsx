@@ -15,6 +15,7 @@ import { loadDeviceInfo, registerDevice, startHeartbeat } from "./services/devic
 import { startDeviceReporting } from "./services/device-reporting";
 import { startSyncEngine } from "./services/sync-engine";
 import { scheduleTokenRefresh, stopTokenRefresh } from "./services/token-refresh";
+import { startUpdateChecker } from "./services/updater";
 import { loadAndRestoreLinks, startWsClient } from "./services/ws-client";
 import { authStore } from "./stores/auth";
 import { setFolderPaths } from "./stores/links";
@@ -29,6 +30,10 @@ initTheme();
 setAppName(import.meta.env.VITE_APP_NAME ?? DEFAULT_APP_NAME);
 // Cache device name + version so every request can carry identity headers.
 void loadDeviceInfo();
+// Self-update checks run independently of auth so a newer release is offered
+// even on the login screen. The returned stop fn is unused — checks run for
+// the app's whole lifetime.
+startUpdateChecker();
 
 type AuthState = typeof authStore.state;
 

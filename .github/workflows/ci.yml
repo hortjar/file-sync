@@ -72,9 +72,11 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: apps/desktop
-          args: "--target aarch64-apple-darwin --bundles dmg"
+          args: "--target aarch64-apple-darwin --bundles dmg,updater"
           tagName: ${{ github.ref_name }}
           releaseName: "FileSync ${{ github.ref_name }}"
           releaseDraft: true
@@ -85,9 +87,11 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: apps/desktop
-          args: "--target aarch64-apple-darwin --bundles dmg"
+          args: "--target aarch64-apple-darwin --bundles dmg,updater"
 
       - name: 🚀 Upload macOS artifact
         if: github.ref == 'refs/heads/main'
@@ -133,9 +137,11 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: apps/desktop
-          args: "--target x86_64-pc-windows-msvc --bundles nsis"
+          args: "--target x86_64-pc-windows-msvc --bundles nsis,updater"
           tagName: ${{ github.ref_name }}
           releaseName: "FileSync ${{ github.ref_name }}"
           releaseDraft: true
@@ -146,9 +152,11 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: apps/desktop
-          args: "--target x86_64-pc-windows-msvc --bundles nsis"
+          args: "--target x86_64-pc-windows-msvc --bundles nsis,updater"
 
       - name: 🚀 Upload Windows artifact
         if: github.ref == 'refs/heads/main'

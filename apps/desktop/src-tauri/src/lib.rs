@@ -112,7 +112,8 @@ pub fn run() {
     let run_ts = chrono::Local::now().format("%Y-%m-%dT%H-%M-%S").to_string();
     let log_file_name = format!("filesync_{run_ts}");
 
-    tauri::Builder::default()
+    #[allow(unused_mut)]
+    let mut builder = tauri::Builder::default()
         .plugin(
             tauri_plugin_log::Builder::new()
                 .targets([
@@ -144,6 +145,15 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_process::init());
+
+    // The self-updater is desktop-only (the crate isn't built for mobile targets).
+    #[cfg(desktop)]
+    {
+        builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+    }
+
+    builder
         .invoke_handler(tauri::generate_handler![
             start_watching,
             get_hostname,

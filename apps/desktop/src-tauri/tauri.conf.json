@@ -23,9 +23,16 @@
       "csp": null
     }
   },
+  "plugins": {
+    "updater": {
+      "endpoints": ["https://github.com/hortjar/file-sync/releases/latest/download/latest.json"],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDczOTQ0QzEwQUJGNkRDNDcKUldSSDNQYXJFRXlVYzR1dHJza05JZjhpY2lENGNhc2NtcHpkN1EwdlQrY1hVWDVKbFEwL1VpbkQK"
+    }
+  },
   "bundle": {
     "active": true,
     "targets": "all",
+    "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

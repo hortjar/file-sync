@@ -4,11 +4,15 @@ import { useQuery } from "@tanstack/react-query";
 import { getVersion } from "@tauri-apps/api/app";
 import { invoke } from "@tauri-apps/api/core";
 import {
+  Check,
+  Download,
+  DownloadCloud,
   ExternalLink,
   FileText,
   Moon,
   Palette,
   RefreshCw,
+  RotateCw,
   Server,
   Sun,
   SunMoon,
@@ -23,11 +27,14 @@ import { Input } from "../components/ui/input";
 import { configureApiClient } from "../lib/api-client";
 import { cn } from "../lib/cn";
 import { toast } from "../lib/toast";
+import { checkForUpdates, downloadAndInstallUpdate, restartToApply } from "../services/updater";
 import { reconnectNow } from "../services/ws-client";
 import { setServerUrl, useAuthStore } from "../stores/auth";
 import type { LogLevel } from "../stores/log-level";
 import { setLogLevel, useLogLevelStore } from "../stores/log-level";
 import { setCustomColor, setTheme, useThemeStore } from "../stores/theme";
+import type { UpdateMode } from "../stores/updates";
+import { setUpdateMode, useUpdatePrefsStore, useUpdateRuntimeStore } from "../stores/updates";
 
 const LOG_LEVEL_OPTIONS: { value: LogLevel; labelKey: string; descriptionKey: string }[] = [
   { value: "debug", labelKey: "settings.logDebug", descriptionKey: "settings.logDebugDescription" },
@@ -54,6 +61,23 @@ const MODE_OPTIONS = [
   { value: "system" as const, icon: SunMoon, labelKey: "settings.modeSystem" },
 ];
 
+const UPDATE_MODE_OPTIONS: { value: UpdateMode; labelKey: string; descriptionKey: string }[] = [
+  { value: "auto", labelKey: "settings.updateAuto", descriptionKey: "settings.updateAutoHint" },
+  {
+    value: "manual",
+    labelKey: "settings.updateManual",
+    descriptionKey: "settings.updateManualHint",
+  },
+];
+
+const UPDATE_STATUS_KEY: Record<string, string> = {
+  idle: "settings.updateStatusIdle",
+  checking: "settings.updateStatusChecking",
+  uptodate: "settings.updateStatusUpToDate",
+  downloading: "settings.updateStatusDownloading",
+  error: "settings.updateStatusError",
+};
+
 export function SettingsPage() {
   const { t } = useTranslation();
   const theme = useThemeStore((s) => s.theme);
@@ -61,6 +85,9 @@ export function SettingsPage() {
   const serverUrl = useAuthStore((s) => s.serverUrl);
   const colorInputReference = useRef<HTMLInputElement>(null);
   const logLevel = useLogLevelStore((s) => s.logLevel);
+  const updateMode = useUpdatePrefsStore((s) => s.mode);
+  const updateStatus = useUpdateRuntimeStore((s) => s.status);
+  const availableVersion = useUpdateRuntimeStore((s) => s.availableVersion);
 
   const { data: appVersion } = useQuery({
     queryKey: ["app-version"],
@@ -78,6 +105,13 @@ export function SettingsPage() {
       toast.success(t("settings.serverSaved"));
     },
   });
+
+  const updateStatusText =
+    updateStatus === "available"
+      ? t("settings.updateStatusAvailable", { version: availableVersion ?? "" })
+      : updateStatus === "ready"
+        ? t("settings.updateStatusReady", { version: availableVersion ?? "" })
+        : t(UPDATE_STATUS_KEY[updateStatus] ?? "settings.updateStatusIdle");
 
   return (
     <div>
@@ -240,6 +274,83 @@ export function SettingsPage() {
                   {t(labelKey)}
                 </button>
               ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Updates */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <DownloadCloud className="size-4 text-[hsl(var(--text-muted))]" />
+              <CardTitle>{t("settings.updates")}</CardTitle>
+            </div>
+            <CardDescription>{t("settings.updatesHint")}</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <div className="grid grid-cols-2 gap-2">
+              {UPDATE_MODE_OPTIONS.map(({ value, labelKey, descriptionKey }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setUpdateMode(value)}
+                  className={cn(
+                    "flex cursor-pointer flex-col items-start gap-1 rounded-xl border p-4 text-left transition-all",
+                    updateMode === value
+                      ? "border-[hsl(var(--text-muted)/.4)] bg-[hsl(var(--surface-2))] shadow-[var(--shadow-xs)]"
+                      : "border-[hsl(var(--border))] hover:border-[hsl(var(--text-muted)/.3)]",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "text-sm font-medium",
+                      updateMode === value
+                        ? "text-[hsl(var(--text))]"
+                        : "text-[hsl(var(--text-muted))]",
+                    )}
+                  >
+                    {t(labelKey)}
+                  </span>
+                  <span className="text-xs text-[hsl(var(--text-faint))]">{t(descriptionKey)}</span>
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs text-[hsl(var(--text-faint))]">{updateStatusText}</p>
+              <div className="flex shrink-0 gap-2">
+                {updateStatus === "available" && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() => void downloadAndInstallUpdate()}
+                  >
+                    <Download className="size-3.5" />
+                    {t("updates.downloadInstall")}
+                  </Button>
+                )}
+                {updateStatus === "ready" && (
+                  <Button size="sm" className="gap-1.5" onClick={() => void restartToApply()}>
+                    <RotateCw className="size-3.5" />
+                    {t("updates.restartNow")}
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1.5 text-xs"
+                  loading={updateStatus === "checking"}
+                  onClick={() => void checkForUpdates({ silent: false })}
+                >
+                  {updateStatus !== "checking" &&
+                    (updateStatus === "uptodate" ? (
+                      <Check className="size-3.5" />
+                    ) : (
+                      <RefreshCw className="size-3.5" />
+                    ))}
+                  {t("settings.checkForUpdates")}
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
