@@ -85,7 +85,10 @@ services:
     # Caddyfile at load time, so the domain and upstream ports are configurable without
     # editing the repo (set them in the stack env).
     environment:
-      FILESYNC_DOMAIN: ${FILESYNC_DOMAIN:-localhost}
+      # Default ':80' = serve plain HTTP for any host (no auto-HTTPS) — ideal behind a
+      # reverse proxy / cloudflared tunnel that terminates TLS. Set it to a real domain
+      # for Caddy to obtain a Let's Encrypt certificate itself.
+      FILESYNC_DOMAIN: ${FILESYNC_DOMAIN:-:80}
       BACKEND_PORT: ${BACKEND_PORT:-3001}
       FRONTEND_PORT: ${FRONTEND_PORT:-8080}
     # Host ports Caddy is published on. Defaults are 80/443; override when those are

@@ -242,24 +242,20 @@ clone_repo() {
 # 3. Collect configuration                                                     #
 # --------------------------------------------------------------------------- #
 # Values collected here:
-FILESYNC_DOMAIN="" VITE_SERVER_URL="" CORS_ORIGIN="*" NODE_ENV="production"
+# FILESYNC_DOMAIN defaults to ':80' (plain HTTP for any host) — set it in .env.prod
+# afterwards if you want Caddy to terminate HTTPS for a real domain.
+FILESYNC_DOMAIN=":80" VITE_SERVER_URL="" CORS_ORIGIN="*" NODE_ENV="production"
 STORAGE_PATH="/storage/filesync" BACKEND_PORT="3001" FRONTEND_PORT="8080"
 CADDY_HTTP_PORT="80" CADDY_HTTPS_PORT="443"
 POSTGRES_PASSWORD="" JWT_SECRET="" JWT_REFRESH_SECRET=""
 ADMIN_EMAIL="admin@email.com" ADMIN_PASSWORD=""
 
 collect_config() {
-  step "Domain & access"
-  log "  ${C_DIM}Your public domain must already point (A/AAAA record) at this server${C_RESET}"
-  log "  ${C_DIM}for automatic HTTPS. Use 'localhost' for a local-only trial.${C_RESET}"
-  ask "Public domain (e.g. filesync.example.com)" "localhost"
-  FILESYNC_DOMAIN="$REPLY_VALUE"
-
-  case "$FILESYNC_DOMAIN" in
-    localhost|127.0.0.1) _default_url="https://localhost" ;;
-    *) _default_url="https://$FILESYNC_DOMAIN" ;;
-  esac
-  ask "Server URL baked into the web dashboard" "$_default_url"
+  step "Access"
+  log "  ${C_DIM}Caddy serves plain HTTP on :80 by default — ideal behind a reverse proxy or${C_RESET}"
+  log "  ${C_DIM}cloudflared tunnel that terminates TLS. (Set FILESYNC_DOMAIN in .env.prod to a${C_RESET}"
+  log "  ${C_DIM}real domain later if you want Caddy to handle HTTPS itself.)${C_RESET}"
+  ask "Public server URL clients connect to (e.g. https://filesync.example.com)" "http://localhost"
   VITE_SERVER_URL="$REPLY_VALUE"
 
   step "Data storage"

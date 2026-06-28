@@ -129,22 +129,22 @@ the images itself.
 
 ### Required / useful environment variables
 
-| Variable             | Required | Example / default              | Notes                                                                               |
-| -------------------- | -------- | ------------------------------ | ----------------------------------------------------------------------------------- |
-| `POSTGRES_PASSWORD`  | **Yes**  | _long random string_           | Postgres password; also used in the server's `DATABASE_URL`.                        |
-| `JWT_SECRET`         | **Yes**  | _long random string_           | Signs access tokens (15 min TTL).                                                   |
-| `JWT_REFRESH_SECRET` | **Yes**  | _long random string_           | Signs refresh tokens (7 day TTL).                                                   |
-| `FILESYNC_DOMAIN`    | **Yes**  | `filesync.example.com`         | Domain Caddy serves + requests the TLS cert for.                                    |
-| `VITE_SERVER_URL`    | **Yes**  | `https://filesync.example.com` | Baked into the web build so the dashboard targets your server.                      |
-| `STORAGE_PATH`       | **Yes**  | `/storage/filesync`            | Host directory holding **all** data (postgres, blobs, caddy). Use an absolute path. |
-| `ADMIN_EMAIL`        | No       | `admin@email.com`              | Default admin account, created on first start.                                      |
-| `ADMIN_PASSWORD`     | No       | `password`                     | Default admin password — **set your own.** Applied only when the user is created.   |
-| `BACKEND_PORT`       | No       | `3001`                         | API port: listened on + published to the host.                                      |
-| `FRONTEND_PORT`      | No       | `8080`                         | Web port: listened on + published to the host (kept off 80 so Caddy can use it).    |
-| `CADDY_HTTP_PORT`    | No       | `80`                           | Host port for Caddy's HTTP entry. Override when 80 is taken (e.g. cloudflared).     |
-| `CADDY_HTTPS_PORT`   | No       | `443`                          | Host port for Caddy's HTTPS entry. Override when 443 is taken.                      |
-| `CORS_ORIGIN`        | No       | `*`                            | Allowed origins; `*` is fine for a self-hosted setup.                               |
-| `NODE_ENV`           | No       | `production`                   | Leave as `production`.                                                              |
+| Variable             | Required | Example / default              | Notes                                                                                   |
+| -------------------- | -------- | ------------------------------ | --------------------------------------------------------------------------------------- |
+| `POSTGRES_PASSWORD`  | **Yes**  | _long random string_           | Postgres password; also used in the server's `DATABASE_URL`.                            |
+| `JWT_SECRET`         | **Yes**  | _long random string_           | Signs access tokens (15 min TTL).                                                       |
+| `JWT_REFRESH_SECRET` | **Yes**  | _long random string_           | Signs refresh tokens (7 day TTL).                                                       |
+| `FILESYNC_DOMAIN`    | No       | `:80`                          | Caddy site address. `:80` = HTTP only (use behind a tunnel); a domain = built-in HTTPS. |
+| `VITE_SERVER_URL`    | **Yes**  | `https://filesync.example.com` | Baked into the web build so the dashboard targets your server.                          |
+| `STORAGE_PATH`       | **Yes**  | `/storage/filesync`            | Host directory holding **all** data (postgres, blobs, caddy). Use an absolute path.     |
+| `ADMIN_EMAIL`        | No       | `admin@email.com`              | Default admin account, created on first start.                                          |
+| `ADMIN_PASSWORD`     | No       | `password`                     | Default admin password — **set your own.** Applied only when the user is created.       |
+| `BACKEND_PORT`       | No       | `3001`                         | API port: listened on + published to the host.                                          |
+| `FRONTEND_PORT`      | No       | `8080`                         | Web port: listened on + published to the host (kept off 80 so Caddy can use it).        |
+| `CADDY_HTTP_PORT`    | No       | `80`                           | Host port for Caddy's HTTP entry. Override when 80 is taken (e.g. cloudflared).         |
+| `CADDY_HTTPS_PORT`   | No       | `443`                          | Host port for Caddy's HTTPS entry. Override when 443 is taken.                          |
+| `CORS_ORIGIN`        | No       | `*`                            | Allowed origins; `*` is fine for a self-hosted setup.                                   |
+| `NODE_ENV`           | No       | `production`                   | Leave as `production`.                                                                  |
 
 Generate strong secrets with:
 

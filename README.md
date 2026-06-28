@@ -349,7 +349,7 @@ docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build  # 
 | `JWT_SECRET`         | ✅ Yes   | Secret for access token signing (15 min TTL)                                                |
 | `JWT_REFRESH_SECRET` | ✅ Yes   | Secret for refresh token signing (7 day TTL)                                                |
 | `POSTGRES_PASSWORD`  | 🚀 Prod  | PostgreSQL password for Docker Compose                                                      |
-| `FILESYNC_DOMAIN`    | 🚀 Prod  | Domain Caddy serves + requests the TLS cert for                                             |
+| `FILESYNC_DOMAIN`    | ⬜ No    | Caddy site address (default `:80` = HTTP only; set a domain for built-in HTTPS)             |
 | `VITE_SERVER_URL`    | 🚀 Prod  | Server URL baked into the web build (e.g. `https://your-domain`)                            |
 | `STORAGE_PATH`       | 🚀 Prod  | Host directory holding **all** data — postgres, blobs, caddy (default: `/storage/filesync`) |
 | `ADMIN_EMAIL`        | ⬜ No    | Default admin account email, created on first start (default: `admin@email.com`)            |
@@ -407,7 +407,7 @@ The desktop client keeps itself current — there's nothing to reinstall:
 
 <br />
 
-`Caddyfile` routes traffic on the domain set via `FILESYNC_DOMAIN` (default `localhost`). Caddy substitutes `{$FILESYNC_DOMAIN}` at load time, so you configure the domain through the environment, not by editing the file:
+`Caddyfile` routes traffic based on `FILESYNC_DOMAIN` (default `:80` — plain HTTP for any host, no auto-HTTPS; set a real domain for Caddy to obtain a Let's Encrypt cert). Caddy substitutes `{$FILESYNC_DOMAIN}` at load time, so you configure this through the environment, not by editing the file:
 
 - `/` → landing page + web dashboard at `/admin` (nginx serving built SPA)
 - `/api/*` → Elysia API server

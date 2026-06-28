@@ -1,4 +1,4 @@
-{$FILESYNC_DOMAIN:localhost} {
+{$FILESYNC_DOMAIN::80} {
     # WebSocket — must match before the /api/* prefix
     handle /ws {
         reverse_proxy server:{$BACKEND_PORT:3001}

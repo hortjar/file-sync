@@ -152,12 +152,12 @@ function Get-Repo {
 # --------------------------------------------------------------------------- #
 $script:Cfg = @{}
 function Read-Config {
-    Step "Domain & access"
-    Write-Host "    Your public domain must already point (A/AAAA record) at this server" -ForegroundColor DarkGray
-    Write-Host "    for automatic HTTPS. Use 'localhost' for a local-only trial." -ForegroundColor DarkGray
-    $domain = Ask "Public domain (e.g. filesync.example.com)" "localhost"
-    $defaultUrl = if ($domain -in @('localhost','127.0.0.1')) { "https://localhost" } else { "https://$domain" }
-    $serverUrl = Ask "Server URL baked into the web dashboard" $defaultUrl
+    Step "Access"
+    Write-Host "    Caddy serves plain HTTP on :80 by default - ideal behind a reverse proxy or" -ForegroundColor DarkGray
+    Write-Host "    cloudflared tunnel that terminates TLS. (Set FILESYNC_DOMAIN in .env.prod to a" -ForegroundColor DarkGray
+    Write-Host "    real domain later if you want Caddy to handle HTTPS itself.)" -ForegroundColor DarkGray
+    $domain = ':80'
+    $serverUrl = Ask "Public server URL clients connect to (e.g. https://filesync.example.com)" "http://localhost"
 
     Step "Data storage"
     Write-Host "    One host directory holds ALL persistent state - database, file blobs and" -ForegroundColor DarkGray
