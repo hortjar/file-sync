@@ -15,6 +15,7 @@ Keep your folders perfectly in sync across every machine — **in real time**, o
 [![License](https://img.shields.io/badge/license-open%20source-c026d3)](#-license)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-22c55e.svg)](#-contributing)
 [![Self-hosted](https://img.shields.io/badge/%F0%9F%8F%A0-self--hosted-0ea5e9)](#-quick-start-production)
+[![Built by AI](https://img.shields.io/badge/%F0%9F%A4%96-built%20by%20AI-f59e0b)](#-built-by-ai)
 
 <br />
 
@@ -33,6 +34,36 @@ Keep your folders perfectly in sync across every machine — **in real time**, o
 **[✨ Features](#-features) · [🚀 Quick Start](#-quick-start-production) · [🏗️ Architecture](#️-architecture) · [📦 Downloads](https://github.com/hortjar/file-sync/releases) · [📖 Docs](docs)**
 
 </div>
+
+---
+
+## ⚡ Self-host in one command
+
+Spin up the entire stack — database, API, web dashboard, and HTTPS proxy — on your own
+server with a single interactive command. It checks prerequisites, asks for your domain
+and secrets, and brings everything up.
+
+```bash
+# Linux & macOS
+curl -fsSL https://raw.githubusercontent.com/hortjar/file-sync/main/scripts/setup.sh | sh
+```
+
+```powershell
+# Windows (PowerShell + Docker Desktop)
+irm https://raw.githubusercontent.com/hortjar/file-sync/main/scripts/setup.ps1 | iex
+```
+
+That's it — the installer prints your URLs when it's done. See [Quick Start](#-quick-start-production)
+for the full walkthrough and manual setup.
+
+---
+
+## 🤖 Built by AI
+
+This entire project — the Rust file watcher, the TypeScript desktop and web apps, the Bun
+server, the database schema, the Docker/Caddy deployment, the setup scripts, and this
+documentation — was **built end-to-end by AI agents**. It's a demonstration of what
+agent-driven development can ship: a complete, real-world, self-hostable application.
 
 ---
 
