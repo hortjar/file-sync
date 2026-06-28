@@ -4,6 +4,35 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-06-28
+
+Deployment-focused release that fixes the Docker build and reworks how the production
+stack is configured.
+
+### Fixed
+
+- **Docker build failure** (`bun install --frozen-lockfile` exit 1). The server and web
+  images now copy every workspace `package.json` before installing, so Bun can validate the
+  full workspace graph instead of erroring with "lockfile had changes, but lockfile is frozen".
+
+### Added
+
+- **Configurable admin account.** `ADMIN_EMAIL` / `ADMIN_PASSWORD` seed the admin user, which
+  is now created automatically (idempotently) on the first server start — no manual seeding.
+- **Single data volume.** All persistent state (postgres, blobs, caddy certs) lives under one
+  host directory, `STORAGE_PATH` (default `/storage/filesync`), as bind mounts — back up one
+  folder for everything.
+- **Configurable, published ports.** `BACKEND_PORT` (3001) and `FRONTEND_PORT` (8080) set the
+  API and web ports, which are now published to the host so the app is reachable directly at
+  `http://<host-ip>:<port>` without a domain. An explicit `filesync` Docker network wires the
+  services together.
+
+### Changed
+
+- Caddy now reads the upstream ports from the environment (`{$BACKEND_PORT}` / `{$FRONTEND_PORT}`).
+- The setup scripts ask for the data directory, admin credentials, and ports, and no longer
+  generate a separate bind-mount override file.
+
 ## [1.2.0] - 2026-06-28
 
 The headline of this release is the **self-updating desktop app**, plus a one-command way

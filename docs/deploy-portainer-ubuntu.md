@@ -12,14 +12,17 @@ edit files in the repo — set everything in Portainer's stack UI.
 
 ## What you'll end up with
 
-| URL                       | Service                                       |
-| ------------------------- | --------------------------------------------- |
-| `https://your-domain/`    | Web dashboard (login, folders, devices, logs) |
-| `https://your-domain/api` | REST API (used by desktop + web clients)      |
-| `https://your-domain/ws`  | WebSocket (real-time push to desktop clients) |
+| URL                       | Service                                            |
+| ------------------------- | -------------------------------------------------- |
+| `https://your-domain/`    | Web dashboard (login, folders, devices, logs)      |
+| `https://your-domain/api` | REST API (used by desktop + web clients)           |
+| `https://your-domain/ws`  | WebSocket (real-time push to desktop clients)      |
+| `http://<server-ip>:8080` | Web dashboard direct (no domain — `FRONTEND_PORT`) |
+| `http://<server-ip>:3001` | REST API direct (no domain — `BACKEND_PORT`)       |
 
-Caddy obtains and renews a Let's Encrypt certificate automatically. Migrations
-run automatically when the server container starts.
+Caddy obtains and renews a Let's Encrypt certificate automatically. Migrations and the
+admin seed run automatically when the server container starts. The web and API containers
+also publish their ports directly, so you can reach the app by IP before DNS is set up.
 
 ---
 
@@ -29,7 +32,11 @@ run automatically when the server container starts.
 - A domain name with an **A record** (and optionally **AAAA**) pointing at the
   server's IP. Let's Encrypt validation requires this to resolve publicly.
 - **Ports 80 and 443 open** to the internet (HTTP-01/TLS-ALPN challenges + UDP
-  443 for HTTP/3).
+  443 for HTTP/3). To reach the app by IP without a domain, also open `FRONTEND_PORT`
+  (8080) and `BACKEND_PORT` (3001).
+- A data directory for `STORAGE_PATH` (default `/storage/filesync`). Docker creates it on
+  first start; pre-create it with `sudo mkdir -p /storage/filesync` if you want specific
+  ownership or it lives on a mounted disk.
 - Root or `sudo` access.
 
 ---
@@ -69,6 +76,9 @@ sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
 sudo ufw allow 443/udp     # HTTP/3 (QUIC) used by Caddy
 sudo ufw allow OpenSSH     # don't lock yourself out
+# Optional — only if you want to reach the app directly by IP (no domain):
+sudo ufw allow 8080/tcp    # web dashboard (FRONTEND_PORT)
+sudo ufw allow 3001/tcp    # REST API (BACKEND_PORT)
 sudo ufw status
 ```
 
@@ -119,17 +129,20 @@ the images itself.
 
 ### Required / useful environment variables
 
-| Variable             | Required | Example / default              | Notes                                                          |
-| -------------------- | -------- | ------------------------------ | -------------------------------------------------------------- |
-| `POSTGRES_PASSWORD`  | **Yes**  | _long random string_           | Postgres password; also used in the server's `DATABASE_URL`.   |
-| `JWT_SECRET`         | **Yes**  | _long random string_           | Signs access tokens (15 min TTL).                              |
-| `JWT_REFRESH_SECRET` | **Yes**  | _long random string_           | Signs refresh tokens (7 day TTL).                              |
-| `FILESYNC_DOMAIN`    | **Yes**  | `filesync.example.com`         | Domain Caddy serves + requests the TLS cert for.               |
-| `VITE_SERVER_URL`    | **Yes**  | `https://filesync.example.com` | Baked into the web build so the dashboard targets your server. |
-| `CORS_ORIGIN`        | No       | `*`                            | Allowed origins; `*` is fine for a self-hosted setup.          |
-| `PORT`               | No       | `3001`                         | Server listen port (internal).                                 |
-| `STORAGE_PATH`       | No       | `./data/blobs`                 | Blob directory inside the server container.                    |
-| `NODE_ENV`           | No       | `production`                   | Leave as `production`.                                         |
+| Variable             | Required | Example / default              | Notes                                                                               |
+| -------------------- | -------- | ------------------------------ | ----------------------------------------------------------------------------------- |
+| `POSTGRES_PASSWORD`  | **Yes**  | _long random string_           | Postgres password; also used in the server's `DATABASE_URL`.                        |
+| `JWT_SECRET`         | **Yes**  | _long random string_           | Signs access tokens (15 min TTL).                                                   |
+| `JWT_REFRESH_SECRET` | **Yes**  | _long random string_           | Signs refresh tokens (7 day TTL).                                                   |
+| `FILESYNC_DOMAIN`    | **Yes**  | `filesync.example.com`         | Domain Caddy serves + requests the TLS cert for.                                    |
+| `VITE_SERVER_URL`    | **Yes**  | `https://filesync.example.com` | Baked into the web build so the dashboard targets your server.                      |
+| `STORAGE_PATH`       | **Yes**  | `/storage/filesync`            | Host directory holding **all** data (postgres, blobs, caddy). Use an absolute path. |
+| `ADMIN_EMAIL`        | No       | `admin@email.com`              | Default admin account, created on first start.                                      |
+| `ADMIN_PASSWORD`     | No       | `password`                     | Default admin password — **set your own.** Applied only when the user is created.   |
+| `BACKEND_PORT`       | No       | `3001`                         | API port: listened on + published to the host.                                      |
+| `FRONTEND_PORT`      | No       | `8080`                         | Web port: listened on + published to the host (kept off 80 so Caddy can use it).    |
+| `CORS_ORIGIN`        | No       | `*`                            | Allowed origins; `*` is fine for a self-hosted setup.                               |
+| `NODE_ENV`           | No       | `production`                   | Leave as `production`.                                                              |
 
 Generate strong secrets with:
 
@@ -147,25 +160,20 @@ openssl rand -hex 32
 
 ## 5. First login
 
-There is no sign-up screen. Create the default admin account by running the seed
-script in the server container. In Portainer: **Containers → `filesync-server-1`
-→ Console → Connect (`/bin/sh`)**, then:
+There is no sign-up screen, and **no manual seeding needed** — the admin account is
+created automatically on the first server start from `ADMIN_EMAIL` / `ADMIN_PASSWORD`
+(defaults `admin@email.com` / `password`). Set those in the stack's Environment variables
+before deploying.
 
-```sh
-bun run apps/server/src/db/seed.ts
-```
+> Need to re-seed after changing the credentials? The seed is idempotent (it never
+> overwrites an existing user's password). In Portainer: **Containers →
+> `filesync-server-1` → Console → Connect (`/bin/sh`)**, then run
+> `bun run apps/server/src/db/seed.ts`.
 
-Or from the host shell:
+Then open `https://your-domain/` (or `http://<server-ip>:8080` without a domain), sign
+in, and create your sync folders. Point each desktop client at your server URL.
 
-```bash
-docker compose -f docker-compose.prod.yml exec server bun run apps/server/src/db/seed.ts
-```
-
-This creates `admin@email.com` / `password` (idempotent). **Change the password
-immediately after first login.**
-
-Then open `https://your-domain/`, sign in, and create your sync folders. Point
-each desktop client at `https://your-domain`.
+**Change the admin password immediately after first login.**
 
 ---
 
@@ -185,15 +193,20 @@ needed.
 
 ## 7. Backups
 
-Two volumes hold all persistent state — back them up regularly:
+All persistent state lives under one host directory, `STORAGE_PATH` (default
+`/storage/filesync`), as bind mounts — back up that single folder and you have everything:
 
-| Volume                   | Contents                                                   |
-| ------------------------ | ---------------------------------------------------------- |
-| `filesync_postgres_data` | PostgreSQL database (users, metadata, versions, conflicts) |
-| `filesync_blobs_data`    | Content-addressed file blobs                               |
+| Path                           | Contents                                                                          |
+| ------------------------------ | --------------------------------------------------------------------------------- |
+| `${STORAGE_PATH}/postgres`     | PostgreSQL database (users, metadata, versions, conflicts)                        |
+| `${STORAGE_PATH}/blobs`        | Content-addressed file blobs                                                      |
+| `${STORAGE_PATH}/caddy/data`   | TLS certificates (re-obtainable, but backing up avoids Let's Encrypt rate limits) |
+| `${STORAGE_PATH}/caddy/config` | Caddy autosave config                                                             |
 
-`filesync_caddy_data` holds the TLS certificates (re-obtainable, but backing it
-up avoids Let's Encrypt rate limits on frequent rebuilds).
+```bash
+# Snapshot the whole data directory
+sudo tar czf filesync-data-$(date +%F).tar.gz -C /storage/filesync .
+```
 
 Example database dump:
 

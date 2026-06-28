@@ -7,7 +7,9 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in the stack/.env.prod}
       POSTGRES_DB: filesync
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ${STORAGE_PATH:-/storage/filesync}/postgres:/var/lib/postgresql/data
+    networks:
+      - filesync
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U filesync -d filesync"]
       interval: 10s
@@ -27,16 +29,33 @@ services:
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in the stack/.env.prod}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?set JWT_REFRESH_SECRET in the stack/.env.prod}
       NODE_ENV: ${NODE_ENV:-production}
-      PORT: ${PORT:-3001}
-      STORAGE_PATH: ${STORAGE_PATH:-./data/blobs}
+      # Internal port the API server listens on (Caddy proxies to it).
+      PORT: ${BACKEND_PORT:-3001}
       CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      # Default admin account, created idempotently on startup. Change these before
+      # the first deploy — the password is only applied when the user is created.
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@email.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-password}
+    # Migrate, seed the admin (idempotent, non-fatal), then start the server.
+    command:
+      - sh
+      - -c
+      - bun run apps/server/src/db/migrate.ts && (bun run apps/server/src/db/seed.ts || echo "admin seed skipped") && bun run apps/server/src/index.ts
     depends_on:
       postgres:
         condition: service_healthy
+    # Published so the API is reachable directly at http://<host-ip>:<BACKEND_PORT>
+    # (in addition to https://<domain>/api via Caddy).
+    ports:
+      - "${BACKEND_PORT:-3001}:${BACKEND_PORT:-3001}"
     volumes:
-      - blobs_data:/app/data/blobs
+      # CAS blobs — the container writes to its default /app/data/blobs, bind-mounted
+      # under STORAGE_PATH on the host so all data lives on one volume.
+      - ${STORAGE_PATH:-/storage/filesync}/blobs:/app/data/blobs
+    networks:
+      - filesync
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3001/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:${BACKEND_PORT:-3001}/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -48,28 +67,48 @@ services:
       args:
         VITE_SERVER_URL: ${VITE_SERVER_URL:-https://localhost}
     restart: unless-stopped
+    environment:
+      # Port nginx serves the SPA on (Caddy proxies to it; also published below).
+      FRONTEND_PORT: ${FRONTEND_PORT:-8080}
+    # Published so the dashboard is reachable directly at http://<host-ip>:<FRONTEND_PORT>
+    # (in addition to https://<domain>/ via Caddy). Defaults to 8080 to avoid clashing
+    # with Caddy on 80.
+    ports:
+      - "${FRONTEND_PORT:-8080}:${FRONTEND_PORT:-8080}"
+    networks:
+      - filesync
 
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
-    # Caddy substitutes {$FILESYNC_DOMAIN} in the Caddyfile at load time, so the
-    # domain is configurable without editing the repo (set it in the stack env).
+    # Caddy substitutes {$FILESYNC_DOMAIN} / {$BACKEND_PORT} / {$FRONTEND_PORT} in the
+    # Caddyfile at load time, so the domain and upstream ports are configurable without
+    # editing the repo (set them in the stack env).
     environment:
       FILESYNC_DOMAIN: ${FILESYNC_DOMAIN:-localhost}
+      BACKEND_PORT: ${BACKEND_PORT:-3001}
+      FRONTEND_PORT: ${FRONTEND_PORT:-8080}
     ports:
       - "80:80"
       - "443:443"
       - "443:443/udp"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
+      - ${STORAGE_PATH:-/storage/filesync}/caddy/data:/data
+      - ${STORAGE_PATH:-/storage/filesync}/caddy/config:/config
+    networks:
+      - filesync
     depends_on:
       - server
       - web
 
-volumes:
-  postgres_data:
-  blobs_data:
-  caddy_data:
-  caddy_config:
+networks:
+  filesync:
+    driver: bridge
+# All persistent state lives under STORAGE_PATH (default /storage/filesync) as host
+# bind mounts on a single volume you can back up; Docker creates the subdirectories on
+# first start:
+#   ${STORAGE_PATH}/postgres      PostgreSQL data
+#   ${STORAGE_PATH}/blobs         content-addressed file blobs
+#   ${STORAGE_PATH}/caddy/data    Let's Encrypt certificates
+#   ${STORAGE_PATH}/caddy/config  Caddy autosave config

@@ -11,7 +11,7 @@ Keep your folders perfectly in sync across every machine — **in real time**, o
 <br />
 
 [![CI](https://github.com/hortjar/file-sync/actions/workflows/ci.yml/badge.svg)](https://github.com/hortjar/file-sync/actions/workflows/ci.yml)
-[![Version](https://img.shields.io/badge/version-1.2.0-8b5cf6)](https://github.com/hortjar/file-sync/releases)
+[![Version](https://img.shields.io/badge/version-1.2.1-8b5cf6)](https://github.com/hortjar/file-sync/releases)
 [![License](https://img.shields.io/badge/license-open%20source-c026d3)](#-license)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-22c55e.svg)](#-contributing)
 [![Self-hosted](https://img.shields.io/badge/%F0%9F%8F%A0-self--hosted-0ea5e9)](#-quick-start-production)
@@ -181,13 +181,16 @@ from the landing page).
    - _Domain & access_ — your public domain and the dashboard URL (sensible defaults).
    - _Data storage_ — keep Docker-managed named volumes, or bind blobs / database / TLS
      certs to a host directory you pick.
+   - _Admin account_ — the email + password for the admin user, created automatically on
+     first start.
    - _Secrets_ — press Enter to auto-generate strong `POSTGRES_PASSWORD`, `JWT_SECRET`,
      and `JWT_REFRESH_SECRET`, or paste your own.
-   - _Advanced (optional)_ — CORS origins, port, storage path, `NODE_ENV` — each with a
-     default you can Enter straight through.
-4. **Writes `.env.prod`** (and, for custom storage, a `docker-compose.binds.yml` override).
-5. **Builds and launches** the full stack with `docker compose … up -d --build`.
-6. **Offers to seed** the default admin account, then **prints your URLs**.
+   - _Advanced (optional)_ — CORS origins, backend/frontend ports, `NODE_ENV` — each with
+     a default you can Enter straight through.
+4. **Writes `.env.prod`** and creates the data subdirectories under `STORAGE_PATH`.
+5. **Builds and launches** the full stack with `docker compose … up -d --build`. The server
+   migrates the database and seeds the admin account on startup.
+6. **Prints your URLs** (including the direct `http://<host-ip>:<port>` addresses).
 
 Everything is logged to a timestamped file, and the script reports success/error states
 as it goes. Re-run it any time to update configuration or pull a newer build.
@@ -222,7 +225,23 @@ The landing page and dashboard are the same SPA, so the Caddy/nginx routing is u
 
 🔒 HTTPS is handled automatically by Caddy (Let's Encrypt). Ports 80/443 must be reachable from the internet.
 
-📥 Download the desktop app from the landing page (or the [Releases](https://github.com/hortjar/file-sync/releases) page), open it, enter `https://your-domain` as the server URL, and sign in.
+**No domain yet? Reach it directly by IP.** The web and API containers also publish their
+ports on the host, so you can open the dashboard without DNS or TLS:
+
+| URL                            | Service                                   |
+| ------------------------------ | ----------------------------------------- |
+| `http://<host-ip>:8080`        | 📊 Web dashboard (`FRONTEND_PORT`)        |
+| `http://<host-ip>:3001/health` | 🔌 REST API health check (`BACKEND_PORT`) |
+
+> For IP-based access, set `VITE_SERVER_URL=http://<host-ip>:3001` so the dashboard's API
+> calls resolve, and open `FRONTEND_PORT`/`BACKEND_PORT` in your firewall. For a public
+> deployment, use a domain and let Caddy terminate HTTPS instead.
+
+📥 Download the desktop app from the landing page (or the [Releases](https://github.com/hortjar/file-sync/releases) page), open it, enter your server URL, and sign in.
+
+🔑 **First login** — the admin account from `ADMIN_EMAIL` / `ADMIN_PASSWORD` is created
+automatically on first start (defaults `admin@email.com` / `password`). Change the
+password right after logging in.
 
 ---
 
@@ -293,13 +312,13 @@ file-sync/
     │       └── db/              # Drizzle schema, migrations, seed
     ├── desktop/                 # Tauri v2 desktop app
     │   └── src/
-    │       ├── pages/           # Login, SyncFolders, Conflicts, Settings, Logs
+    │       ├── routes/          # login, sync-folders, folders, conflicts, settings, logs
     │       ├── services/        # sync engine, ws client, uploader, downloader, reconciler
     │       ├── stores/          # auth, links, file-versions, sync-status, theme
     │       └── generated/       # HeyApi typed client + TanStack Query hooks
     └── web/                     # React SPA — landing, downloads & dashboard (Vite + React Router)
         └── src/
-            ├── pages/           # Landing, Downloads, Dashboard, Folders, Devices, Logs, Login
+            ├── routes/          # landing, downloads, quick-start, dashboard, folders, …
             ├── components/      # landing/, AppLayout, ProtectedRoute, shared UI
             └── generated/       # HeyApi typed client + TanStack Query hooks
 ```
@@ -324,18 +343,22 @@ docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build  # 
 
 ## ⚙️ Environment Variables
 
-| Variable             | Required | Description                                                      |
-| -------------------- | -------- | ---------------------------------------------------------------- |
-| `DATABASE_URL`       | ✅ Yes   | PostgreSQL connection string                                     |
-| `JWT_SECRET`         | ✅ Yes   | Secret for access token signing (15 min TTL)                     |
-| `JWT_REFRESH_SECRET` | ✅ Yes   | Secret for refresh token signing (7 day TTL)                     |
-| `POSTGRES_PASSWORD`  | 🚀 Prod  | PostgreSQL password for Docker Compose                           |
-| `FILESYNC_DOMAIN`    | 🚀 Prod  | Domain Caddy serves + requests the TLS cert for                  |
-| `VITE_SERVER_URL`    | 🚀 Prod  | Server URL baked into the web build (e.g. `https://your-domain`) |
-| `CORS_ORIGIN`        | ⬜ No    | Allowed origins (default: `*`)                                   |
-| `PORT`               | ⬜ No    | Server port (default: `3001`)                                    |
-| `STORAGE_PATH`       | ⬜ No    | Blob storage directory (default: `./data/blobs`)                 |
-| `NODE_ENV`           | ⬜ No    | `development` or `production`                                    |
+| Variable             | Required | Description                                                                                 |
+| -------------------- | -------- | ------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`       | ✅ Yes   | PostgreSQL connection string                                                                |
+| `JWT_SECRET`         | ✅ Yes   | Secret for access token signing (15 min TTL)                                                |
+| `JWT_REFRESH_SECRET` | ✅ Yes   | Secret for refresh token signing (7 day TTL)                                                |
+| `POSTGRES_PASSWORD`  | 🚀 Prod  | PostgreSQL password for Docker Compose                                                      |
+| `FILESYNC_DOMAIN`    | 🚀 Prod  | Domain Caddy serves + requests the TLS cert for                                             |
+| `VITE_SERVER_URL`    | 🚀 Prod  | Server URL baked into the web build (e.g. `https://your-domain`)                            |
+| `STORAGE_PATH`       | 🚀 Prod  | Host directory holding **all** data — postgres, blobs, caddy (default: `/storage/filesync`) |
+| `ADMIN_EMAIL`        | ⬜ No    | Default admin account email, created on first start (default: `admin@email.com`)            |
+| `ADMIN_PASSWORD`     | ⬜ No    | Default admin password, applied only when the user is created (default: `password`)         |
+| `BACKEND_PORT`       | ⬜ No    | API port — listened on + published to the host (default: `3001`)                            |
+| `FRONTEND_PORT`      | ⬜ No    | Web port — listened on + published to the host (default: `8080`)                            |
+| `CORS_ORIGIN`        | ⬜ No    | Allowed origins (default: `*`)                                                              |
+| `PORT`               | ⬜ No    | Local-dev server port (default: `3001`; Docker uses `BACKEND_PORT`)                         |
+| `NODE_ENV`           | ⬜ No    | `development` or `production`                                                               |
 
 ---
 
@@ -398,13 +421,39 @@ Caddy obtains a Let's Encrypt certificate automatically on first start. Ports 80
 
 <br />
 
-There is no sign-up screen — create the default admin account by seeding:
+There is no sign-up screen. The admin account is **created automatically on first start**
+from `ADMIN_EMAIL` / `ADMIN_PASSWORD` (defaults `admin@email.com` / `password`), so just
+set those before deploying. **Change the password after first login.**
+
+To (re-)seed manually — e.g. after changing the credentials — the seed is idempotent and
+honors the same env vars:
 
 ```bash
-docker compose -f docker-compose.prod.yml exec server bun run apps/server/src/db/seed.ts
+docker compose --env-file .env.prod -f docker-compose.prod.yml exec server \
+  bun run apps/server/src/db/seed.ts
 ```
 
-This creates `admin@email.com` / `password` (idempotent). **Change the password after first login.**
+> The seed only creates the user if the email doesn't already exist — it never overwrites
+> an existing password.
+
+</details>
+
+<details>
+<summary><strong>🗂️ Data & storage</strong></summary>
+
+<br />
+
+All persistent state lives under a single host directory, `STORAGE_PATH` (default
+`/storage/filesync`), as bind mounts — back up this one folder and you have everything:
+
+| Path                           | Contents                     |
+| ------------------------------ | ---------------------------- |
+| `${STORAGE_PATH}/postgres`     | PostgreSQL database          |
+| `${STORAGE_PATH}/blobs`        | Content-addressed file blobs |
+| `${STORAGE_PATH}/caddy/data`   | Let's Encrypt certificates   |
+| `${STORAGE_PATH}/caddy/config` | Caddy autosave config        |
+
+Docker creates the subdirectories on first start.
 
 </details>
 
@@ -417,7 +466,7 @@ This creates `admin@email.com` / `password` (idempotent). **Change the password 
 docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
 ```
 
-Migrations run automatically on server startup.
+Migrations (and the idempotent admin seed) run automatically on server startup.
 
 </details>
 

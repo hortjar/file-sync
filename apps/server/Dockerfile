@@ -1,10 +1,15 @@
 FROM oven/bun:1 AS builder
 WORKDIR /app
 
-# Copy workspace manifests and lockfile
+# Copy every workspace manifest + lockfile. Bun's --frozen-lockfile validates the
+# whole workspace graph, so all members must be present even though this image only
+# builds the server (otherwise it errors: "lockfile had changes, but lockfile is frozen").
 COPY package.json bunfig.toml bun.lock ./
 COPY packages/shared/package.json packages/shared/
+COPY packages/ui/package.json packages/ui/
 COPY apps/server/package.json apps/server/
+COPY apps/web/package.json apps/web/
+COPY apps/desktop/package.json apps/desktop/
 
 # Install all workspace dependencies
 RUN bun install --frozen-lockfile

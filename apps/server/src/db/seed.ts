@@ -10,7 +10,12 @@ if (!databaseUrl) throw new Error("DATABASE_URL environment variable is required
 const client = postgres(databaseUrl, { max: 1 });
 const database = drizzle(client);
 
-const SEEDS = [{ email: "admin@email.com", password: "password" }];
+// The default admin account is configurable so deployments can set their own
+// credentials via the environment (see ADMIN_EMAIL / ADMIN_PASSWORD in compose).
+const adminEmail = process.env["ADMIN_EMAIL"] ?? "admin@email.com";
+const adminPassword = process.env["ADMIN_PASSWORD"] ?? "password";
+
+const SEEDS = [{ email: adminEmail, password: adminPassword }];
 
 for (const seed of SEEDS) {
   const passwordHash = await hash(seed.password);
