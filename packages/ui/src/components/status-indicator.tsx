@@ -102,15 +102,6 @@ export function StatusIndicator({
             {title}
           </p>
 
-          {notice && (
-            <div className="mt-2 flex items-start gap-2 rounded-lg border border-orange-400/30 bg-orange-400/10 px-2.5 py-2 text-orange-300">
-              <ArrowUpCircle className="mt-px size-3.5 shrink-0" />
-              <span className="whitespace-normal text-[11px] font-medium leading-snug">
-                {notice}
-              </span>
-            </div>
-          )}
-
           <dl className="mt-2 flex flex-col gap-1.5 text-[11px]">
             {details.map((detail) => (
               <div key={detail.label} className="flex items-center justify-between gap-6">
@@ -131,6 +122,17 @@ export function StatusIndicator({
               <RefreshCw className="size-3" />
               {reconnectLabel}
             </button>
+          )}
+
+          {/* Update notice sits at the bottom so the live status + details stay
+              at the top of the card where the eye lands first. */}
+          {notice && (
+            <div className="mt-3 flex items-start gap-2 rounded-lg border border-orange-400/30 bg-orange-400/10 px-2.5 py-2 text-orange-300">
+              <ArrowUpCircle className="mt-px size-3.5 shrink-0" />
+              <span className="whitespace-normal text-[11px] font-medium leading-snug">
+                {notice}
+              </span>
+            </div>
           )}
         </div>
       </div>
