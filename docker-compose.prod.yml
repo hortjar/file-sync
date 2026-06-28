@@ -46,7 +46,7 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
       args:
-        VITE_SERVER_URL: ${VITE_SERVER_URL:-https://filesync.hortjar.cz}
+        VITE_SERVER_URL: ${VITE_SERVER_URL:-https://localhost}
     restart: unless-stopped
 
   caddy:
@@ -55,7 +55,7 @@ services:
     # Caddy substitutes {$FILESYNC_DOMAIN} in the Caddyfile at load time, so the
     # domain is configurable without editing the repo (set it in the stack env).
     environment:
-      FILESYNC_DOMAIN: ${FILESYNC_DOMAIN:-filesync.hortjar.cz}
+      FILESYNC_DOMAIN: ${FILESYNC_DOMAIN:-localhost}
     ports:
       - "80:80"
       - "443:443"

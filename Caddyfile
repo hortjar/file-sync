@@ -1,4 +1,4 @@
-{$FILESYNC_DOMAIN:filesync.hortjar.cz} {
+{$FILESYNC_DOMAIN:localhost} {
     # WebSocket — must match before the /api/* prefix
     handle /ws {
         reverse_proxy server:3001

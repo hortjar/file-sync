@@ -119,7 +119,25 @@ flowchart LR
 
 ## 🚀 Quick Start (Production)
 
-> **Prerequisites:** 🐳 Docker · Docker Compose v2 · a domain pointing to your server
+> **Prerequisites:** 🐳 Docker · Docker Compose v2 · Git · a domain pointing to your server
+
+### One-line installer (recommended)
+
+The interactive setup script clones the repo, asks for your domain / secrets / data
+locations, writes `.env.prod`, and brings the stack up — verifying prerequisites and
+generating strong secrets along the way.
+
+```bash
+# Linux & macOS
+curl -fsSL https://raw.githubusercontent.com/hortjar/file-sync/main/scripts/setup.sh | sh
+```
+
+```powershell
+# Windows (PowerShell, Docker Desktop)
+irm https://raw.githubusercontent.com/hortjar/file-sync/main/scripts/setup.ps1 | iex
+```
+
+### Manual setup
 
 ```bash
 # 1. Copy and fill environment variables
@@ -290,7 +308,7 @@ git tag v1.0.0 && git push origin v1.0.0
 
 <br />
 
-`Caddyfile` routes traffic on the domain set via `FILESYNC_DOMAIN` (default `filesync.hortjar.cz`). Caddy substitutes `{$FILESYNC_DOMAIN}` at load time, so you configure the domain through the environment, not by editing the file:
+`Caddyfile` routes traffic on the domain set via `FILESYNC_DOMAIN` (default `localhost`). Caddy substitutes `{$FILESYNC_DOMAIN}` at load time, so you configure the domain through the environment, not by editing the file:
 
 - `/` → landing page + web dashboard at `/admin` (nginx serving built SPA)
 - `/api/*` → Elysia API server
