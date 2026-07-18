@@ -41,15 +41,45 @@ export const devicesRoutes = new Elysia({ prefix: "/api/devices" })
         return { message: "Unauthorized" };
       }
 
-      const [device] = await database
-        .insert(devices)
-        .values({
-          userId,
-          name: body.name,
-          platform: body.platform,
-          appVersion: body.appVersion,
-        })
-        .returning();
+      // Identify the physical device by (user, hostname, platform) rather than by
+      // a client-generated id. When the app updates and re-registers — e.g. after
+      // its persisted device id is lost — this reuses the existing device row so
+      // its sync-folder links are preserved instead of being stranded on a stale
+      // duplicate. The oldest match wins so the original record (which holds the
+      // folder links) is the one kept.
+      const [existing] = await database
+        .select()
+        .from(devices)
+        .where(
+          and(
+            eq(devices.userId, userId),
+            eq(devices.name, body.name),
+            eq(devices.platform, body.platform),
+          ),
+        )
+        .orderBy(devices.createdAt)
+        .limit(1);
+
+      let device;
+      if (existing) {
+        const updated = await database
+          .update(devices)
+          .set({ appVersion: body.appVersion, lastSeenAt: new Date() })
+          .where(eq(devices.id, existing.id))
+          .returning();
+        device = updated[0];
+      } else {
+        const inserted = await database
+          .insert(devices)
+          .values({
+            userId,
+            name: body.name,
+            platform: body.platform,
+            appVersion: body.appVersion,
+          })
+          .returning();
+        device = inserted[0];
+      }
 
       if (!device) {
         set.status = 500;
