@@ -12,6 +12,7 @@ import {
   FileText,
   Moon,
   Palette,
+  Power,
   RefreshCw,
   RotateCw,
   Search,
@@ -36,6 +37,7 @@ import { configureApiClient } from "../../lib/api-client";
 import { cn } from "../../lib/cn";
 import { toast } from "../../lib/toast";
 import { enableDesktopNotifications } from "../../services/desktop-notifications";
+import { applyRunInBackground } from "../../services/startup";
 import { checkForUpdates, downloadUpdate, installAndRestart } from "../../services/updater";
 import { reconnectNow } from "../../services/ws-client";
 import { setServerUrl, useAuthStore } from "../../stores/auth";
@@ -45,6 +47,7 @@ import {
   setDesktopNotifications,
   useNotificationPrefsStore,
 } from "../../stores/notification-prefs";
+import { useStartupStore } from "../../stores/startup";
 import { setCustomColor, setTheme, useThemeStore } from "../../stores/theme";
 import type { UpdateChannel, UpdateMode } from "../../stores/updates";
 import {
@@ -119,6 +122,7 @@ export function SettingsPage() {
   const availableVersion = useUpdateRuntimeStore((s) => s.availableVersion);
   const updateError = useUpdateRuntimeStore((s) => s.error);
   const isDesktopNotificationsEnabled = useNotificationPrefsStore((s) => s.desktopNotifications);
+  const isRunInBackgroundEnabled = useStartupStore((s) => s.runInBackground);
 
   const { data: appVersion } = useQuery({
     queryKey: ["app-version"],
@@ -145,6 +149,14 @@ export function SettingsPage() {
         : updateStatus === "error"
           ? (updateError ?? t("settings.updateStatusError"))
           : t(UPDATE_STATUS_KEY[updateStatus] ?? "settings.updateStatusIdle");
+
+  const toggleRunInBackground = async (): Promise<void> => {
+    try {
+      await applyRunInBackground(!isRunInBackgroundEnabled);
+    } catch {
+      toast.error(t("settings.runInBackgroundFailed"));
+    }
+  };
 
   const toggleDesktopNotifications = async (): Promise<void> => {
     if (isDesktopNotificationsEnabled) {
@@ -465,6 +477,42 @@ export function SettingsPage() {
                   className={cn(
                     "inline-block size-5 rounded-full bg-white shadow-sm transition-transform",
                     isDesktopNotificationsEnabled ? "translate-x-[1.375rem]" : "translate-x-0.5",
+                  )}
+                />
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Startup */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Power className="size-4 text-[hsl(var(--text-muted))]" />
+              <CardTitle>{t("settings.startup")}</CardTitle>
+            </div>
+            <CardDescription>{t("settings.startupHint")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm text-[hsl(var(--text))]">{t("settings.runInBackground")}</p>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={isRunInBackgroundEnabled}
+                aria-label={t("settings.runInBackground")}
+                onClick={() => void toggleRunInBackground()}
+                className={cn(
+                  "inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors",
+                  isRunInBackgroundEnabled
+                    ? "bg-[hsl(var(--brand-from))]"
+                    : "bg-[hsl(var(--border))]",
+                )}
+              >
+                <span
+                  className={cn(
+                    "inline-block size-5 rounded-full bg-white shadow-sm transition-transform",
+                    isRunInBackgroundEnabled ? "translate-x-[1.375rem]" : "translate-x-0.5",
                   )}
                 />
               </button>

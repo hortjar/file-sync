@@ -101,7 +101,11 @@
     "notifications": "Notifications",
     "notificationsHint": "Show desktop notifications for errors and updates when the app isn't focused.",
     "desktopNotifications": "Desktop notifications",
-    "notificationsDenied": "Notification permission denied — enable it for FileSync in System Settings."
+    "notificationsDenied": "Notification permission denied — enable it for FileSync in System Settings.",
+    "startup": "Startup",
+    "startupHint": "Launch FileSync at login and keep it running in the tray so folders stay in sync.",
+    "runInBackground": "Launch at startup and run in background",
+    "runInBackgroundFailed": "Could not update the startup setting."
   },
   "updates": {
     "checkFailed": "Could not check for updates",

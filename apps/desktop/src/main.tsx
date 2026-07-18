@@ -14,6 +14,7 @@ import { router } from "./lib/router";
 import { loadDeviceInfo, registerDevice, startHeartbeat } from "./services/device";
 import { startDeviceReporting } from "./services/device-reporting";
 import { startReconnectRefetch } from "./services/reconnect-refetch";
+import { initRunInBackground } from "./services/startup";
 import { startSyncEngine } from "./services/sync-engine";
 import { scheduleTokenRefresh, stopTokenRefresh } from "./services/token-refresh";
 import { startUpdateChecker } from "./services/updater";
@@ -31,6 +32,8 @@ initTheme();
 setAppName(import.meta.env.VITE_APP_NAME ?? DEFAULT_APP_NAME);
 // Cache device name + version so every request can carry identity headers.
 void loadDeviceInfo();
+// Reconcile the OS autostart login-item with the persisted preference on launch.
+initRunInBackground();
 // Self-update checks run independently of auth so a newer release is offered
 // even on the login screen. The returned stop fn is unused — checks run for
 // the app's whole lifetime.

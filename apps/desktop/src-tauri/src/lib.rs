@@ -1,10 +1,53 @@
 mod tray;
 mod watcher;
 
-use tauri::WindowEvent;
+use std::sync::atomic::{AtomicBool, Ordering};
+
+use tauri::{Manager, State, WindowEvent};
 use tauri_plugin_fs::FsExt;
 
 pub use watcher::{watch, FileChangeEvent};
+
+/// Whether closing the main window keeps the app alive in the tray (true) or
+/// quits it (false). Mirrors the "run in background" setting from the UI and is
+/// read by the window close handler. Defaults to on to match the app's original
+/// close-to-tray behavior.
+struct RunInBackground(AtomicBool);
+
+impl Default for RunInBackground {
+    fn default() -> Self {
+        RunInBackground(AtomicBool::new(true))
+    }
+}
+
+/// Apply the "run in background / launch at startup" preference: remember whether
+/// to keep running when the window is closed, and register or unregister the OS
+/// login-item so the app starts on device startup.
+#[tauri::command]
+fn set_run_in_background(
+    app: tauri::AppHandle,
+    state: State<'_, RunInBackground>,
+    enabled: bool,
+) -> Result<(), String> {
+    state.0.store(enabled, Ordering::Relaxed);
+
+    #[cfg(desktop)]
+    {
+        use tauri_plugin_autostart::ManagerExt;
+
+        let manager = app.autolaunch();
+        let result = if enabled {
+            manager.enable()
+        } else {
+            manager.disable()
+        };
+        result.map_err(|error| error.to_string())?;
+    }
+    #[cfg(not(desktop))]
+    let _ = app;
+
+    Ok(())
+}
 
 #[tauri::command]
 fn start_watching(app: tauri::AppHandle, sync_folder_id: String, local_path: String) {
@@ -270,13 +313,19 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_notification::init())
-        .plugin(tauri_plugin_process::init());
+        .plugin(tauri_plugin_process::init())
+        .manage(RunInBackground::default());
 
-    // The self-updater is desktop-only (the crate isn't built for mobile targets).
+    // The self-updater and autostart plugins are desktop-only (the crates aren't
+    // built for mobile targets).
     #[cfg(desktop)]
     {
         builder = builder
             .plugin(tauri_plugin_updater::Builder::new().build())
+            .plugin(tauri_plugin_autostart::init(
+                tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+                None,
+            ))
             .manage(DownloadedUpdate::default());
     }
 
@@ -287,6 +336,7 @@ pub fn run() {
         get_hostname,
         open_log_file,
         reveal_in_file_manager,
+        set_run_in_background,
         check_for_update,
         download_update,
         install_update
@@ -296,7 +346,8 @@ pub fn run() {
         start_watching,
         get_hostname,
         open_log_file,
-        reveal_in_file_manager
+        reveal_in_file_manager,
+        set_run_in_background
     ]);
 
     builder
@@ -306,8 +357,14 @@ pub fn run() {
         })
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { api, .. } = event {
-                window.hide().unwrap();
-                api.prevent_close();
+                // When running in the background, hide to the tray instead of
+                // closing; otherwise let the close proceed and fully quit.
+                if window.state::<RunInBackground>().0.load(Ordering::Relaxed) {
+                    window.hide().unwrap();
+                    api.prevent_close();
+                } else {
+                    window.app_handle().exit(0);
+                }
             }
         })
         .run(tauri::generate_context!())

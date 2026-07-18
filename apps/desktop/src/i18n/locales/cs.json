@@ -101,7 +101,11 @@
     "notifications": "Oznámení",
     "notificationsHint": "Zobrazovat oznámení na ploše pro chyby a aktualizace, když aplikace není aktivní.",
     "desktopNotifications": "Oznámení na ploše",
-    "notificationsDenied": "Oprávnění pro oznámení zamítnuto — povolte je pro FileSync v Nastavení systému."
+    "notificationsDenied": "Oprávnění pro oznámení zamítnuto — povolte je pro FileSync v Nastavení systému.",
+    "startup": "Spouštění",
+    "startupHint": "Spustí FileSync po přihlášení a nechá jej běžet na liště, aby složky zůstaly synchronizované.",
+    "runInBackground": "Spouštět při startu a běžet na pozadí",
+    "runInBackgroundFailed": "Nastavení spouštění se nepodařilo změnit."
   },
   "updates": {
     "checkFailed": "Nepodařilo se zkontrolovat aktualizace",
