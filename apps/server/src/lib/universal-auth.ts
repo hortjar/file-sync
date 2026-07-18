@@ -21,7 +21,7 @@ import { users } from "../db/schema";
 
 export const AUTH_MODE = process.env["AUTH_MODE"] === "universal" ? "universal" : "local";
 export const APP_SLUG = process.env["UNIVERSAL_AUTH_APP"] ?? "file-sync";
-const UNIVERSAL_URL = process.env["UNIVERSAL_AUTH_URL"] ?? "http://localhost:9200";
+const UNIVERSAL_URL = process.env["UNIVERSAL_AUTH_URL"] ?? "http://localhost:9000";
 const ISSUER = process.env["UNIVERSAL_AUTH_ISSUER"] ?? UNIVERSAL_URL;
 
 export const isUniversal = AUTH_MODE === "universal";
