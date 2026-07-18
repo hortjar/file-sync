@@ -5,12 +5,21 @@ import { Elysia, t } from "elysia";
 
 import { database } from "../db";
 import { refreshTokens, users } from "../db/schema";
+import {
+  delegateAuth,
+  isUniversal,
+  readSharedCookie,
+  setSharedCookieFromResponse,
+} from "../lib/universal-auth";
 
-const JWT_SECRET = process.env["JWT_SECRET"];
-if (!JWT_SECRET) throw new Error("JWT_SECRET is required");
+// In universal mode, tokens are issued by the Universal Admin server, so these
+// local signing secrets are optional.
+const JWT_SECRET = process.env["JWT_SECRET"] ?? "unused-in-universal-mode";
+if (!isUniversal && !process.env["JWT_SECRET"]) throw new Error("JWT_SECRET is required");
 
-const JWT_REFRESH_SECRET = process.env["JWT_REFRESH_SECRET"];
-if (!JWT_REFRESH_SECRET) throw new Error("JWT_REFRESH_SECRET is required");
+const JWT_REFRESH_SECRET = process.env["JWT_REFRESH_SECRET"] ?? "unused-in-universal-mode";
+if (!isUniversal && !process.env["JWT_REFRESH_SECRET"])
+  throw new Error("JWT_REFRESH_SECRET is required");
 
 const ACCESS_TOKEN_TTL_SECONDS = 15 * 60;
 const REFRESH_TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60;
@@ -44,7 +53,14 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
   .use(jwtRefresh)
   .post(
     "/register",
-    async ({ body, jwtAccess: accessJwt, jwtRefresh: refreshJwt, set }) => {
+    async ({ body, jwtAccess: accessJwt, jwtRefresh: refreshJwt, set, cookie }) => {
+      if (isUniversal) {
+        const { status, data } = await delegateAuth("register", body);
+        set.status = status;
+        if (status < 400) setSharedCookieFromResponse(cookie, data);
+        return data;
+      }
+
       const existing = await database
         .select({ id: users.id })
         .from(users)
@@ -103,7 +119,14 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
   )
   .post(
     "/login",
-    async ({ body, jwtAccess: accessJwt, jwtRefresh: refreshJwt, set }) => {
+    async ({ body, jwtAccess: accessJwt, jwtRefresh: refreshJwt, set, cookie }) => {
+      if (isUniversal) {
+        const { status, data } = await delegateAuth("login", body);
+        set.status = status;
+        if (status < 400) setSharedCookieFromResponse(cookie, data);
+        return data;
+      }
+
       const [user] = await database
         .select()
         .from(users)
@@ -153,14 +176,29 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
   )
   .post(
     "/refresh",
-    async ({ body, jwtRefresh: refreshJwt, jwtAccess: accessJwt, set }) => {
-      const payload = await refreshJwt.verify(body.refreshToken);
+    async ({ body, jwtRefresh: refreshJwt, jwtAccess: accessJwt, set, cookie }) => {
+      if (isUniversal) {
+        // Accept the refresh token from the body (existing/desktop clients) or the
+        // shared SSO cookie (a fresh browser session on a sibling subdomain).
+        const refreshToken = body.refreshToken ?? readSharedCookie(cookie);
+        if (!refreshToken) {
+          set.status = 401;
+          return { message: "No refresh token provided" };
+        }
+        const { status, data } = await delegateAuth("refresh", { refreshToken });
+        set.status = status;
+        if (status < 400) setSharedCookieFromResponse(cookie, data);
+        return data;
+      }
+
+      const localToken = body.refreshToken ?? "";
+      const payload = await refreshJwt.verify(localToken);
       if (!payload) {
         set.status = 401;
         return { message: "Invalid or expired refresh token" };
       }
 
-      const tokenHash = await hashToken(body.refreshToken);
+      const tokenHash = await hashToken(localToken);
 
       const [stored] = await database
         .select()
@@ -193,7 +231,8 @@ export const authRoutes = new Elysia({ prefix: "/api/auth" })
       return { accessToken };
     },
     {
-      body: t.Object({ refreshToken: t.String() }),
-      detail: { summary: "Refresh access token" },
+      // Optional so a browser can refresh using only the shared SSO cookie.
+      body: t.Object({ refreshToken: t.Optional(t.String()) }),
+      detail: { summary: "Refresh access token (body token or shared SSO cookie)" },
     },
   );

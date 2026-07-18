@@ -4,6 +4,7 @@ import { Elysia } from "elysia";
 
 import { database } from "../db";
 import { users } from "../db/schema";
+import { isUniversal, provisionLocalUser, verifyUniversalToken } from "../lib/universal-auth";
 
 type JwtPayload = {
   sub: string;
@@ -12,8 +13,12 @@ type JwtPayload = {
   exp: number;
 };
 
-const jwtSecret = process.env["JWT_SECRET"];
-if (!jwtSecret) throw new Error("JWT_SECRET environment variable is required");
+// In universal mode a local JWT secret isn't required — access tokens are
+// verified against the Universal Admin server's JWKS instead.
+const jwtSecret = process.env["JWT_SECRET"] ?? "unused-in-universal-mode";
+if (!isUniversal && !process.env["JWT_SECRET"]) {
+  throw new Error("JWT_SECRET environment variable is required");
+}
 
 export const jwtPlugin = new Elysia({ name: "jwt" }).use(jwt({ name: "jwt", secret: jwtSecret }));
 
@@ -29,6 +34,17 @@ export const authPlugin = new Elysia({ name: "auth" })
     if (!authorization?.startsWith("Bearer ")) return emptyUser;
 
     const token = authorization.slice(7);
+
+    // ─── Universal mode: verify against the shared server + JIT-provision ──────
+    // Keeps every downstream route working: they still receive a local user id.
+    if (isUniversal) {
+      const claims = await verifyUniversalToken(token);
+      if (!claims) return emptyUser;
+      const local = await provisionLocalUser(claims);
+      return { userId: local.id, userEmail: local.email };
+    }
+
+    // ─── Local mode: original behaviour ────────────────────────────────────────
     const payload = await jwtInstance.verify(token);
     if (!payload) return emptyUser;
 
