@@ -22,7 +22,7 @@ if (!isUniversal && !process.env["JWT_SECRET"]) {
 
 export const jwtPlugin = new Elysia({ name: "jwt" }).use(jwt({ name: "jwt", secret: jwtSecret }));
 
-const APP_SLUG = process.env["UNIVERSAL_AUTH_APP"] ?? "file-sync";
+const APP_SLUG = process.env["UNIVERSAL_AUTH_APP"] || "file-sync";
 
 export const authPlugin = new Elysia({ name: "auth" })
   .use(jwtPlugin)

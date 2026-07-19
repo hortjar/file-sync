@@ -36,6 +36,17 @@ services:
       # the first deploy — the password is only applied when the user is created.
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@email.com}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-password}
+      # --- Shared identity via the Universal Admin server ---
+      # Set AUTH_MODE=universal in the Portainer stack env to delegate login.
+      AUTH_MODE: ${AUTH_MODE:-local}
+      UNIVERSAL_AUTH_URL: ${UNIVERSAL_AUTH_URL:-http://localhost:9000}
+      UNIVERSAL_AUTH_ISSUER: ${UNIVERSAL_AUTH_ISSUER:-}
+      UNIVERSAL_AUTH_APP: ${UNIVERSAL_AUTH_APP:-file-sync}
+      # --- Cross-subdomain SSO cookie ---
+      ENABLE_AUTH_COOKIES: ${ENABLE_AUTH_COOKIES:-true}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      COOKIE_SAMESITE: ${COOKIE_SAMESITE:-lax}
     # Migrate, seed the admin (idempotent, non-fatal), then start the server.
     command:
       - sh
