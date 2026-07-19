@@ -101,6 +101,7 @@ export const devicesRoutes = new Elysia({ prefix: "/api/devices" })
         platform: platformSchema,
         appVersion: optionalVersionString,
       }),
+      requirePermission: "devices:write",
       detail: { summary: "Register a new device" },
     },
   )
@@ -199,6 +200,7 @@ export const devicesRoutes = new Elysia({ prefix: "/api/devices" })
     },
     {
       params: t.Object({ id: t.String() }),
+      requirePermission: "devices:write",
       detail: { summary: "Remove a device and signal it to log out" },
     },
   );

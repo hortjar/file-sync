@@ -22,12 +22,18 @@ if (!isUniversal && !process.env["JWT_SECRET"]) {
 
 export const jwtPlugin = new Elysia({ name: "jwt" }).use(jwt({ name: "jwt", secret: jwtSecret }));
 
+const APP_SLUG = process.env["UNIVERSAL_AUTH_APP"] ?? "file-sync";
+
 export const authPlugin = new Elysia({ name: "auth" })
   .use(jwtPlugin)
   .derive({ as: "global" }, async ({ jwt: jwtInstance, headers }) => {
     const emptyUser = {
       userId: undefined as string | undefined,
       userEmail: undefined as string | undefined,
+      // Per-app grants from the Universal Admin server (universal mode only).
+      userRoles: [] as string[],
+      userPermissions: [] as string[],
+      userIsAdmin: false,
     };
 
     const authorization = headers["authorization"];
@@ -41,7 +47,16 @@ export const authPlugin = new Elysia({ name: "auth" })
       const claims = await verifyUniversalToken(token);
       if (!claims) return emptyUser;
       const local = await provisionLocalUser(claims);
-      return { userId: local.id, userEmail: local.email };
+      const grant = claims.apps?.find((a) => a.app === APP_SLUG);
+      const roles = grant?.roles ?? [];
+      return {
+        userId: local.id,
+        userEmail: local.email,
+        userRoles: roles,
+        userPermissions: grant?.permissions ?? [],
+        userIsAdmin:
+          roles.includes("admin") || claims.role === "admin" || claims.role === "superadmin",
+      };
     }
 
     // ─── Local mode: original behaviour ────────────────────────────────────────
@@ -57,7 +72,7 @@ export const authPlugin = new Elysia({ name: "auth" })
 
     if (!user) return emptyUser;
 
-    return { userId: user.id, userEmail: user.email };
+    return { ...emptyUser, userId: user.id, userEmail: user.email };
   })
   .macro({
     requireAuth: () => ({
@@ -65,6 +80,22 @@ export const authPlugin = new Elysia({ name: "auth" })
         if (userId) return;
         set.status = 401;
         return { message: "Unauthorized" };
+      },
+    }),
+    // Require a specific per-app permission (from the Universal Admin grants).
+    // Local mode has no per-app permission model, so this only enforces auth;
+    // in universal mode admins bypass and everyone else needs the grant.
+    requirePermission: (permission: string) => ({
+      beforeHandle({ userId, userIsAdmin, userPermissions, set }) {
+        if (!userId) {
+          set.status = 401;
+          return { message: "Unauthorized" };
+        }
+        if (isUniversal && !userIsAdmin && !userPermissions.includes(permission)) {
+          set.status = 403;
+          return { message: `You lack the required permission: ${permission}` };
+        }
+        return;
       },
     }),
   });

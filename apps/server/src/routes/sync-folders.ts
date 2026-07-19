@@ -85,6 +85,7 @@ export const syncFoldersRoutes = new Elysia({ prefix: "/api/sync-folders" })
       body: t.Object({
         name: t.String({ minLength: 1, maxLength: 255 }),
       }),
+      requirePermission: "sync:write",
       detail: { summary: "Create a new sync folder" },
     },
   )
@@ -118,6 +119,7 @@ export const syncFoldersRoutes = new Elysia({ prefix: "/api/sync-folders" })
     {
       params: t.Object({ id: t.String() }),
       body: patchAppearanceBody,
+      requirePermission: "sync:write",
       detail: { summary: "Update folder icon and color" },
     },
   )
@@ -190,6 +192,7 @@ export const syncFoldersRoutes = new Elysia({ prefix: "/api/sync-folders" })
     },
     {
       params: t.Object({ id: t.String() }),
+      requirePermission: "sync:write",
       detail: { summary: "Delete a sync folder" },
     },
   )
@@ -254,6 +257,7 @@ export const syncFoldersRoutes = new Elysia({ prefix: "/api/sync-folders" })
         deviceId: t.String(),
         localPath: t.String({ minLength: 1 }),
       }),
+      requirePermission: "sync:write",
       detail: { summary: "Link a device to a sync folder with a local path" },
     },
   )
@@ -295,6 +299,7 @@ export const syncFoldersRoutes = new Elysia({ prefix: "/api/sync-folders" })
     },
     {
       params: t.Object({ id: t.String(), deviceId: t.String() }),
+      requirePermission: "sync:write",
       detail: { summary: "Unlink a device from a sync folder" },
     },
   );
