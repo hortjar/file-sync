@@ -38,6 +38,7 @@ export function Login() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const bootstrapped = useAuthStore((s) => s.bootstrapped);
   const sharedAuth = useSharedAuth();
 
   const form = useForm({
@@ -66,7 +67,9 @@ export function Login() {
     },
   });
 
-  if (isAuthenticated) return <Navigate to="/admin/dashboard" replace />;
+  // Only redirect once the startup session check has settled, so a stale
+  // session that's about to be evicted can't bounce us to the dashboard.
+  if (bootstrapped && isAuthenticated) return <Navigate to="/admin/dashboard" replace />;
 
   return (
     <div className="flex min-h-full items-center justify-center p-4">
