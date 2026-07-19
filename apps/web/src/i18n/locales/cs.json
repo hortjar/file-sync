@@ -40,7 +40,8 @@
     "email": "E-mail",
     "signingIn": "Přihlašování…",
     "invalidCredentials": "Neplatný e-mail nebo heslo",
-    "connectionError": "Nelze se připojit k serveru"
+    "connectionError": "Nelze se připojit k serveru",
+    "sharedLogin": "Sdílené přihlášení — použijte svůj účet Universal Admin. Stejné přihlašovací údaje fungují napříč všemi propojenými aplikacemi."
   },
   "dashboard": {
     "title": "Přehled",

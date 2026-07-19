@@ -40,7 +40,8 @@
     "email": "Email",
     "signingIn": "Signing in…",
     "invalidCredentials": "Invalid email or password",
-    "connectionError": "Could not connect to server"
+    "connectionError": "Could not connect to server",
+    "sharedLogin": "Shared login — use your Universal Admin account. The same credentials work across all connected apps."
   },
   "dashboard": {
     "title": "Dashboard",

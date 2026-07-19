@@ -8,6 +8,8 @@ type AuthState = {
   userId: string | undefined;
   userEmail: string | undefined;
   isAuthenticated: boolean;
+  /** True once the startup shared-session (SSO) check has completed. */
+  bootstrapped: boolean;
 };
 
 const initialState: AuthState = {
@@ -16,6 +18,7 @@ const initialState: AuthState = {
   userId: undefined,
   userEmail: undefined,
   isAuthenticated: false,
+  bootstrapped: false,
 };
 
 export const authStore = persistStore("filesync-web-auth", initialState);
@@ -30,6 +33,10 @@ export function setUserId(userId: string): void {
 
 export function setUserEmail(userEmail: string): void {
   authStore.setState((s) => ({ ...s, userEmail }));
+}
+
+export function setBootstrapped(bootstrapped: boolean): void {
+  authStore.setState((s) => ({ ...s, bootstrapped }));
 }
 
 export function logout(): void {

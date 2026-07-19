@@ -1,5 +1,6 @@
 import { useForm } from "@tanstack/react-form";
-import { FolderSync } from "lucide-react";
+import { FolderSync, KeyRound } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Navigate, useNavigate } from "react-router-dom";
 
@@ -7,8 +8,25 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { postApiAuthLogin } from "../../generated/sdk.gen";
 import { setAuthHeader } from "../../lib/api-client";
+import { SERVER_URL } from "../../lib/server-url";
 import { toast } from "../../lib/toast";
 import { setTokens, setUserEmail, setUserId, useAuthStore } from "../../stores/auth";
+
+/** Whether this server delegates identity to the shared Universal Admin server. */
+function useSharedAuth(): boolean {
+  const [shared, setShared] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    fetch(`${SERVER_URL}/api/auth/mode`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => alive && setShared(d?.mode === "universal"))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return shared;
+}
 
 type LoginResponse = {
   accessToken: string;
@@ -20,6 +38,7 @@ export function Login() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const sharedAuth = useSharedAuth();
 
   const form = useForm({
     defaultValues: { email: "", password: "" },
@@ -61,6 +80,13 @@ export function Login() {
             <p className="mt-1 text-sm text-[hsl(var(--text-muted))]">{t("auth.signIn")}</p>
           </div>
         </div>
+
+        {sharedAuth && (
+          <div className="mb-6 flex items-start gap-2 rounded-xl border border-[hsl(var(--brand)/0.35)] bg-[hsl(var(--brand)/0.08)] px-3 py-2.5 text-xs leading-relaxed text-[hsl(var(--text))]">
+            <KeyRound className="mt-0.5 size-4 shrink-0 text-[hsl(var(--brand))]" />
+            <span>{t("auth.sharedLogin")}</span>
+          </div>
+        )}
 
         <form
           onSubmit={(event) => {

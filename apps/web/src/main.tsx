@@ -19,6 +19,7 @@ import { AppLayout } from "./components/AppLayout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { initApiClient, setAuthHeader } from "./lib/api-client";
 import { queryClient } from "./lib/query";
+import { bootstrapSharedSession } from "./lib/token-refresh";
 import { Dashboard } from "./routes/dashboard/Dashboard";
 import { DeviceLogsPage } from "./routes/device-logs/DeviceLogsPage";
 import { DevicesPage } from "./routes/devices/DevicesPage";
@@ -40,6 +41,10 @@ const { accessToken } = authStore.state;
 initApiClient();
 if (accessToken) setAuthHeader(accessToken);
 initTheme();
+// Startup SSO: adopt a shared cross-subdomain session once (resets the transient
+// `bootstrapped` flag first so protected routes wait for this to finish).
+authStore.setState((s) => ({ ...s, bootstrapped: false }));
+void bootstrapSharedSession();
 const appName = import.meta.env.VITE_APP_NAME ?? DEFAULT_APP_NAME;
 setAppName(appName);
 document.title = appName;
