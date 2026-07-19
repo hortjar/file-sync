@@ -47,7 +47,7 @@ services:
       COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
       COOKIE_SECURE: ${COOKIE_SECURE:-true}
       COOKIE_SAMESITE: ${COOKIE_SAMESITE:-lax}
-    # Migrate, seed the admin (idempotent, non-fatal), then start the server.
+    # Migrate, seed the admin once on an empty database (non-fatal), then start the server.
     command:
       - sh
       - -c
