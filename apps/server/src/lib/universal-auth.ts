@@ -21,12 +21,46 @@ import { users } from "../db/schema";
 
 export const AUTH_MODE = process.env["AUTH_MODE"] === "universal" ? "universal" : "local";
 export const APP_SLUG = process.env["UNIVERSAL_AUTH_APP"] ?? "file-sync";
-const UNIVERSAL_URL = process.env["UNIVERSAL_AUTH_URL"] ?? "http://localhost:9000";
-const ISSUER = process.env["UNIVERSAL_AUTH_ISSUER"] ?? UNIVERSAL_URL;
+export const UNIVERSAL_URL = process.env["UNIVERSAL_AUTH_URL"] ?? "http://localhost:9000";
+export const ISSUER = process.env["UNIVERSAL_AUTH_ISSUER"] ?? UNIVERSAL_URL;
 
 export const isUniversal = AUTH_MODE === "universal";
 
 const jwks = createRemoteJWKSet(new URL(`${UNIVERSAL_URL}/.well-known/jwks.json`));
+
+/**
+ * Print the resolved auth configuration at startup and, in universal mode,
+ * probe the universal server's JWKS so misconfiguration surfaces immediately
+ * instead of as a mysterious login failure. `log` is the app's logger fn.
+ */
+export async function logAuthDiagnostics(log: (msg: string) => void): Promise<void> {
+  if (!isUniversal) {
+    log(`Auth:    LOCAL — using this server's own accounts (AUTH_MODE=${AUTH_MODE}).`);
+    return;
+  }
+  log(`Auth:    UNIVERSAL — delegating identity to the shared Universal Admin server.`);
+  log(`  AUTH_MODE              = ${AUTH_MODE}`);
+  log(`  UNIVERSAL_AUTH_URL     = ${UNIVERSAL_URL}   (server-to-server: JWKS + login proxy)`);
+  log(`  UNIVERSAL_AUTH_ISSUER  = ${ISSUER}   (must equal the admin server's ISSUER / token 'iss')`);
+  log(`  UNIVERSAL_AUTH_APP     = ${APP_SLUG}   (must be a registered app slug / token 'aud')`);
+
+  const jwksUrl = `${UNIVERSAL_URL}/.well-known/jwks.json`;
+  try {
+    const res = await fetch(jwksUrl);
+    if (res.ok) {
+      const body = (await res.json().catch(() => ({}))) as { keys?: unknown[] };
+      const count = Array.isArray(body.keys) ? body.keys.length : 0;
+      log(`  JWKS check             = OK (${count} key(s) at ${jwksUrl})`);
+    } else {
+      log(`  JWKS check             = FAILED — HTTP ${res.status} at ${jwksUrl}. Check UNIVERSAL_AUTH_URL.`);
+    }
+  } catch (err) {
+    log(
+      `  JWKS check             = UNREACHABLE at ${jwksUrl} (${err instanceof Error ? err.message : String(err)}). ` +
+        `The admin server must be reachable from THIS server (use a LAN IP/hostname, not the browser URL).`,
+    );
+  }
+}
 
 export interface UniversalClaims {
   sub: string;
