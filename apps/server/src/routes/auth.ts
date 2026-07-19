@@ -51,6 +51,11 @@ async function persistRefreshToken(userId: string, token: string): Promise<void>
 export const authRoutes = new Elysia({ prefix: "/api/auth" })
   .use(jwtAccess)
   .use(jwtRefresh)
+  // Public: lets the login screen show that identity is shared via Universal
+  // Admin, and lets you confirm which backend this server is actually using.
+  .get("/mode", () => ({ mode: isUniversal ? "universal" : "local" }), {
+    detail: { summary: "Which auth backend this server uses (local or universal)" },
+  })
   .post(
     "/register",
     async ({ body, jwtAccess: accessJwt, jwtRefresh: refreshJwt, set, cookie }) => {
